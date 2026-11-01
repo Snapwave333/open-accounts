@@ -141,7 +141,20 @@ const check = (cond, message) => {
       (await slotCard.textContent()).includes('NEEDS APPROVAL'),
       'new post should await approval',
     );
-    await slotCard.getByRole('button', { name: 'Approve' }).click();
+    await tab('Needs You');
+    const approval = page.locator('.approval-card', { hasText: 'Behind the scenes' });
+    await approval.waitFor();
+    check(
+      (await page.title()).startsWith('(1)'),
+      `window title should count waiting items, got "${await page.title()}"`,
+    );
+    await approval.getByRole('button', { name: 'Approve' }).click();
+    await approval.waitFor({ state: 'detached' });
+    check(
+      (await page.title()) === 'OpenAccounts',
+      'title badge should clear once nothing is waiting',
+    );
+    await tab('Activity Flow');
     await page
       .locator('.flow-card', { hasText: 'Behind the scenes' })
       .filter({ hasText: 'APPROVED' })

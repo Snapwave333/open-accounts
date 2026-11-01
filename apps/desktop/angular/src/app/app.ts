@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, HostListener, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, HostListener, computed, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AccountRecord, ChatAttachment, EngagementQuota, InboxMessage, TauriService } from './services/tauri.service';
@@ -63,8 +63,16 @@ export class App {
   signupEmail = signal<string>('');
   pendingDelete = signal<string | null>(null);
 
+  postsAwaitingApproval = computed(() =>
+    this.tauri.planToDoNextItems().filter((i) => i.kind === 'slot' && i.tag === 'NEEDS APPROVAL')
+  );
+
   needsYouCount = computed(
-    () => this.tauri.humanTasks().length + this.tauri.inboxNeedingReview().length + this.tauri.registrations().length
+    () =>
+      this.tauri.humanTasks().length +
+      this.tauri.inboxNeedingReview().length +
+      this.tauri.registrations().length +
+      this.postsAwaitingApproval().length
   );
 
   chatInput = signal<string>('');
@@ -196,6 +204,13 @@ export class App {
     this.pendingDelete.set(null);
     await this.tauri.deleteAccount(acc.id);
   }
+
+  private readonly titleSync = effect(() => {
+    const count = this.needsYouCount();
+    if (typeof document !== 'undefined') {
+      document.title = count > 0 ? `(${count}) OpenAccounts` : 'OpenAccounts';
+    }
+  });
 
   setTab(tab: NavTab) {
     this.activeTab.set(tab);
