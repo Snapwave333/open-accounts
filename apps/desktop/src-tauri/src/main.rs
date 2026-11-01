@@ -5,6 +5,7 @@ mod state;
 
 use commands::*;
 use state::AppState;
+use tauri::Manager;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tokio::main]
@@ -21,6 +22,14 @@ async fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .manage(state)
+        .setup(|app| {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.unminimize();
+                let _ = window.set_focus();
+            }
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             get_system_stats,
             list_accounts,

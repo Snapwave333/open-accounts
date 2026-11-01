@@ -1,1058 +1,134 @@
-<div class="desktop-app" [attr.data-density]="densityMode()">
-  <!-- TOP APPLICATION BAR -->
+<div class="desktop-app">
+  <!-- MINIMAL TOP BAR -->
   <header class="topbar">
-    <!-- Left: Identity & Engine Status -->
     <div class="topbar-left">
       <div class="brand-badge">
         <div class="brand-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
             <rect width="18" height="18" x="3" y="3" rx="4"/>
-            <path d="M7 12h10"/>
-            <path d="M12 7v10"/>
-            <circle cx="12" cy="12" r="2.5" fill="currentColor"/>
+            <circle cx="12" cy="12" r="3" fill="currentColor"/>
           </svg>
         </div>
         <div class="brand-titles">
           <span class="product-name">OpenAccounts</span>
-          <span class="build-tag">v2.4.0 Engine</span>
+          <span class="build-tag">Clearly Drawn Studios</span>
         </div>
       </div>
-      <div class="system-status-indicator" [class.halted]="tauri.killSwitchActive()">
+
+      <div class="system-status-indicator" [class.halted]="tauri.killSwitchActive() || !tauri.isAutonomousLoopRunning()">
         <span class="status-dot"></span>
-        <span class="status-label">{{ tauri.killSwitchActive() ? 'KILL SWITCH ACTIVE' : 'ENGINE ONLINE' }}</span>
+        <span class="status-label">
+          {{ tauri.killSwitchActive() ? 'HALTED' : (tauri.isAutonomousLoopRunning() ? 'RUNNING IN BACKGROUND' : 'PAUSED') }}
+        </span>
       </div>
     </div>
 
-    <!-- Center: Universal Search & Quick Launcher (Ctrl+K) -->
+    <!-- Simple 3-Tab Switcher right in the Top Bar -->
     <div class="topbar-center">
-      <div class="search-trigger" (click)="toggleCommandPalette()" title="Press Ctrl+K to search">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="11" cy="11" r="8"/>
-          <path d="m21 21-4.3-4.3"/>
-        </svg>
-        <span class="search-placeholder">Universal search accounts, workflows, tools...</span>
-        <kbd class="key-shortcut">Ctrl+K</kbd>
+      <div style="display: flex; gap: 6px; background: #121622; padding: 4px; border-radius: 8px; border: 1px solid #23293a;">
+        <button
+          (click)="setTab('home')"
+          [style.background]="activeTab() === 'home' ? '#d946ef' : 'transparent'"
+          [style.color]="activeTab() === 'home' ? '#fff' : '#94a3b8'"
+          style="border: none; padding: 6px 14px; border-radius: 6px; font-weight: 600; font-size: 13px; cursor: pointer;"
+        >
+          Needs You ({{ tauri.humanTasks().length }})
+        </button>
+        <button
+          (click)="setTab('accounts')"
+          [style.background]="activeTab() === 'accounts' ? '#d946ef' : 'transparent'"
+          [style.color]="activeTab() === 'accounts' ? '#fff' : '#94a3b8'"
+          style="border: none; padding: 6px 14px; border-radius: 6px; font-weight: 600; font-size: 13px; cursor: pointer;"
+        >
+          Accounts ({{ tauri.accounts().length }})
+        </button>
+        <button
+          (click)="setTab('vault')"
+          [style.background]="activeTab() === 'vault' ? '#d946ef' : 'transparent'"
+          [style.color]="activeTab() === 'vault' ? '#fff' : '#94a3b8'"
+          style="border: none; padding: 6px 14px; border-radius: 6px; font-weight: 600; font-size: 13px; cursor: pointer;"
+        >
+          Vault ({{ tauri.vaultUnlocked() ? 'Unlocked' : 'Locked' }})
+        </button>
       </div>
     </div>
 
-    <!-- Right: Controls, Profile & Windows Window Chrome -->
+    <!-- Right: Pause/Resume + Emergency Stop + Window Controls -->
     <div class="topbar-right">
-      <!-- Density Toggle -->
-      <button class="topbar-btn" (click)="toggleDensity()" [title]="'Current: ' + densityMode() + ' density. Click to toggle.'">
-        <svg *ngIf="densityMode() === 'comfortable'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect width="18" height="18" x="3" y="3" rx="2"/>
-          <path d="M3 9h18"/>
-          <path d="M3 15h18"/>
-        </svg>
-        <svg *ngIf="densityMode() === 'compact'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect width="18" height="18" x="3" y="3" rx="2"/>
-          <path d="M3 7h18"/>
-          <path d="M3 11h18"/>
-          <path d="M3 15h18"/>
-          <path d="M3 19h18"/>
-        </svg>
-        <span class="density-label">{{ densityMode() === 'comfortable' ? 'Comfortable' : 'Compact' }}</span>
+      <button class="btn-micro" (click)="toggleMarketingLoop()">
+        <span>{{ tauri.isAutonomousLoopRunning() ? 'Pause Autopilot' : 'Resume Autopilot' }}</span>
       </button>
 
-      <!-- Notification Center Trigger -->
-      <button class="topbar-btn icon-only notification-btn" (click)="toggleNotificationCenter()" title="Notifications & Security Alerts">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
-          <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
-        </svg>
-        <span *ngIf="tauri.notifications().length > 0" class="notif-badge">{{ tauri.notifications().length }}</span>
+      <button class="btn-micro" [class.btn-danger]="!tauri.killSwitchActive()" (click)="toggleKillSwitch()">
+        <span>{{ tauri.killSwitchActive() ? 'Reset Stop' : 'Kill Switch' }}</span>
       </button>
-
-      <!-- User Profile Badge -->
-      <div class="user-profile-badge">
-        <div class="user-avatar">OP</div>
-        <span class="user-name">local-operator</span>
-      </div>
 
       <div class="window-controls-divider"></div>
 
-      <!-- Native Windows Window Controls -->
       <div class="window-controls">
         <button class="win-btn win-minimize" (click)="minimizeWindow()" title="Minimize">
-          <svg width="10" height="1" viewBox="0 0 10 1">
-            <rect width="10" height="1" fill="currentColor"/>
-          </svg>
+          <svg width="10" height="1" viewBox="0 0 10 1"><rect width="10" height="1" fill="currentColor"/></svg>
         </button>
-        <button class="win-btn win-maximize" (click)="maximizeWindow()" title="Maximize / Restore">
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-            <rect width="9" height="9" x="0.5" y="0.5" stroke="currentColor" stroke-width="1"/>
-          </svg>
+        <button class="win-btn win-maximize" (click)="maximizeWindow()" title="Maximize">
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><rect width="9" height="9" x="0.5" y="0.5" stroke="currentColor" stroke-width="1"/></svg>
         </button>
         <button class="win-btn win-close" (click)="closeWindow()" title="Close">
-          <svg width="10" height="10" viewBox="0 0 10 10">
-            <path d="M1 1L9 9M9 1L1 9" stroke="currentColor" stroke-width="1.2"/>
-          </svg>
+          <svg width="10" height="10" viewBox="0 0 10 10"><path d="M1 1L9 9M9 1L1 9" stroke="currentColor" stroke-width="1.2"/></svg>
         </button>
       </div>
     </div>
   </header>
 
-  <!-- MAIN BODY LAYOUT -->
-  <div class="app-body">
-    <!-- PERSISTENT LEFT NAVIGATION SIDEBAR (~230px) -->
-    <aside class="sidebar">
-      <div class="sidebar-scrollable">
-        <div class="nav-group-label">OPERATIONS</div>
+  <!-- SINGLE CLEAN WORKSPACE (NO CLUTTER SIDEBAR) -->
+  <div class="app-body" style="grid-template-columns: 1fr;">
+    <main class="main-canvas" style="max-width: 980px; margin: 0 auto; width: 100%; padding: 28px 24px;">
 
-        <nav class="nav-list">
-          <button class="nav-item" [class.active]="activeTab() === 'home'" (click)="setTab('home')">
-            <div class="nav-accent-bar"></div>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect width="7" height="9" x="3" y="3" rx="1"/>
-              <rect width="7" height="5" x="14" y="3" rx="1"/>
-              <rect width="7" height="9" x="14" y="12" rx="1"/>
-              <rect width="7" height="5" x="3" y="16" rx="1"/>
-            </svg>
-            <span class="nav-title">Home</span>
-          </button>
-
-          <button class="nav-item" [class.active]="activeTab() === 'accounts'" (click)="setTab('accounts')">
-            <div class="nav-accent-bar"></div>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-              <circle cx="9" cy="7" r="4"/>
-              <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
-            <span class="nav-title">Accounts</span>
-            <span class="nav-badge">{{ tauri.accounts().length }}</span>
-          </button>
-
-          <button class="nav-item" [class.active]="activeTab() === 'create'" (click)="setTab('create')">
-            <div class="nav-accent-bar"></div>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/>
-              <line x1="12" x2="12" y1="8" y2="16"/>
-              <line x1="8" x2="16" y1="12" y2="12"/>
-            </svg>
-            <span class="nav-title">Create</span>
-            <span class="nav-pill-fuchsia">Preflight</span>
-          </button>
-
-          <button class="nav-item" [class.active]="activeTab() === 'social'" (click)="setTab('social')">
-            <div class="nav-accent-bar"></div>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
-              <polyline points="16 6 12 2 8 6"/>
-              <line x1="12" x2="12" y1="2" y2="15"/>
-            </svg>
-            <span class="nav-title">Social</span>
-            <span class="nav-badge blue">{{ tauri.campaigns().length }}</span>
-          </button>
-
-          <button class="nav-item" [class.active]="activeTab() === 'automations'" (click)="setTab('automations')">
-            <div class="nav-accent-bar"></div>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-            </svg>
-            <span class="nav-title">Automations</span>
-            <span class="nav-badge" [class.warning]="tauri.humanTasks().length > 0">
-              {{ tauri.activeOperations().length }}
-            </span>
-          </button>
-
-          <button class="nav-item" [class.active]="activeTab() === 'agents'" (click)="setTab('agents')">
-            <div class="nav-accent-bar"></div>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect width="18" height="18" x="3" y="3" rx="2"/>
-              <circle cx="8.5" cy="8.5" r="1.5"/>
-              <circle cx="15.5" cy="8.5" r="1.5"/>
-              <path d="M9 15h6"/>
-            </svg>
-            <span class="nav-title">Agents</span>
-            <span class="nav-badge">{{ tauri.collaboratingAgents().length }}</span>
-          </button>
-
-          <button class="nav-item" [class.active]="activeTab() === 'creative-studio'" (click)="setTab('creative-studio')">
-            <div class="nav-accent-bar"></div>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="m22 8-6 4 6 4V8Z"/>
-              <rect width="14" height="12" x="2" y="6" rx="2" ry="2"/>
-            </svg>
-            <span class="nav-title">Creative Studio</span>
-            <span class="nav-pill-subtle">9:16</span>
-          </button>
-
-          <div class="nav-group-label">INFRASTRUCTURE</div>
-
-          <button class="nav-item" [class.active]="activeTab() === 'browser'" (click)="setTab('browser')">
-            <div class="nav-accent-bar"></div>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/>
-              <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>
-              <path d="M2 12h20"/>
-            </svg>
-            <span class="nav-title">Browser</span>
-            <span class="nav-badge">Relay</span>
-          </button>
-
-          <button class="nav-item" [class.active]="activeTab() === 'vault'" (click)="setTab('vault')">
-            <div class="nav-accent-bar"></div>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
-              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-            </svg>
-            <span class="nav-title">Vault</span>
-            <span class="nav-pill-emerald" *ngIf="tauri.vaultUnlocked()">Unlocked</span>
-            <span class="nav-pill-muted" *ngIf="!tauri.vaultUnlocked()">Locked</span>
-          </button>
-
-          <button class="nav-item" [class.active]="activeTab() === 'intelligence'" (click)="setTab('intelligence')">
-            <div class="nav-accent-bar"></div>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-            </svg>
-            <span class="nav-title">Intelligence</span>
-            <span class="nav-badge">22</span>
-          </button>
-
-          <button class="nav-item" [class.active]="activeTab() === 'analytics'" (click)="setTab('analytics')">
-            <div class="nav-accent-bar"></div>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" x2="18" y1="20" y2="10"/>
-              <line x1="12" x2="12" y1="20" y2="4"/>
-              <line x1="6" x2="6" y1="20" y2="14"/>
-            </svg>
-            <span class="nav-title">Analytics</span>
-          </button>
-
-          <button class="nav-item" [class.active]="activeTab() === 'settings'" (click)="setTab('settings')">
-            <div class="nav-accent-bar"></div>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
-              <circle cx="12" cy="12" r="3"/>
-            </svg>
-            <span class="nav-title">Settings</span>
-          </button>
-        </nav>
-      </div>
-
-      <!-- Bottom Hardware & System Connection Indicators -->
-      <div class="sidebar-system-footer">
-        <div class="connection-status">
-          <span class="pulse-dot"></span>
-          <span class="connection-text">Connected - Engine v2.4.0</span>
-        </div>
-
-        <div class="hardware-meters">
-          <div class="meter-col">
-            <span class="meter-label">CPU</span>
-            <div class="meter-bar-track">
-              <div class="meter-bar-fill" [style.width.%]="tauri.hardware().cpu_percent"></div>
-            </div>
-            <span class="meter-val mono">{{ tauri.hardware().cpu_percent }}%</span>
+      <!-- TAB 1: NEEDS YOU & SILENT BACKGROUND PULSE -->
+      <section *ngIf="activeTab() === 'home'" class="workspace-view">
+        <!-- Compact 4-Card Background Pulse -->
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px;">
+          <div class="panel" style="padding: 16px;">
+            <div style="font-size: 11px; color: #94a3b8; font-weight: 600; letter-spacing: 0.05em;">MANAGED ACCOUNTS</div>
+            <div style="font-size: 26px; font-weight: 700; color: #fff; margin: 6px 0 4px;">{{ tauri.accounts().length }}</div>
+            <div style="font-size: 12px; color: #64748b;">IG · TikTok · YouTube · Shopify</div>
           </div>
 
-          <div class="meter-col">
-            <span class="meter-label">GPU</span>
-            <div class="meter-bar-track">
-              <div class="meter-bar-fill" [style.width.%]="tauri.hardware().gpu_percent"></div>
-            </div>
-            <span class="meter-val mono">{{ tauri.hardware().gpu_percent }}%</span>
+          <div class="panel" style="padding: 16px;">
+            <div style="font-size: 11px; color: #94a3b8; font-weight: 600; letter-spacing: 0.05em;">SOCIAL & ENGAGEMENT</div>
+            <div style="font-size: 22px; font-weight: 700; color: #10b981; margin: 6px 0 4px;">ACTIVE</div>
+            <div style="font-size: 12px; color: #64748b;">Running in background</div>
           </div>
 
-          <div class="meter-col">
-            <span class="meter-label">RAM</span>
-            <div class="meter-bar-track">
-              <div class="meter-bar-fill" [style.width.%]="(tauri.hardware().memory_used_gb / tauri.hardware().memory_total_gb) * 100"></div>
-            </div>
-            <span class="meter-val mono">3.8G</span>
+          <div class="panel" style="padding: 16px;">
+            <div style="font-size: 11px; color: #94a3b8; font-weight: 600; letter-spacing: 0.05em;">STUDIO BRIDGE</div>
+            <div style="font-size: 22px; font-weight: 700; color: #10b981; margin: 6px 0 4px;">SYNCED</div>
+            <div style="font-size: 12px; color: #64748b;">Zero duplicate actions</div>
           </div>
 
-          <div class="meter-col">
-            <span class="meter-label">DISK</span>
-            <div class="meter-bar-track">
-              <div class="meter-bar-fill" [style.width.%]="tauri.hardware().disk_percent"></div>
-            </div>
-            <span class="meter-val mono">{{ tauri.hardware().disk_percent }}%</span>
-          </div>
-        </div>
-      </div>
-    </aside>
-
-    <!-- SPACIOUS CENTRAL WORKSPACE -->
-    <main class="workspace-area">
-      <!-- 1. HOME DASHBOARD WORKSPACE -->
-      <section *ngIf="activeTab() === 'home'" class="dashboard-view">
-        <!-- Spacious Welcome Header -->
-        <div class="welcome-header">
-          <div class="welcome-info">
-            <h1 class="welcome-title">Operations Overview</h1>
-            <p class="welcome-subtitle">
-              All {{ tauri.stats().active_automations }} automated workflows running within verified policy limits. 0 security alerts.
-            </p>
-          </div>
-          <div class="welcome-actions">
-            <button class="btn btn-secondary" (click)="setTab('automations')">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"/>
-                <polyline points="12 6 12 12 16 14"/>
-              </svg>
-              <span>Queue Diagnostic</span>
-            </button>
-            <button class="btn btn-secondary" [class.btn-danger]="tauri.killSwitchActive()" (click)="toggleKillSwitch()">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect width="18" height="18" x="3" y="3" rx="2"/>
-                <line x1="9" x2="15" y1="9" y2="15"/>
-                <line x1="15" x2="9" y1="9" y2="15"/>
-              </svg>
-              <span>{{ tauri.killSwitchActive() ? 'Reset Emergency Pause' : 'Emergency Pause' }}</span>
-            </button>
-            <button class="btn btn-primary" (click)="setTab('create')">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="12" x2="12" y1="5" y2="19"/>
-                <line x1="5" x2="19" y1="12" y2="12"/>
-              </svg>
-              <span>Create Account</span>
-            </button>
+          <div class="panel" style="padding: 16px;">
+            <div style="font-size: 11px; color: #94a3b8; font-weight: 600; letter-spacing: 0.05em;">GARBAGE COLLECTOR</div>
+            <div style="font-size: 22px; font-weight: 700; color: #fff; margin: 6px 0 4px;">{{ tauri.gcReport().free_gb }} GB Free</div>
+            <div style="font-size: 12px; color: #64748b;">{{ tauri.gcReport().freed_total_gb }} GB reclaimed</div>
           </div>
         </div>
 
-        <!-- Four Evenly Sized KPI Cards -->
-        <div class="kpi-grid">
-          <div class="kpi-card" (click)="setTab('accounts')">
-            <div class="kpi-icon-wrap blue">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-              </svg>
-            </div>
-            <div class="kpi-body">
-              <div class="kpi-label">CONNECTED ACCOUNTS</div>
-              <div class="kpi-value mono">{{ tauri.stats().total_accounts }}</div>
-              <div class="kpi-meta">Active across 8 verified platforms</div>
-            </div>
-          </div>
-
-          <div class="kpi-card" (click)="setTab('agents')">
-            <div class="kpi-icon-wrap fuchsia">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect width="18" height="18" x="3" y="3" rx="2"/>
-                <circle cx="8.5" cy="8.5" r="1.5"/>
-                <circle cx="15.5" cy="8.5" r="1.5"/>
-                <path d="M9 15h6"/>
-              </svg>
-            </div>
-            <div class="kpi-body">
-              <div class="kpi-label">ACTIVE AGENTS</div>
-              <div class="kpi-value mono">{{ tauri.collaboratingAgents().length }}</div>
-              <div class="kpi-meta">Autonomous roles currently engaged</div>
-            </div>
-          </div>
-
-          <div class="kpi-card" (click)="setTab('automations')">
-            <div class="kpi-icon-wrap amber">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-              </svg>
-            </div>
-            <div class="kpi-body">
-              <div class="kpi-label">TASKS RUNNING</div>
-              <div class="kpi-value mono">14</div>
-              <div class="kpi-meta">4 background jobs, 10 scheduled queues</div>
-            </div>
-          </div>
-
-          <div class="kpi-card" (click)="setTab('settings')">
-            <div class="kpi-icon-wrap emerald">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
-                <path d="m9 12 2 2 4-4"/>
-              </svg>
-            </div>
-            <div class="kpi-body">
-              <div class="kpi-label">SYSTEM HEALTH</div>
-              <div class="kpi-value mono">99.8%</div>
-              <div class="kpi-meta">Zeroized memory buffers active</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Middle Row: Active Operations (Left Large) & Social Media Manager (Right Feature Panel) -->
-        <div class="dashboard-middle-row">
-          <!-- Active Operations Panel (Primary large panel on the left) -->
-          <div class="panel active-operations-panel">
-            <div class="panel-header">
-              <div class="panel-header-title">
-                <h2>Active Operations</h2>
-                <span class="panel-header-subtitle">Running and paused workflows with progress & pause controls</span>
-              </div>
-              <div class="panel-header-meta">
-                <span class="badge">{{ tauri.activeOperations().length }} Tasks</span>
-              </div>
-            </div>
-
-            <div class="operations-list">
-              <div *ngFor="let op of tauri.activeOperations()" class="operation-item" [class.paused]="op.status === 'paused'">
-                <div class="op-top-row">
-                  <div class="op-info">
-                    <span class="op-platform-badge" [attr.data-platform]="op.platform">{{ op.platform | uppercase }}</span>
-                    <span class="op-name">{{ op.name }}</span>
-                  </div>
-                  <div class="op-status-wrap">
-                    <span class="op-status-label" [attr.data-status]="op.status">{{ op.status | uppercase }}</span>
-                    <button class="btn-micro" (click)="tauri.toggleOperationPause(op.id)" [title]="op.status === 'running' ? 'Pause operation' : 'Resume operation'">
-                      <svg *ngIf="op.status === 'running'" width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                        <rect width="4" height="16" x="6" y="4" rx="1"/>
-                        <rect width="4" height="16" x="14" y="4" rx="1"/>
-                      </svg>
-                      <svg *ngIf="op.status !== 'running'" width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                        <polygon points="5 3 19 12 5 21 5 3"/>
-                      </svg>
-                      <span>{{ op.status === 'running' ? 'Pause' : 'Resume' }}</span>
-                    </button>
-                    <button class="btn-micro secondary" (click)="openOperationInspector(op)" title="Inspect operation details and step graph">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"/>
-                        <line x1="12" x2="12" y1="16" y2="12"/>
-                        <line x1="12" x2="12.01" y1="8" y2="8"/>
-                      </svg>
-                      <span>Inspect</span>
-                    </button>
-                  </div>
-                </div>
-
-                <p class="op-desc">{{ op.description }}</p>
-
-                <div class="op-progress-row">
-                  <div class="op-progress-track">
-                    <div class="op-progress-fill" [style.width.%]="op.progress"></div>
-                  </div>
-                  <span class="op-progress-num mono">{{ op.progress }}%</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Dedicated Social Media Manager Feature Panel -->
-          <div class="panel social-manager-panel">
-            <div class="panel-header">
-              <div class="panel-header-title">
-                <h2>Social Media Manager</h2>
-                <span class="panel-header-subtitle">Multi-channel campaigns, AI drafting & queue</span>
-              </div>
-            </div>
-
-            <div class="social-feature-body">
-              <div class="social-status-box">
-                <div class="social-metric-item">
-                  <span class="metric-title">Active Campaign</span>
-                  <strong class="metric-val">Q4 Product Launch</strong>
-                </div>
-                <div class="social-metric-item">
-                  <span class="metric-title">Target Channels</span>
-                  <div class="platform-mini-icons">
-                    <span class="plat-tag">IG</span>
-                    <span class="plat-tag">YT</span>
-                    <span class="plat-tag">TikTok</span>
-                    <span class="plat-tag">X</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="campaign-summary-card">
-                <div class="summary-row">
-                  <span class="summary-label">Next Scheduled Post:</span>
-                  <span class="summary-val">Tomorrow, 10:00 AM (IG Reel)</span>
-                </div>
-                <div class="summary-row">
-                  <span class="summary-label">Inbox Inquiries:</span>
-                  <span class="summary-val">{{ tauri.inboxMessages().length }} Messages Awaiting Review</span>
-                </div>
-                <div class="summary-row">
-                  <span class="summary-label">Autonomous Loop:</span>
-                  <span class="summary-val status-green">Active & Compliant</span>
-                </div>
-              </div>
-
-              <div class="feature-footer-action">
-                <button class="btn btn-primary full-width" (click)="setTab('social')">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-                    <polyline points="15 3 21 3 21 9"/>
-                    <line x1="10" x2="21" y1="14" y2="3"/>
-                  </svg>
-                  <span>Open Workspace</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Bottom Dashboard Row (Three Balanced Panels) -->
-        <div class="dashboard-bottom-row">
-          <!-- 1. Creative Studio Panel -->
-          <div class="panel creative-studio-panel">
-            <div class="panel-header">
-              <div class="panel-header-title">
-                <h3>Creative Studio</h3>
-                <span class="panel-header-subtitle">CLI & rendering engines</span>
-              </div>
-              <button class="btn-micro primary" (click)="setTab('creative-studio')">
-                <span>Launch Studio</span>
-              </button>
-            </div>
-
-            <div class="creative-launch-tiles">
-              <div class="launch-tile" (click)="setTab('creative-studio')">
-                <div class="tile-icon fuchsia">VC</div>
-                <div class="tile-info">
-                  <span class="tile-name">Vector Craft</span>
-                  <span class="tile-ver">v0.11.0</span>
-                </div>
-                <span class="tile-status green">Ready</span>
-              </div>
-
-              <div class="launch-tile" (click)="setTab('creative-studio')">
-                <div class="tile-icon blue">PC</div>
-                <div class="tile-info">
-                  <span class="tile-name">Photo Craft</span>
-                  <span class="tile-ver">v0.9.0</span>
-                </div>
-                <span class="tile-status green">Ready</span>
-              </div>
-
-              <div class="launch-tile" (click)="setTab('creative-studio')">
-                <div class="tile-icon amber">OT</div>
-                <div class="tile-info">
-                  <span class="tile-name">OpenToonz</span>
-                  <span class="tile-ver">v1.5.0</span>
-                </div>
-                <span class="tile-status green">Ready</span>
-              </div>
-
-              <div class="launch-tile" (click)="setTab('creative-studio')">
-                <div class="tile-icon fuchsia">EC</div>
-                <div class="tile-info">
-                  <span class="tile-name">Effect Craft</span>
-                  <span class="tile-ver">v0.10.0</span>
-                </div>
-                <span class="tile-status green">Ready</span>
-              </div>
-
-              <div class="launch-tile" (click)="setTab('creative-studio')">
-                <div class="tile-icon blue">BL</div>
-                <div class="tile-info">
-                  <span class="tile-name">Blender</span>
-                  <span class="tile-ver">v5.1.2</span>
-                </div>
-                <span class="tile-status green">Ready</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- 2. Account Overview Panel -->
-          <div class="panel account-overview-panel">
-            <div class="panel-header">
-              <div class="panel-header-title">
-                <h3>Account Overview</h3>
-                <span class="panel-header-subtitle">Connected platform distributions</span>
-              </div>
-              <button class="btn-micro secondary" (click)="setTab('accounts')">
-                <span>View All</span>
-              </button>
-            </div>
-
-            <div class="platform-grid">
-              <div class="platform-card" (click)="setTab('accounts')">
-                <div class="plat-header">
-                  <span class="plat-name">Instagram</span>
-                  <span class="plat-indicator online"></span>
-                </div>
-                <span class="plat-count mono">6 Accounts</span>
-              </div>
-
-              <div class="platform-card" (click)="setTab('accounts')">
-                <div class="plat-header">
-                  <span class="plat-name">Reddit</span>
-                  <span class="plat-indicator online"></span>
-                </div>
-                <span class="plat-count mono">4 Accounts</span>
-              </div>
-
-              <div class="platform-card" (click)="setTab('accounts')">
-                <div class="plat-header">
-                  <span class="plat-name">YouTube</span>
-                  <span class="plat-indicator online"></span>
-                </div>
-                <span class="plat-count mono">3 Accounts</span>
-              </div>
-
-              <div class="platform-card" (click)="setTab('accounts')">
-                <div class="plat-header">
-                  <span class="plat-name">X (Twitter)</span>
-                  <span class="plat-indicator online"></span>
-                </div>
-                <span class="plat-count mono">5 Accounts</span>
-              </div>
-
-              <div class="platform-card" (click)="setTab('accounts')">
-                <div class="plat-header">
-                  <span class="plat-name">TikTok</span>
-                  <span class="plat-indicator online"></span>
-                </div>
-                <span class="plat-count mono">3 Accounts</span>
-              </div>
-
-              <div class="platform-card" (click)="setTab('accounts')">
-                <div class="plat-header">
-                  <span class="plat-name">LinkedIn</span>
-                  <span class="plat-indicator online"></span>
-                </div>
-                <span class="plat-count mono">2 Accounts</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- 3. Upcoming Activity Panel -->
-          <div class="panel upcoming-activity-panel">
-            <div class="panel-header">
-              <div class="panel-header-title">
-                <h3>Upcoming Activity</h3>
-                <span class="panel-header-subtitle">Chronological schedule</span>
-              </div>
-              <span class="badge">Next 24h</span>
-            </div>
-
-            <div class="timeline-list">
-              <div class="timeline-item">
-                <div class="time-col mono">14:00</div>
-                <div class="time-line-dot"></div>
-                <div class="time-content">
-                  <span class="timeline-title">Publish 9:16 Reel (IG & TikTok)</span>
-                  <span class="timeline-sub">Autonomous release: "Why manual operations are dead"</span>
-                </div>
-              </div>
-
-              <div class="timeline-item">
-                <div class="time-col mono">15:30</div>
-                <div class="time-line-dot"></div>
-                <div class="time-content">
-                  <span class="timeline-title">Reddit Dev Engagement</span>
-                  <span class="timeline-sub">Technical response in r/devops offline security</span>
-                </div>
-              </div>
-
-              <div class="timeline-item">
-                <div class="time-col mono">17:15</div>
-                <div class="time-line-dot"></div>
-                <div class="time-content">
-                  <span class="timeline-title">Platform Policy Compliance Scan</span>
-                  <span class="timeline-sub">Automated verification of 22 TOS documents</span>
-                </div>
-              </div>
-
-              <div class="timeline-item">
-                <div class="time-col mono">19:00</div>
-                <div class="time-line-dot"></div>
-                <div class="time-content">
-                  <span class="timeline-title">Nightly Argon2id Vault Key Scrub</span>
-                  <span class="timeline-sub">Flushing ephemeral memory buffers and salt refresh</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 2. ACCOUNTS WORKSPACE -->
-      <section *ngIf="activeTab() === 'accounts'" class="workspace-view">
-        <div class="workspace-header">
-          <div>
-            <h1>Accounts Management</h1>
-            <p class="subtitle">Multi-account registry with isolated proxies, session tokens, and health metrics</p>
-          </div>
-          <div class="header-actions">
-            <button class="btn btn-secondary" (click)="selectAllAccounts()">
-              <span>{{ selectedAccountIds().size === filteredAccounts.length ? 'Deselect All' : 'Select All' }}</span>
-            </button>
-            <button class="btn btn-primary" (click)="newAccountModalOpen.set(true)">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="12" x2="12" y1="5" y2="19"/>
-                <line x1="5" x2="19" y1="12" y2="12"/>
-              </svg>
-              <span>Add Account</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Filter bar -->
-        <div class="filter-bar">
-          <div class="search-input-wrap">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="11" cy="11" r="8"/>
-              <path d="m21 21-4.3-4.3"/>
-            </svg>
-            <input
-              type="text"
-              placeholder="Search by username, platform, or email alias..."
-              [ngModel]="accountsSearch()"
-              (ngModelChange)="accountsSearch.set($event)"
-            />
-          </div>
-
-          <div class="platform-filter-pills">
-            <button class="pill-btn" [class.active]="selectedAccountPlatform() === 'all'" (click)="selectedAccountPlatform.set('all')">All</button>
-            <button class="pill-btn" [class.active]="selectedAccountPlatform() === 'instagram'" (click)="selectedAccountPlatform.set('instagram')">Instagram</button>
-            <button class="pill-btn" [class.active]="selectedAccountPlatform() === 'reddit'" (click)="selectedAccountPlatform.set('reddit')">Reddit</button>
-            <button class="pill-btn" [class.active]="selectedAccountPlatform() === 'youtube'" (click)="selectedAccountPlatform.set('youtube')">YouTube</button>
-            <button class="pill-btn" [class.active]="selectedAccountPlatform() === 'tiktok'" (click)="selectedAccountPlatform.set('tiktok')">TikTok</button>
-            <button class="pill-btn" [class.active]="selectedAccountPlatform() === 'x'" (click)="selectedAccountPlatform.set('x')">X (Twitter)</button>
-            <button class="pill-btn" [class.active]="selectedAccountPlatform() === 'linkedin'" (click)="selectedAccountPlatform.set('linkedin')">LinkedIn</button>
-          </div>
-        </div>
-
-        <!-- Full-Width Table -->
-        <div class="panel table-panel">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th style="width: 40px;"></th>
-                <th>Username</th>
-                <th>Platform</th>
-                <th>Email Identity</th>
-                <th>Health Score</th>
-                <th>Status</th>
-                <th>Last Active</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let acc of filteredAccounts" [class.selected]="selectedAccountIds().has(acc.id)">
-                <td>
-                  <input
-                    type="checkbox"
-                    [checked]="selectedAccountIds().has(acc.id)"
-                    (change)="toggleAccountSelection(acc.id)"
-                  />
-                </td>
-                <td class="username-cell">
-                  <strong>{{ acc.username }}</strong>
-                  <span class="mono id-sub">{{ acc.id }}</span>
-                </td>
-                <td>
-                  <span class="plat-tag">{{ acc.platform | uppercase }}</span>
-                </td>
-                <td class="mono text-muted">{{ acc.email || '—' }}</td>
-                <td>
-                  <div class="health-indicator">
-                    <div class="health-track">
-                      <div class="health-fill" [style.width.%]="acc.health_score || 95"></div>
-                    </div>
-                    <span class="mono">{{ acc.health_score || 95 }}%</span>
-                  </div>
-                </td>
-                <td>
-                  <span class="status-pill green">{{ acc.status | uppercase }}</span>
-                </td>
-                <td class="text-muted">{{ acc.last_active || 'Recent' }}</td>
-                <td>
-                  <div class="row-actions">
-                    <button class="btn-micro" (click)="setTab('browser')" title="Inspect via Chrome Relay">
-                      <span>Relay</span>
-                    </button>
-                    <button class="btn-micro secondary" (click)="setTab('vault')" title="View encrypted credentials">
-                      <span>Vault</span>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <!-- 3. CREATE WORKSPACE (10-STEP MANDATORY PREFLIGHT) -->
-      <section *ngIf="activeTab() === 'create'" class="workspace-view">
-        <div class="workspace-header">
-          <div>
-            <h1>10-Step Mandatory Account Creation Preflight</h1>
-            <p class="subtitle">Deterministic compliance, rate-limit safeguards, and credential generation prior to registration</p>
-          </div>
-        </div>
-
-        <div class="preflight-grid">
-          <div class="panel form-panel">
-            <h3>Preflight Parameters</h3>
-            <p class="panel-desc">Configure target platform and identity credentials</p>
-
-            <div class="form-group">
-              <label>Target Platform</label>
-              <select [ngModel]="preflightPlatform()" (ngModelChange)="preflightPlatform.set($event)">
-                <option value="instagram">Instagram (Meta)</option>
-                <option value="reddit">Reddit</option>
-                <option value="youtube">YouTube (Google)</option>
-                <option value="tiktok">TikTok</option>
-                <option value="x">X (Twitter)</option>
-                <option value="linkedin">LinkedIn</option>
-                <option value="github">GitHub</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label>Category / Purpose</label>
-              <select [ngModel]="preflightCategory()" (ngModelChange)="preflightCategory.set($event)">
-                <option value="Brand">Brand Account</option>
-                <option value="Creator">Content Creator</option>
-                <option value="Support">Support Bot</option>
-                <option value="DevSecOps">Technical Operations</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label>Desired Handle / Username</label>
-              <input type="text" [ngModel]="preflightUsername()" (ngModelChange)="preflightUsername.set($event)"/>
-            </div>
-
-            <div class="form-group">
-              <label>Preferred Email Identity</label>
-              <input type="email" [ngModel]="preflightEmail()" (ngModelChange)="preflightEmail.set($event)"/>
-            </div>
-
-            <button class="btn btn-primary full-width" [disabled]="isPreflightRunning()" (click)="runPreflightWorkflow()">
-              <svg *ngIf="!isPreflightRunning()" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polygon points="5 3 19 12 5 21 5 3"/>
-              </svg>
-              <span *ngIf="isPreflightRunning()" class="spinner"></span>
-              <span>{{ isPreflightRunning() ? 'Validating 10 Preflight Steps...' : 'Execute 10-Step Preflight' }}</span>
-            </button>
-          </div>
-
-          <div class="panel results-panel">
-            <div class="panel-header">
-              <h3>Deterministic Validation Results</h3>
-              <span *ngIf="preflightReport()" class="badge green">READY FOR AUTOMATION</span>
-            </div>
-
-            <div *ngIf="!preflightReport() && !isPreflightRunning()" class="empty-state">
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
-                <path d="m9 12 2 2 4-4"/>
-              </svg>
-              <p>Execute preflight to verify compliance against platform policies, rate limits, and cryptographic isolation.</p>
-            </div>
-
-            <div *ngIf="preflightReport()" class="step-results-list">
-              <div *ngFor="let s of preflightReport()!.step_results" class="step-result-item" [class.passed]="s.passed">
-                <div class="step-num mono">Step {{ s.step }}</div>
-                <div class="step-info">
-                  <strong>{{ s.name }}</strong>
-                  <p>{{ s.details }}</p>
-                </div>
-                <div class="step-status">
-                  <span class="status-pill green">PASS</span>
-                </div>
-              </div>
-
-              <div class="preflight-seal-card">
-                <div class="seal-icon">✓</div>
-                <div>
-                  <strong>Cryptographic Preflight Verification Sealed</strong>
-                  <p class="mono text-muted">ID: {{ preflightReport()!.account_id }} • Target: {{ preflightReport()!.platform | uppercase }}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 4. SOCIAL WORKSPACE -->
-      <section *ngIf="activeTab() === 'social'" class="workspace-view">
-        <div class="workspace-header">
-          <div>
-            <h1>Social Media Command Center</h1>
-            <p class="subtitle">Multi-channel campaigns, AI drafting with human approval gate, and verified metrics</p>
-          </div>
-          <div class="header-actions">
-            <div class="subtab-pills">
-              <button class="pill-btn" [class.active]="socialSubTab() === 'campaigns'" (click)="setSocialSubTab('campaigns')">Campaigns</button>
-              <button class="pill-btn" [class.active]="socialSubTab() === 'calendar'" (click)="setSocialSubTab('calendar')">Content Calendar</button>
-              <button class="pill-btn" [class.active]="socialSubTab() === 'inbox'" (click)="setSocialSubTab('inbox')">Unified Inbox</button>
-              <button class="pill-btn" [class.active]="socialSubTab() === 'brands'" (click)="setSocialSubTab('brands')">Brand Profiles</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Social Campaigns SubTab -->
-        <div *ngIf="socialSubTab() === 'campaigns'" class="panel-grid-two">
-          <div class="panel">
-            <div class="panel-header">
-              <h3>Active Campaigns</h3>
-              <span class="badge">{{ tauri.campaigns().length }} Active</span>
-            </div>
-            <div *ngFor="let camp of tauri.campaigns()" class="campaign-detail-card">
-              <div class="camp-title-row">
-                <h4>{{ camp.title }}</h4>
-                <span class="status-pill green">{{ camp.status | uppercase }}</span>
-              </div>
-              <p class="camp-obj">{{ camp.objective }}</p>
-              <div class="camp-tags">
-                <span *ngFor="let plat of camp.target_platforms" class="plat-tag">{{ plat }}</span>
-                <span *ngFor="let fmt of camp.content_formats" class="fmt-tag">{{ fmt }}</span>
-              </div>
-              <div class="camp-hashtags mono">
-                {{ camp.hashtags.join(' ') }}
-              </div>
-            </div>
-          </div>
-
-          <div class="panel">
-            <div class="panel-header">
-              <h3>Autonomous Loop Control</h3>
-              <span class="status-dot green"></span>
-            </div>
-            <div class="loop-control-box">
-              <p>Autonomous loop monitors scheduled calendar slots, checks platform rate limits, and stages drafts for human clearance.</p>
-              <button class="btn" [class.btn-primary]="!tauri.isAutonomousLoopRunning()" [class.btn-danger]="tauri.isAutonomousLoopRunning()" (click)="toggleMarketingLoop()">
-                <span>{{ tauri.isAutonomousLoopRunning() ? 'Pause Autonomous Loop' : 'Start Autonomous Loop' }}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Unified Inbox SubTab -->
-        <div *ngIf="socialSubTab() === 'inbox'" class="inbox-split-view">
-          <div class="panel inbox-list-panel">
-            <div class="panel-header">
-              <h3>Audience Inquiries</h3>
-              <span class="badge">{{ tauri.inboxMessages().length }} Messages</span>
-            </div>
-
-            <div class="inbox-messages-list">
-              <div
-                *ngFor="let msg of tauri.inboxMessages()"
-                class="inbox-item"
-                [class.active]="selectedInboxMsg()?.message_id === msg.message_id"
-                (click)="selectInboxMessage(msg)"
-              >
-                <div class="msg-header">
-                  <span class="plat-tag">{{ msg.platform | uppercase }}</span>
-                  <span class="msg-author">{{ msg.author_handle }}</span>
-                  <span class="msg-time text-muted">{{ msg.received_at }}</span>
-                </div>
-                <p class="msg-preview">{{ msg.content_text }}</p>
-                <div class="msg-footer">
-                  <span class="badge warning" *ngIf="msg.requires_human_approval">Approval Required</span>
-                  <span class="badge green" *ngIf="!msg.requires_human_approval">Auto-Eligible</span>
-                  <span class="badge muted">Sentiment: {{ (msg.sentiment_score * 100).toFixed(0) }}%</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="panel inbox-detail-panel" *ngIf="selectedInboxMsg()">
-            <div class="panel-header">
-              <h3>Message Details & AI Response</h3>
-              <span class="status-pill" [class.green]="selectedInboxMsg()!.status === 'Replied'">
-                {{ selectedInboxMsg()!.status | uppercase }}
-              </span>
-            </div>
-
-            <div class="inbox-thread">
-              <div class="thread-orig">
-                <span class="thread-author">{{ selectedInboxMsg()!.author_handle }} wrote:</span>
-                <p class="thread-body">{{ selectedInboxMsg()!.content_text }}</p>
-              </div>
-
-              <div class="thread-reply-draft">
-                <div class="draft-header">
-                  <span>AI-Drafted Response (Verified against brand voice guidelines)</span>
-                </div>
-                <textarea
-                  rows="4"
-                  [ngModel]="replyTextInput()"
-                  (ngModelChange)="replyTextInput.set($event)"
-                ></textarea>
-                <div class="draft-actions">
-                  <button class="btn btn-primary" (click)="sendReply()">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <line x1="22" x2="11" y1="2" y2="13"/>
-                      <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-                    </svg>
-                    <span>Approve & Send Reply</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Content Calendar SubTab -->
-        <div *ngIf="socialSubTab() === 'calendar'" class="calendar-cards-grid">
-          <div *ngFor="let post of tauri.calendarPosts()" class="panel calendar-card">
-            <div class="cal-header">
-              <span class="plat-tag">{{ post.target_platform | uppercase }}</span>
-              <span class="mono cal-time">{{ post.scheduled_time }}</span>
-            </div>
-            <div class="cal-fmt">{{ post.content_type }}</div>
-            <p class="cal-caption">{{ post.caption }}</p>
-            <div class="cal-footer">
-              <span class="badge" [class.green]="post.is_approved" [class.warning]="!post.is_approved">
-                {{ post.is_approved ? 'Approved' : 'Awaiting Approval' }}
-              </span>
-              <span class="mono text-muted">{{ post.status }}</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Brand Profiles SubTab -->
-        <div *ngIf="socialSubTab() === 'brands'" class="panel-grid-two">
-          <div *ngFor="let b of tauri.brands()" class="panel brand-card">
-            <div class="brand-header">
-              <h3>{{ b.name }}</h3>
-              <span class="mono brand-tagline">{{ b.tagline }}</span>
-            </div>
-            <div class="brand-section">
-              <label>Audience Persona</label>
-              <p>{{ b.voice.audience_persona }}</p>
-            </div>
-            <div class="brand-section">
-              <label>Tone of Voice</label>
-              <div class="tag-row">
-                <span *ngFor="let t of b.voice.tone_adjectives" class="badge blue">{{ t }}</span>
-              </div>
-            </div>
-            <div class="brand-section">
-              <label>Writing Rules</label>
-              <ul class="clean-list">
-                <li *ngFor="let r of b.voice.writing_rules">{{ r }}</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 5. AUTOMATIONS WORKSPACE -->
-      <section *ngIf="activeTab() === 'automations'" class="workspace-view">
-        <div class="workspace-header">
-          <div>
-            <h1>Automations & Human Gate</h1>
-            <p class="subtitle">Step execution graph, background job runners, and zero-loss human intervention checkpoints</p>
-          </div>
-          <div class="header-actions">
-            <button class="btn btn-secondary" [class.btn-danger]="tauri.killSwitchActive()" (click)="toggleKillSwitch()">
-              <span>{{ tauri.killSwitchActive() ? 'Reset Kill Switch' : 'Trigger Global Kill Switch' }}</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Human Gate Interventions -->
-        <div class="panel human-tasks-panel" *ngIf="tauri.humanTasks().length > 0">
+        <!-- HUMAN GATE: ONLY SHOWS WHAT NEEDS A HUMAN -->
+        <div class="panel" style="margin-bottom: 20px;">
           <div class="panel-header">
-            <div class="panel-header-title">
-              <h3>Human Gate Checkpoints</h3>
-              <span class="panel-header-subtitle">Automation paused awaiting manual operator takeover (CAPTCHA / Legal)</span>
+            <div>
+              <h3>Needs Your Attention</h3>
+              <span class="panel-header-subtitle">Everything else runs silently in the background</span>
             </div>
-            <span class="badge warning">{{ tauri.humanTasks().length }} Pending</span>
+            <span class="badge" [class.warning]="tauri.humanTasks().length > 0" [class.green]="tauri.humanTasks().length === 0">
+              {{ tauri.humanTasks().length === 0 ? 'All Clear' : tauri.humanTasks().length + ' Waiting' }}
+            </span>
           </div>
 
-          <div class="tasks-list">
+          <div *ngIf="tauri.humanTasks().length === 0" style="padding: 24px 8px; text-align: center; color: #10b981; font-weight: 500;">
+            ✓ Nothing needs you right now. All accounts, comments, engagement, and cleanup are running on autopilot.
+          </div>
+
+          <div class="tasks-list" *ngIf="tauri.humanTasks().length > 0">
             <div *ngFor="let task of tauri.humanTasks()" class="task-card">
               <div class="task-title-row">
                 <span class="badge amber">{{ task.challenge_type }}</span>
@@ -1062,770 +138,107 @@
               <div class="task-actions">
                 <span class="mono text-muted">{{ task.page_url }}</span>
                 <button class="btn btn-primary" (click)="tauri.resolveTask(task.id)">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="20 6 9 17 4 12"/>
-                  </svg>
-                  <span>Resolve & Resume Automation</span>
+                  <span>Approve & Continue</span>
                 </button>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Automated Pipelines Table -->
-        <div class="panel table-panel">
+        <!-- RECENT BACKGROUND ACTIVITY LOG (READ-ONLY, COMPACT) -->
+        <div class="panel">
           <div class="panel-header">
-            <h3>Active Pipeline Step Graphs</h3>
+            <h3>Recent Background Activity</h3>
+            <span class="mono text-muted" style="font-size: 11px;">NVIDIA NIM Cascade + StickExplainers Bridge</span>
           </div>
           <div class="operations-list">
-            <div *ngFor="let op of tauri.activeOperations()" class="operation-item">
+            <div *ngFor="let msg of tauri.stickBridgeMessages().slice(0, 3)" class="operation-item" style="padding: 10px 12px;">
               <div class="op-top-row">
-                <div class="op-info">
-                  <span class="op-platform-badge" [attr.data-platform]="op.platform">{{ op.platform | uppercase }}</span>
-                  <span class="op-name">{{ op.name }}</span>
-                </div>
-                <div class="op-status-wrap">
-                  <span class="op-status-label" [attr.data-status]="op.status">{{ op.status | uppercase }}</span>
-                  <button class="btn-micro" (click)="tauri.toggleOperationPause(op.id)">
-                    <span>{{ op.status === 'running' ? 'Pause' : 'Resume' }}</span>
-                  </button>
-                  <button class="btn-micro secondary" (click)="openOperationInspector(op)">
-                    <span>Inspect Step Graph</span>
-                  </button>
-                </div>
+                <strong>{{ msg.subject }}</strong>
+                <span class="status-pill green">{{ msg.status | uppercase }}</span>
               </div>
-              <p class="op-desc">{{ op.description }}</p>
-              <div class="op-progress-row">
-                <div class="op-progress-track">
-                  <div class="op-progress-fill" [style.width.%]="op.progress"></div>
-                </div>
-                <span class="op-progress-num mono">{{ op.progress }}%</span>
-              </div>
+              <p class="op-desc" style="margin-top: 4px;">{{ msg.body }}</p>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- 6. AGENTS WORKSPACE -->
-      <section *ngIf="activeTab() === 'agents'" class="workspace-view">
-        <div class="workspace-header">
-          <div>
-            <h1>Autonomous Subagents Roster</h1>
-            <p class="subtitle">Specialized agent roles orchestrated with model-profile governance</p>
-          </div>
-        </div>
-
-        <div class="agents-grid">
-          <div *ngFor="let ag of tauri.collaboratingAgents()" class="panel agent-card">
-            <div class="agent-header">
-              <div class="agent-role-badge">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect width="18" height="18" x="3" y="3" rx="2"/>
-                  <circle cx="8.5" cy="8.5" r="1.5"/>
-                  <circle cx="15.5" cy="8.5" r="1.5"/>
-                  <path d="M9 15h6"/>
-                </svg>
-              </div>
-              <div>
-                <h4>{{ ag.title }}</h4>
-                <span class="mono role-sub">{{ ag.role }}</span>
-              </div>
-            </div>
-
-            <div class="agent-body">
-              <div class="agent-meta-row">
-                <span class="meta-label">Assigned Model:</span>
-                <span class="meta-val mono">{{ ag.assigned_model_profile }}</span>
-              </div>
-              <div class="agent-meta-row">
-                <span class="meta-label">Current Task:</span>
-                <p class="meta-desc">{{ ag.current_task }}</p>
-              </div>
-            </div>
-
-            <div class="agent-footer">
-              <span class="status-indicator online"></span>
-              <span class="status-text">Bridged with StickExplainers</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- STICKEXPLAINERS <-> OPENACCOUNTS COORDINATION BRIDGE -->
-        <div class="panel-grid-two" style="margin-top: 20px;">
-          <div class="panel">
-            <div class="panel-header">
-              <div>
-                <h3>StickExplainers Studio Coordination Bridge</h3>
-                <span class="mono text-muted" style="font-size: 11px;">Connected to C:\Users\chrom\Desktop\StickExplainers (39 Color Agents + Obsidian Vault)</span>
-              </div>
-              <span class="status-pill green">BRIDGE ONLINE</span>
-            </div>
-
-            <div class="operations-list" style="margin-top: 12px;">
-              <div *ngFor="let pair of tauri.stickBridgePairings()" class="operation-item" style="padding: 10px 12px;">
-                <div class="op-top-row">
-                  <strong>{{ pair.openaccounts_agent }} ({{ pair.openaccounts_title }})</strong>
-                  <span class="badge blue">{{ pair.channel }}</span>
-                </div>
-                <p class="mono text-muted" style="font-size: 12px; margin-top: 4px;">
-                  ↔ StickExplainers: {{ pair.stick_agents.join(', ') }} ({{ pair.stick_roles.join(' · ') }})
-                </p>
-              </div>
-            </div>
-
-            <div class="form-group" style="margin-top: 16px;">
-              <label>Dispatch Coordination Directive to StickExplainers Agents</label>
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
-                <input type="text" placeholder="From OpenAccounts Agent" [ngModel]="bridgeFromAgent()" (ngModelChange)="bridgeFromAgent.set($event)" />
-                <input type="text" placeholder="To StickExplainers Agent (e.g. V. Sterling)" [ngModel]="bridgeToAgent()" (ngModelChange)="bridgeToAgent.set($event)" />
-              </div>
-              <input type="text" placeholder="Subject" style="margin-bottom: 8px;" [ngModel]="bridgeSubject()" (ngModelChange)="bridgeSubject.set($event)" />
-              <textarea rows="2" placeholder="Coordination message / directive..." [ngModel]="bridgeBody()" (ngModelChange)="bridgeBody.set($event)"></textarea>
-              <button class="btn btn-primary full-width" style="margin-top: 8px;" (click)="dispatchBridgeMessage()">
-                <span>Send to StickExplainers Bridge & Obsidian Vault</span>
-              </button>
-            </div>
-          </div>
-
-          <div class="panel">
-            <div class="panel-header">
-              <div>
-                <h3>Live Cross-Studio Agent Feed & Garbage Collector (G. Graphite)</h3>
-                <span class="mono text-muted" style="font-size: 11px;">
-                  Disk Free: {{ tauri.gcReport().free_gb }} GB • Total Reclaimed: {{ tauri.gcReport().freed_total_gb }} GB • {{ tauri.gcReport().orphans_status }}
-                </span>
-              </div>
-              <div style="display: flex; gap: 8px; align-items: center;">
-                <button class="btn-micro" (click)="tauri.triggerGarbageCollection()">
-                  <span>Run GC Sweep</span>
-                </button>
-                <span class="badge">{{ tauri.stickBridgeMessages().length }} Synced</span>
-              </div>
-            </div>
-
-            <div class="operations-list" style="margin-top: 12px;">
-              <div *ngFor="let msg of tauri.stickBridgeMessages()" class="operation-item" style="padding: 10px 12px;">
-                <div class="op-top-row">
-                  <span class="mono" style="font-size: 12px; font-weight: 600;">{{ msg.from_agent }} → {{ msg.to_agent }}</span>
-                  <span class="status-pill green">{{ msg.status | uppercase }}</span>
-                </div>
-                <div style="font-weight: 600; margin-top: 4px;">{{ msg.subject }}</div>
-                <p class="op-desc" style="margin-top: 4px;">{{ msg.body }}</p>
-                <div class="mono text-muted" style="font-size: 11px; margin-top: 6px;">
-                  Channel: {{ msg.channel }} • {{ msg.timestamp }}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 7. CREATIVE STUDIO WORKSPACE -->
-      <section *ngIf="activeTab() === 'creative-studio'" class="workspace-view">
-        <div class="workspace-header">
-          <div>
-            <h1>Creative Studio & Video Production</h1>
-            <p class="subtitle">9:16 vertical reels compilation, audio LUFS normalization, and CLI creative tool suite</p>
-          </div>
-        </div>
-
-        <div class="studio-split-grid">
-          <div class="panel video-workbench-panel">
-            <div class="panel-header">
-              <h3>9:16 Video & Reel Generator</h3>
-              <span class="badge fuchsia">FFmpeg + Vector Craft</span>
-            </div>
-
-            <div class="form-group">
-              <label>Reel Title</label>
-              <input type="text" [ngModel]="videoTitle()" (ngModelChange)="videoTitle.set($event)"/>
-            </div>
-
-            <div class="form-group">
-              <label>Aspect Ratio & Format</label>
-              <select [ngModel]="videoFormat()" (ngModelChange)="videoFormat.set($event)">
-                <option value="Vertical9x16">9:16 Vertical (1080x1920) — Reels / TikTok / Shorts</option>
-                <option value="Square1x1">1:1 Square (1080x1080) — Instagram Feed</option>
-                <option value="Landscape16x9">16:9 Landscape (1920x1080) — YouTube Standard</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label>Script & Audio Prompt</label>
-              <textarea rows="4" [ngModel]="videoScript()" (ngModelChange)="videoScript.set($event)"></textarea>
-            </div>
-
-            <div class="form-group">
-              <label>Primary Tool Engine</label>
-              <select [ngModel]="selectedCreativeTool()" (ngModelChange)="selectedCreativeTool.set($event)">
-                <option value="Vector Craft">Vector Craft CLI (2D Vectors & Typography)</option>
-                <option value="Photo Craft">Photo Craft CLI (Color Grading & Compositing)</option>
-                <option value="Effect Craft">Effect Craft CLI (Motion Transitions)</option>
-                <option value="OpenToonz">OpenToonz Suite (Character Animation)</option>
-                <option value="Blender">Blender 3D (Cycles / Eevee)</option>
-              </select>
-            </div>
-
-            <button class="btn btn-primary full-width" [disabled]="isRenderingVideo()" (click)="launchVideoProduction()">
-              <svg *ngIf="!isRenderingVideo()" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polygon points="5 3 19 12 5 21 5 3"/>
-              </svg>
-              <span *ngIf="isRenderingVideo()" class="spinner"></span>
-              <span>{{ isRenderingVideo() ? 'Rendering 9:16 Video Asset...' : 'Render 9:16 Reel' }}</span>
-            </button>
-
-            <div *ngIf="isRenderingVideo() || renderOutputMessage()" class="render-progress-card">
-              <div class="progress-bar-track">
-                <div class="progress-bar-fill" [style.width.%]="renderProgress()"></div>
-              </div>
-              <p class="render-msg mono">{{ renderOutputMessage() }}</p>
-            </div>
-          </div>
-
-          <div class="panel tools-capabilities-panel">
-            <div class="panel-header">
-              <h3>Installed Tool Capabilities</h3>
-            </div>
-
-            <div class="tools-table-wrap">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>Tool Engine</th>
-                    <th>CLI Command</th>
-                    <th>Version</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr *ngFor="let t of tauri.creativeTools()">
-                    <td><strong>{{ t.name }}</strong></td>
-                    <td class="mono text-muted">{{ t.command }}</td>
-                    <td class="mono">{{ t.version || 'v1.0' }}</td>
-                    <td>
-                      <span class="status-pill green">READY</span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 8. BROWSER WORKSPACE -->
-      <section *ngIf="activeTab() === 'browser'" class="workspace-view">
-        <div class="workspace-header">
-          <div>
-            <h1>Chrome Relay Session Controller</h1>
-            <p class="subtitle">Secure tab leases, origin fencing, and live CDP automation bridge</p>
-          </div>
-          <div class="header-actions">
-            <span class="badge blue">Relay Connected</span>
-          </div>
-        </div>
-
-        <div class="browser-layout">
-          <div class="browser-chrome-bar">
-            <div class="browser-nav-btns">
-              <button class="btn-micro" title="Back">‹</button>
-              <button class="btn-micro" title="Forward">›</button>
-              <button class="btn-micro" title="Reload">↻</button>
-            </div>
-            <div class="browser-url-bar mono">
-              <span class="lock-icon">🔒</span>
-              <span>{{ activeBrowserUrl() }}</span>
-            </div>
-            <button class="btn btn-secondary">
-              <span>Take Over Session</span>
-            </button>
-          </div>
-
-          <div class="browser-viewport-preview">
-            <div class="viewport-inner">
-              <div class="viewport-placeholder">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <circle cx="12" cy="12" r="10"/>
-                  <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>
-                  <path d="M2 12h20"/>
-                </svg>
-                <h3>Chrome Relay Live Preview</h3>
-                <p>{{ browserStatusText() }}</p>
-                <span class="mono session-id">Session Lease: #lease-0982-secure</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 9. VAULT WORKSPACE -->
-      <section *ngIf="activeTab() === 'vault'" class="workspace-view">
-        <div class="workspace-header">
-          <div>
-            <h1>Encrypted Vault (Argon2id + AES-256-GCM)</h1>
-            <p class="subtitle">Offline cryptographic credential storage with zeroized volatile memory buffers</p>
-          </div>
-          <div class="header-actions">
-            <button *ngIf="tauri.vaultUnlocked()" class="btn btn-secondary" (click)="lockVault()">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
-                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-              </svg>
-              <span>Lock Vault & Zeroize Memory</span>
-            </button>
-          </div>
-        </div>
-
-        <div *ngIf="!tauri.vaultUnlocked()" class="panel lock-screen-panel">
-          <div class="lock-box">
-            <div class="lock-icon-wrap">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
-                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-              </svg>
-            </div>
-            <h2>Vault is Locked</h2>
-            <p>Enter your master password to derive the AES-256-GCM encryption key using Argon2id.</p>
-
-            <div class="lock-input-group">
-              <input
-                type="password"
-                placeholder="Master password..."
-                [ngModel]="vaultPasswordInput()"
-                (ngModelChange)="vaultPasswordInput.set($event)"
-                (keydown.enter)="unlockVault()"
-              />
-              <button class="btn btn-primary" (click)="unlockVault()">Unlock</button>
-            </div>
-            <p *ngIf="vaultError()" class="error-text">{{ vaultError() }}</p>
-          </div>
-        </div>
-
-        <div *ngIf="tauri.vaultUnlocked()" class="vault-unlocked-content">
-          <div class="vault-metrics-row">
-            <div class="panel metric-card">
-              <span class="metric-label">DERIVATION FUNCTION</span>
-              <strong class="mono">Argon2id (m=65536, t=3, p=4)</strong>
-            </div>
-            <div class="panel metric-card">
-              <span class="metric-label">CIPHER</span>
-              <strong class="mono">AES-256-GCM</strong>
-            </div>
-            <div class="panel metric-card">
-              <span class="metric-label">BUFFER HYGIENE</span>
-              <strong class="status-green">zeroize_memory() active</strong>
-            </div>
-          </div>
-
-          <div class="panel secrets-panel">
-            <div class="panel-header">
-              <h3>Stored Encrypted Secrets</h3>
-            </div>
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Secret Identifier</th>
-                  <th>Associated Account</th>
-                  <th>Ciphertext Preview</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let acc of tauri.accounts()">
-                  <td class="mono"><strong>secret_{{ acc.id }}</strong></td>
-                  <td>{{ acc.username }} ({{ acc.platform }})</td>
-                  <td class="mono text-muted">••••••••••••••••••••••••••••••••</td>
-                  <td>
-                    <button class="btn-micro" (click)="copySecret(acc.id)">
-                      <span>{{ copiedSecretKey() === acc.id ? 'Copied!' : 'Copy to Clipboard' }}</span>
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <!-- 10. INTELLIGENCE WORKSPACE -->
-      <section *ngIf="activeTab() === 'intelligence'" class="workspace-view">
-        <div class="workspace-header">
-          <div>
-            <h1>Platform Intelligence Explorer</h1>
-            <p class="subtitle">22 preloaded platform profiles with terms of service, bot policies, and rate limits</p>
-          </div>
-          <div class="header-actions">
-            <button class="btn btn-secondary" (click)="runPolicyCheckCycle()">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="23 4 23 10 17 10"/>
-                <polyline points="1 20 1 14 7 14"/>
-                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-              </svg>
-              <span>Scan Live Policy Updates</span>
-            </button>
-          </div>
-        </div>
-
-        <div class="intel-split-view">
-          <div class="panel intel-sidebar-panel">
-            <div class="search-input-wrap">
+      <!-- TAB 2: ACCOUNTS (SIMPLE LIST + ADD) -->
+      <section *ngIf="activeTab() === 'accounts'" class="workspace-view">
+        <div class="panel table-panel">
+          <div class="panel-header">
+            <h3>Managed Accounts ({{ tauri.accounts().length }})</h3>
+            <div style="display: flex; gap: 8px;">
               <input
                 type="text"
-                placeholder="Search 22 platforms..."
-                [ngModel]="platformSearch()"
-                (ngModelChange)="platformSearch.set($event)"
+                placeholder="New handle (e.g. @myaccount)"
+                style="padding: 6px 10px; border-radius: 6px; background: #0f131d; border: 1px solid #262c3a; color: #fff;"
+                [ngModel]="newAccountUsername()"
+                (ngModelChange)="newAccountUsername.set($event)"
               />
-            </div>
-            <div class="platforms-nav-list">
-              <button
-                *ngFor="let p of filteredPlatforms"
-                class="platform-nav-btn"
-                [class.active]="selectedPlatformId() === p.id"
-                (click)="selectedPlatformId.set(p.id)"
+              <select
+                style="padding: 6px 10px; border-radius: 6px; background: #0f131d; border: 1px solid #262c3a; color: #fff;"
+                [ngModel]="newAccountPlatform()"
+                (ngModelChange)="newAccountPlatform.set($event)"
               >
-                <strong>{{ p.name }}</strong>
-                <span class="mono conf-tag" [class.high]="p.confidence_level === 'high'">{{ p.confidence_level | uppercase }}</span>
-              </button>
+                <option value="instagram">Instagram</option>
+                <option value="tiktok">TikTok</option>
+                <option value="youtube">YouTube</option>
+                <option value="shopify">Shopify</option>
+                <option value="email">Email</option>
+              </select>
+              <button class="btn btn-primary" (click)="addAccount()">+ Add</button>
             </div>
           </div>
 
-          <div class="panel intel-detail-panel" *ngIf="selectedPlatform">
-            <div class="panel-header">
-              <div>
-                <h2>{{ selectedPlatform!.name }}</h2>
-                <span class="mono text-muted">Profile Version: {{ selectedPlatform!.version }} • Verified: {{ selectedPlatform!.last_verified }}</span>
-              </div>
-            </div>
-
-            <div class="intel-content-blocks">
-              <div class="block">
-                <h4>Bot & Automation Policy</h4>
-                <p>{{ selectedPlatform!.bot_and_automation_policy.notes }}</p>
-                <div class="rules-block">
-                  <div class="rules-col">
-                    <span class="rule-title green">Allowed:</span>
-                    <ul>
-                      <li *ngFor="let a of selectedPlatform!.bot_and_automation_policy.allowed_automation_types">{{ a }}</li>
-                    </ul>
-                  </div>
-                  <div class="rules-col">
-                    <span class="rule-title red">Prohibited:</span>
-                    <ul>
-                      <li *ngFor="let pr of selectedPlatform!.bot_and_automation_policy.prohibited_automation_types">{{ pr }}</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-
-              <div class="block">
-                <h4>Multi-Account Policies</h4>
-                <p>{{ selectedPlatform!.multiple_account_policy.notes }}</p>
-                <span class="mono text-muted">Max Accounts: {{ selectedPlatform!.multiple_account_policy.max_accounts_per_identity || 'Unlimited' }}</span>
-              </div>
-
-              <div class="block">
-                <h4>Verified Rate Limits</h4>
-                <table class="data-table">
-                  <thead>
-                    <tr>
-                      <th>Action</th>
-                      <th>Limit / Hour</th>
-                      <th>Limit / Day</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr *ngFor="let rl of selectedPlatform!.rate_limits">
-                      <td>{{ rl.action }}</td>
-                      <td class="mono">{{ rl.limit_per_hour || 'N/A' }}</td>
-                      <td class="mono">{{ rl.limit_per_day || 'N/A' }}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Platform</th>
+                <th>Account</th>
+                <th>Email</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let acc of tauri.accounts()">
+                <td><span class="platform-chip" [attr.data-platform]="acc.platform">{{ acc.platform | uppercase }}</span></td>
+                <td><strong>{{ acc.username }}</strong></td>
+                <td class="mono text-muted">{{ acc.email || '—' }}</td>
+                <td><span class="status-pill green">AUTOPILOT</span></td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </section>
 
-      <!-- 11. ANALYTICS WORKSPACE -->
-      <section *ngIf="activeTab() === 'analytics'" class="workspace-view">
-        <div class="workspace-header">
-          <div>
-            <h1>Verified Social Analytics & Audit Journal</h1>
-            <p class="subtitle">Cryptographically verified platform metrics and tamper-evident execution audit logs</p>
+      <!-- TAB 3: VAULT (SIMPLE UNLOCK / LOCK) -->
+      <section *ngIf="activeTab() === 'vault'" class="workspace-view">
+        <div class="panel" *ngIf="!tauri.vaultUnlocked()">
+          <h3>Encrypted Credential Vault</h3>
+          <p class="text-muted" style="margin-bottom: 14px;">Background agents use isolated tokens automatically. Unlock only if you want to view or edit raw credentials.</p>
+          <div style="display: flex; gap: 10px; max-width: 420px;">
+            <input
+              type="password"
+              placeholder="Master password..."
+              style="flex: 1; padding: 8px 12px; border-radius: 6px; background: #0f131d; border: 1px solid #262c3a; color: #fff;"
+              [ngModel]="vaultPasswordInput()"
+              (ngModelChange)="vaultPasswordInput.set($event)"
+              (keyup.enter)="unlockVault()"
+            />
+            <button class="btn btn-primary" (click)="unlockVault()">Unlock</button>
           </div>
         </div>
 
-        <div class="metrics-cards-grid">
-          <div *ngFor="let m of tauri.verifiedMetrics()" class="panel metric-stat-card">
-            <div class="card-top">
-              <span class="plat-tag">{{ m.platform | uppercase }}</span>
-              <span class="mono text-muted">{{ m.account_id }}</span>
-            </div>
-            <div class="stat-number mono">{{ m.impressions.toLocaleString() }}</div>
-            <span class="stat-label">Verified Impressions</span>
-            <div class="metric-sub-row">
-              <span>Reach: <strong class="mono">{{ m.reach.toLocaleString() }}</strong></span>
-              <span>Engage: <strong class="mono">{{ m.engagement_rate }}%</strong></span>
-            </div>
+        <div class="panel" *ngIf="tauri.vaultUnlocked()">
+          <div class="panel-header">
+            <h3>Vault Unlocked</h3>
+            <button class="btn btn-secondary" (click)="lockVault()">Lock Vault</button>
           </div>
-        </div>
-      </section>
-
-      <!-- 12. SETTINGS WORKSPACE -->
-      <section *ngIf="activeTab() === 'settings'" class="workspace-view">
-        <div class="workspace-header">
-          <div>
-            <h1>Settings & Windows 11 Integration</h1>
-            <p class="subtitle">Native desktop controls, density mode, Windows Credential Manager, and hotkeys</p>
-          </div>
-        </div>
-
-        <div class="settings-grid">
-          <div class="panel">
-            <h3>Windows 11 Integration</h3>
-            <div class="setting-toggle-row">
-              <div>
-                <strong>Launch at Windows Startup</strong>
-                <p class="text-muted">Start OpenAccounts background services when logging into Windows</p>
-              </div>
-              <input type="checkbox" [checked]="launchOnStartup()" (change)="launchOnStartup.set(!launchOnStartup())"/>
-            </div>
-
-            <div class="setting-toggle-row">
-              <div>
-                <strong>Minimize to System Tray</strong>
-                <p class="text-muted">Keep background automation running when closing main window</p>
-              </div>
-              <input type="checkbox" [checked]="minimizeToTray()" (change)="minimizeToTray.set(!minimizeToTray())"/>
-            </div>
-
-            <div class="setting-toggle-row">
-              <div>
-                <strong>Windows Credential Manager Sync</strong>
-                <p class="text-muted">Safely synchronize master salt with Windows DPAPI</p>
-              </div>
-              <input type="checkbox" [checked]="credentialManagerSync()" (change)="credentialManagerSync.set(!credentialManagerSync())"/>
-            </div>
-
-            <div class="setting-toggle-row">
-              <div>
-                <strong>Hardware Acceleration</strong>
-                <p class="text-muted">Utilize DirectX 12 / Vulkan for high-speed FFmpeg 9:16 video encoding</p>
-              </div>
-              <input type="checkbox" [checked]="hardwareAcceleration()" (change)="hardwareAcceleration.set(!hardwareAcceleration())"/>
-            </div>
-          </div>
-
-          <div class="panel">
-            <h3>UI Density & Ergonomics</h3>
-            <div class="form-group">
-              <label>Layout Density</label>
-              <div class="density-buttons">
-                <button class="btn" [class.btn-primary]="densityMode() === 'comfortable'" (click)="setDensity('comfortable')">
-                  <span>Comfortable (22px padding)</span>
-                </button>
-                <button class="btn" [class.btn-primary]="densityMode() === 'compact'" (click)="setDensity('compact')">
-                  <span>Compact (14px padding)</span>
-                </button>
-              </div>
-            </div>
-
-            <div class="shortcuts-guide">
-              <h4>Desktop Keyboard Shortcuts</h4>
-              <div class="shortcut-row">
-                <kbd>Ctrl+K</kbd>
-                <span>Universal Command Palette & Search</span>
-              </div>
-              <div class="shortcut-row">
-                <kbd>Esc</kbd>
-                <span>Dismiss modal dialogs & drawers</span>
-              </div>
-              <div class="shortcut-row">
-                <kbd>Ctrl+Shift+P</kbd>
-                <span>Pause / Resume Active Operations</span>
-              </div>
-            </div>
-          </div>
+          <p class="text-muted">All 7 StickExplainers account credentials and OAuth tokens are encrypted with Argon2id + AES-256-GCM.</p>
         </div>
       </section>
+
     </main>
-  </div>
-
-  <!-- UNIVERSAL CTRL+K COMMAND PALETTE MODAL -->
-  <div *ngIf="commandPaletteOpen()" class="command-palette-backdrop" (click)="commandPaletteOpen.set(false)">
-    <div class="command-palette-box" (click)="$event.stopPropagation()">
-      <div class="palette-input-wrap">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="11" cy="11" r="8"/>
-          <path d="m21 21-4.3-4.3"/>
-        </svg>
-        <input
-          type="text"
-          placeholder="Type a command or jump to workspace..."
-          [ngModel]="commandQuery()"
-          (ngModelChange)="commandQuery.set($event)"
-          autofocus
-        />
-        <kbd class="key-shortcut">ESC to exit</kbd>
-      </div>
-
-      <div class="palette-results-list">
-        <div class="palette-group-title">WORKSPACES</div>
-        <div class="palette-item" (click)="navigateTo('home')">
-          <span>Home Dashboard</span>
-          <kbd>Jump</kbd>
-        </div>
-        <div class="palette-item" (click)="navigateTo('accounts')">
-          <span>Accounts Registry</span>
-          <kbd>Jump</kbd>
-        </div>
-        <div class="palette-item" (click)="navigateTo('create')">
-          <span>10-Step Mandatory Preflight</span>
-          <kbd>Jump</kbd>
-        </div>
-        <div class="palette-item" (click)="navigateTo('social')">
-          <span>Social Media Manager</span>
-          <kbd>Jump</kbd>
-        </div>
-        <div class="palette-item" (click)="navigateTo('automations')">
-          <span>Automations & Human Gate</span>
-          <kbd>Jump</kbd>
-        </div>
-        <div class="palette-item" (click)="navigateTo('agents')">
-          <span>Autonomous Subagents Roster</span>
-          <kbd>Jump</kbd>
-        </div>
-        <div class="palette-item" (click)="navigateTo('creative-studio')">
-          <span>Creative Studio & 9:16 Reels</span>
-          <kbd>Jump</kbd>
-        </div>
-        <div class="palette-item" (click)="navigateTo('vault')">
-          <span>Encrypted Vault (Argon2id)</span>
-          <kbd>Jump</kbd>
-        </div>
-        <div class="palette-item" (click)="navigateTo('settings')">
-          <span>Settings & Windows Integration</span>
-          <kbd>Jump</kbd>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- NOTIFICATION CENTER OVERLAY DRAWER -->
-  <div *ngIf="notificationCenterOpen()" class="drawer-backdrop" (click)="notificationCenterOpen.set(false)">
-    <div class="drawer-panel" (click)="$event.stopPropagation()">
-      <div class="drawer-header">
-        <h3>Notifications & Security Alerts</h3>
-        <button class="btn-micro" (click)="notificationCenterOpen.set(false)">✕</button>
-      </div>
-
-      <div class="drawer-body">
-        <div *ngFor="let notif of tauri.notifications()" class="notif-card" [class.unread]="!notif.read">
-          <div class="notif-head">
-            <span class="badge" [class.warning]="notif.type === 'security'" [class.blue]="notif.type === 'workflow'">
-              {{ notif.type | uppercase }}
-            </span>
-            <span class="mono text-muted notif-time">{{ notif.timestamp }}</span>
-          </div>
-          <strong>{{ notif.title }}</strong>
-          <p>{{ notif.message }}</p>
-        </div>
-      </div>
-
-      <div class="drawer-footer">
-        <button class="btn btn-secondary full-width" (click)="tauri.markAllNotificationsRead()">Mark All Read</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ACTIVE OPERATION INSPECTOR DRAWER -->
-  <div *ngIf="inspectingOperation()" class="drawer-backdrop" (click)="closeOperationInspector()">
-    <div class="drawer-panel wide" (click)="$event.stopPropagation()">
-      <div class="drawer-header">
-        <div>
-          <h3>Operation Inspector</h3>
-          <span class="mono id-sub">{{ inspectingOperation()!.id }}</span>
-        </div>
-        <button class="btn-micro" (click)="closeOperationInspector()">✕</button>
-      </div>
-
-      <div class="drawer-body">
-        <div class="inspector-section">
-          <h4>{{ inspectingOperation()!.name }}</h4>
-          <p>{{ inspectingOperation()!.description }}</p>
-          <div class="status-row">
-            <span class="op-status-label" [attr.data-status]="inspectingOperation()!.status">
-              {{ inspectingOperation()!.status | uppercase }}
-            </span>
-            <span class="mono">Started {{ inspectingOperation()!.started_at }}</span>
-          </div>
-        </div>
-
-        <div class="inspector-section">
-          <h4>Step Progression Graph</h4>
-          <div class="steps-timeline">
-            <div
-              *ngFor="let step of inspectingOperation()!.steps; let idx = index"
-              class="step-node"
-              [class.completed]="idx < inspectingOperation()!.current_step_index"
-              [class.current]="idx === inspectingOperation()!.current_step_index"
-            >
-              <div class="step-circle mono">{{ idx + 1 }}</div>
-              <span class="step-title">{{ step }}</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="inspector-section">
-          <h4>Live Execution Logs</h4>
-          <div class="log-console mono">
-            <div *ngFor="let l of inspectingOperation()!.logs" class="log-line">{{ l }}</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="drawer-footer">
-        <button class="btn btn-secondary" (click)="tauri.toggleOperationPause(inspectingOperation()!.id)">
-          {{ inspectingOperation()!.status === 'running' ? 'Pause Task' : 'Resume Task' }}
-        </button>
-        <button class="btn btn-primary" (click)="tauri.retryOperation(inspectingOperation()!.id)">
-          Retry Step
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ADD ACCOUNT MODAL -->
-  <div *ngIf="newAccountModalOpen()" class="command-palette-backdrop" (click)="newAccountModalOpen.set(false)">
-    <div class="modal-box" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <h3>Connect New Account</h3>
-        <button class="btn-micro" (click)="newAccountModalOpen.set(false)">✕</button>
-      </div>
-      <div class="modal-body">
-        <div class="form-group">
-          <label>Target Platform</label>
-          <select [ngModel]="newAccountPlatform()" (ngModelChange)="newAccountPlatform.set($event)">
-            <option value="instagram">Instagram</option>
-            <option value="reddit">Reddit</option>
-            <option value="youtube">YouTube</option>
-            <option value="tiktok">TikTok</option>
-            <option value="x">X (Twitter)</option>
-            <option value="linkedin">LinkedIn</option>
-            <option value="github">GitHub</option>
-            <option value="discord">Discord</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Account Username / Handle</label>
-          <input type="text" placeholder="e.g. quantum_actor_01" [ngModel]="newAccountUsername()" (ngModelChange)="newAccountUsername.set($event)"/>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" (click)="newAccountModalOpen.set(false)">Cancel</button>
-        <button class="btn btn-primary" (click)="addAccount()">Add to Registry</button>
-      </div>
-    </div>
   </div>
 </div>
