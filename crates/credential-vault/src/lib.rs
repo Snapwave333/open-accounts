@@ -73,6 +73,14 @@ pub struct VaultStatus {
 
 type MasterKey = Zeroizing<[u8; 32]>;
 
+async fn derive_key_async(password: &str, salt: &[u8; 16]) -> Result<MasterKey> {
+    let password = Zeroizing::new(password.to_string());
+    let salt = *salt;
+    tokio::task::spawn_blocking(move || derive_key(&password, &salt))
+        .await
+        .map_err(|e| OpenAccountsError::Vault(format!("Key derivation task failed: {e}")))?
+}
+
 fn derive_key(password: &str, salt: &[u8; 16]) -> Result<MasterKey> {
     let params = Params::new(65536, 3, 4, Some(32))
         .map_err(|e| OpenAccountsError::Vault(format!("Argon2 params error: {e}")))?;
@@ -266,7 +274,7 @@ impl VaultManager {
             )));
         }
 
-        let key = derive_key(master_password, &salt)?;
+        let key = derive_key_async(master_password, &salt).await?;
 
         match existing {
             Some(blob) => {
@@ -403,7 +411,7 @@ impl VaultManager {
 
         let mut new_salt = [0u8; 16];
         OsRng.fill_bytes(&mut new_salt);
-        let new_key = derive_key(new_password, &new_salt)?;
+        let new_key = derive_key_async(new_password, &new_salt).await?;
 
         let mut secrets = self.secrets.write().await;
         let mut reencrypted = Vec::with_capacity(secrets.len());

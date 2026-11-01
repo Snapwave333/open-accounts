@@ -102,6 +102,20 @@ CREATE TABLE IF NOT EXISTS policy_snapshots (
     PRIMARY KEY (platform_id, url)
 );
 
+CREATE TABLE IF NOT EXISTS engagement_actions (
+    id TEXT PRIMARY KEY,
+    account_id TEXT NOT NULL,
+    executed_at TEXT NOT NULL,
+    payload TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS inbox_messages (
+    id TEXT PRIMARY KEY,
+    account_id TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    payload TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS app_settings (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL,
@@ -113,6 +127,7 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs(created_at);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_account ON audit_logs(account_id);
 CREATE INDEX IF NOT EXISTS idx_human_tasks_status ON human_tasks(status);
 CREATE INDEX IF NOT EXISTS idx_vault_secrets_account ON vault_secrets(account_id);
+CREATE INDEX IF NOT EXISTS idx_engagement_actions_time ON engagement_actions(executed_at);
 "#;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

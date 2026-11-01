@@ -89,6 +89,7 @@ mod connections;
 mod flow;
 mod profiles;
 mod state;
+mod stores;
 mod tokens;
 #[cfg(test)]
 mod ipc_tests;

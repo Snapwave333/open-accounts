@@ -220,12 +220,19 @@ impl AppState {
         creative_pipeline.discover_tools().await;
 
         let publishing_engine = Arc::new(PublishingEngine::with_connectors(policy_engine.clone(), connectors.clone()));
-        let engagement_agent = Arc::new(EngagementAgent::with_connectors(
-            policy_engine.clone(),
-            lm_gateway.clone(),
-            EngagementConfig::default(),
-            connectors.clone(),
-        ));
+        let engagement_agent = Arc::new(
+            EngagementAgent::with_connectors(
+                policy_engine.clone(),
+                lm_gateway.clone(),
+                EngagementConfig::default(),
+                connectors.clone(),
+            )
+            .with_store(Arc::new(crate::stores::SqliteEngagementStore::new(db.clone()))),
+        );
+        match engagement_agent.restore().await {
+            Ok((actions, messages)) => info!("Restored {} recent engagement actions and {} inbox messages", actions, messages),
+            Err(e) => warn!("Could not restore engagement state: {}", e),
+        }
         for acc in account_registry.list_accounts().await.unwrap_or_default() {
             engagement_agent
                 .set_account_caps(acc.id.clone(), EngagementCaps::from_profile_metadata(&acc.profile_metadata))
@@ -399,6 +406,7 @@ mod tests {
     async fn app_boots_end_to_end_and_persists_across_restarts() {
         let root = std::env::temp_dir().join(format!("oa-e2e-{}", uuid::Uuid::new_v4()));
         std::env::set_var("OPENACCOUNTS_STICK_ROOT", std::env::temp_dir().join("oa-no-studio-fixture"));
+        let persisted_message: String;
         for var in ["NVIDIA_API_KEY", "X_ACCESS_TOKEN", "YOUTUBE_ACCESS_TOKEN", "REDDIT_ACCESS_TOKEN", "INSTAGRAM_ACCESS_TOKEN", "GMAIL_ACCESS_TOKEN", "OUTLOOK_ACCESS_TOKEN"] {
             std::env::remove_var(var);
         }
@@ -453,6 +461,15 @@ mod tests {
                 temperature: Some(0.3),
             };
             crate::profiles::save(&state.db, &profile).await.unwrap();
+
+            let first_account = state.account_registry.list_accounts().await.unwrap()[0].id.clone();
+            let msg = state
+                .engagement_agent
+                .ingest_message(first_account, "instagram", "@visitor", openaccounts_engagement_agent::InteractionType::Comment, "Love the new reel!")
+                .await
+                .unwrap();
+            state.engagement_agent.archive_message(&msg.message_id).await.unwrap();
+            persisted_message = msg.message_id;
         }
 
         let state = AppState::init_at(root.clone()).await.expect("second boot");
@@ -462,6 +479,8 @@ mod tests {
         state.vault.unlock("end-to-end-master").await.unwrap();
         assert_eq!(state.vault.list_metadata().await.len(), 1);
         assert!(!state.social_media_manager.is_loop_running());
+        let restored_msg = state.engagement_agent.get_message(&persisted_message).await.expect("inbox restored");
+        assert_eq!(restored_msg.status, "Archived");
         let restored = state.lm_gateway.list_profiles().await;
         let claude = restored.iter().find(|p| p.id == "persisted-claude").expect("profile restored after restart");
         assert_eq!(claude.max_tokens, Some(700));

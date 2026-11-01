@@ -280,3 +280,61 @@ fn heuristics_and_sanitising() {
     assert_eq!(caps.limit(EngagementActionType::Like), 7);
     assert_eq!(caps.limit(EngagementActionType::Reply), 3);
 }
+
+#[derive(Default)]
+struct MemoryStore {
+    actions: Mutex<Vec<openaccounts_engagement_agent::EngagementActionResult>>,
+    messages: Mutex<std::collections::HashMap<String, openaccounts_engagement_agent::UnifiedInboxMessage>>,
+}
+
+#[async_trait]
+impl openaccounts_engagement_agent::EngagementStore for MemoryStore {
+    async fn load_actions_since(&self, since: DateTime<Utc>) -> Result<Vec<openaccounts_engagement_agent::EngagementActionResult>> {
+        Ok(self.actions.lock().unwrap().iter().filter(|a| a.executed_at >= since).cloned().collect())
+    }
+    async fn record_action(&self, action: &openaccounts_engagement_agent::EngagementActionResult) -> Result<()> {
+        self.actions.lock().unwrap().push(action.clone());
+        Ok(())
+    }
+    async fn load_inbox(&self) -> Result<Vec<openaccounts_engagement_agent::UnifiedInboxMessage>> {
+        Ok(self.messages.lock().unwrap().values().cloned().collect())
+    }
+    async fn save_message(&self, message: &openaccounts_engagement_agent::UnifiedInboxMessage) -> Result<()> {
+        self.messages.lock().unwrap().insert(message.message_id.clone(), message.clone());
+        Ok(())
+    }
+}
+
+#[tokio::test]
+async fn caps_and_inbox_survive_a_restart() {
+    let store = Arc::new(MemoryStore::default());
+    let account = AccountId::new();
+    let mut caps = EngagementCaps::default();
+    caps.daily.insert(EngagementActionType::Like, 1);
+
+    let yt = RecordingConnector::with_inbox(
+        "youtube",
+        vec![interaction("c-1", "@fan", "Great video, thanks!", InteractionKind::Comment)],
+    );
+    let first = agent_with(vec![("x", RecordingConnector::new("x")), ("youtube", yt)]).with_store(store.clone());
+    first.set_account_caps(account.clone(), caps.clone()).await;
+    first.like_post(account.clone(), "x", "post-1").await.unwrap();
+    first.sync_inbox(account.clone(), "youtube").await.unwrap();
+    let msg_id = first.list_inbox().await[0].message_id.clone();
+    first.archive_message(&msg_id).await.unwrap();
+
+    let x = RecordingConnector::new("x");
+    let yt_again = RecordingConnector::with_inbox(
+        "youtube",
+        vec![interaction("c-1", "@fan", "Great video, thanks!", InteractionKind::Comment)],
+    );
+    let second = agent_with(vec![("x", x.clone()), ("youtube", yt_again)]).with_store(store.clone());
+    assert_eq!(second.restore().await.unwrap(), (1, 1));
+    second.set_account_caps(account.clone(), caps).await;
+
+    assert_eq!(second.remaining_quota(&account, EngagementActionType::Like).await, 0);
+    assert!(second.like_post(account.clone(), "x", "post-2").await.is_err());
+    assert!(x.calls().is_empty(), "cap must hold across restarts without calling the platform");
+    assert_eq!(second.get_message(&msg_id).await.unwrap().status, "Archived");
+    assert!(second.sync_inbox(account, "youtube").await.unwrap().is_empty(), "synced items must not be re-ingested");
+}

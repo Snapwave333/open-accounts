@@ -15,6 +15,14 @@ use tokio::sync::RwLock;
 use tracing::{debug, info, warn};
 use uuid::Uuid;
 
+#[async_trait::async_trait]
+pub trait EngagementStore: Send + Sync {
+    async fn load_actions_since(&self, since: DateTime<Utc>) -> Result<Vec<EngagementActionResult>>;
+    async fn record_action(&self, action: &EngagementActionResult) -> Result<()>;
+    async fn load_inbox(&self) -> Result<Vec<UnifiedInboxMessage>>;
+    async fn save_message(&self, message: &UnifiedInboxMessage) -> Result<()>;
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum InteractionType {
@@ -429,6 +437,7 @@ pub struct EngagementAgent {
     ledger: Arc<RwLock<ActionLedger>>,
     account_caps: Arc<RwLock<HashMap<AccountId, EngagementCaps>>>,
     default_caps: EngagementCaps,
+    store: Option<Arc<dyn EngagementStore>>,
 }
 
 impl EngagementAgent {
@@ -455,6 +464,7 @@ impl EngagementAgent {
             ledger: Arc::new(RwLock::new(ActionLedger::default())),
             account_caps: Arc::new(RwLock::new(HashMap::new())),
             default_caps: EngagementCaps::default(),
+            store: None,
         }
     }
 
@@ -491,6 +501,42 @@ impl EngagementAgent {
             .filter(|r| r.success && &r.account_id == account_id && r.action_type == action && r.executed_at > window_start)
             .count() as u32;
         cap.saturating_sub(used)
+    }
+
+    pub fn with_store(mut self, store: Arc<dyn EngagementStore>) -> Self {
+        self.store = Some(store);
+        self
+    }
+
+    pub async fn restore(&self) -> Result<(usize, usize)> {
+        let Some(store) = &self.store else { return Ok((0, 0)) };
+        let mut actions = store.load_actions_since(Utc::now() - ChronoDuration::hours(48)).await?;
+        actions.sort_by_key(|a| a.executed_at);
+        let messages = store.load_inbox().await?;
+        let counts = (actions.len(), messages.len());
+        {
+            let mut ledger = self.ledger.write().await;
+            ledger.history = actions.into_iter().collect();
+            while ledger.history.len() > self.config.history_limit.max(1) {
+                ledger.history.pop_front();
+            }
+        }
+        let mut inbox = self.inbox.write().await;
+        for mut m in messages {
+            if m.status == STATUS_SENDING {
+                m.status = STATUS_PENDING_APPROVAL.into();
+            }
+            inbox.insert(m.message_id.clone(), m);
+        }
+        Ok(counts)
+    }
+
+    async fn persist_message(&self, message_id: &str) {
+        let Some(store) = &self.store else { return };
+        let Some(msg) = self.inbox.read().await.get(message_id).cloned() else { return };
+        if let Err(e) = store.save_message(&msg).await {
+            warn!("Failed to persist inbox message {}: {}", message_id, e);
+        }
     }
 
     pub async fn list_inbox(&self) -> Vec<UnifiedInboxMessage> {
@@ -649,6 +695,7 @@ Output only the reply text.",
             msg.interaction_type, msg.author_handle, msg.platform, msg.category
         );
         self.inbox.write().await.insert(msg.message_id.clone(), msg.clone());
+        self.persist_message(&msg.message_id).await;
         Ok(msg)
     }
 
@@ -682,6 +729,8 @@ Output only the reply text.",
             return Ok(None);
         }
         inbox.insert(msg.message_id.clone(), msg.clone());
+        drop(inbox);
+        self.persist_message(&msg.message_id).await;
         Ok(Some(msg))
     }
 
@@ -728,6 +777,7 @@ Output only the reply text.",
         if let Some(m) = self.inbox.write().await.get_mut(message_id) {
             m.drafted_reply = draft.clone();
         }
+        self.persist_message(message_id).await;
         Ok(draft)
     }
 
@@ -737,6 +787,8 @@ Output only the reply text.",
             .get_mut(message_id)
             .ok_or_else(|| OpenAccountsError::Internal("Message not found".into()))?;
         msg.status = STATUS_ARCHIVED.into();
+        drop(inbox);
+        self.persist_message(message_id).await;
         Ok(())
     }
 
@@ -768,22 +820,26 @@ Output only the reply text.",
         let reply = sanitize_reply(final_reply, &platform);
         let dispatched = self.dispatch_reply(account_id, &platform, &remote_id, &reply).await;
 
-        let mut inbox = self.inbox.write().await;
-        let msg = inbox
-            .get_mut(message_id)
-            .ok_or_else(|| OpenAccountsError::Internal("Message not found".into()))?;
-        match dispatched {
-            Ok(_) => {
-                msg.drafted_reply = Some(reply);
-                msg.status = STATUS_REPLIED.into();
-                info!("Approved and dispatched reply to {} on {}", msg.author_handle, msg.platform);
-                Ok(())
+        let outcome = {
+            let mut inbox = self.inbox.write().await;
+            let msg = inbox
+                .get_mut(message_id)
+                .ok_or_else(|| OpenAccountsError::Internal("Message not found".into()))?;
+            match dispatched {
+                Ok(_) => {
+                    msg.drafted_reply = Some(reply);
+                    msg.status = STATUS_REPLIED.into();
+                    info!("Approved and dispatched reply to {} on {}", msg.author_handle, msg.platform);
+                    Ok(())
+                }
+                Err(e) => {
+                    msg.status = previous_status;
+                    Err(e)
+                }
             }
-            Err(e) => {
-                msg.status = previous_status;
-                Err(e)
-            }
-        }
+        };
+        self.persist_message(message_id).await;
+        outcome
     }
 
     pub async fn auto_reply_pending(&self) -> Vec<Result<String>> {
@@ -904,9 +960,15 @@ Output only the reply text.",
                 Err(e)
             }
         };
-        ledger.history.push_back(result);
+        ledger.history.push_back(result.clone());
         while ledger.history.len() > self.config.history_limit.max(1) {
             ledger.history.pop_front();
+        }
+        drop(ledger);
+        if let Some(store) = &self.store {
+            if let Err(e) = store.record_action(&result).await {
+                warn!("Failed to persist engagement action {}: {}", result.action_id, e);
+            }
         }
         returned
     }

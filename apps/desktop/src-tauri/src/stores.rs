@@ -1,0 +1,79 @@
+use async_trait::async_trait;
+use chrono::{DateTime, Utc};
+use openaccounts_core::{OpenAccountsError, Result};
+use openaccounts_database::Database;
+use openaccounts_engagement_agent::{EngagementActionResult, EngagementStore, UnifiedInboxMessage};
+use sqlx::Row;
+use std::sync::Arc;
+use tracing::warn;
+
+pub struct SqliteEngagementStore {
+    db: Arc<Database>,
+}
+
+impl SqliteEngagementStore {
+    pub fn new(db: Arc<Database>) -> Self {
+        Self { db }
+    }
+}
+
+fn db_err(e: sqlx::Error) -> OpenAccountsError {
+    OpenAccountsError::Database(e.to_string())
+}
+
+#[async_trait]
+impl EngagementStore for SqliteEngagementStore {
+    async fn load_actions_since(&self, since: DateTime<Utc>) -> Result<Vec<EngagementActionResult>> {
+        let rows = sqlx::query("SELECT payload FROM engagement_actions WHERE executed_at >= ? ORDER BY executed_at")
+            .bind(since.to_rfc3339())
+            .fetch_all(self.db.pool())
+            .await
+            .map_err(db_err)?;
+        Ok(rows
+            .into_iter()
+            .filter_map(|r| {
+                serde_json::from_str(&r.get::<String, _>("payload"))
+                    .map_err(|e| warn!("Skipping unreadable engagement action: {}", e))
+                    .ok()
+            })
+            .collect())
+    }
+
+    async fn record_action(&self, action: &EngagementActionResult) -> Result<()> {
+        sqlx::query("INSERT OR REPLACE INTO engagement_actions (id, account_id, executed_at, payload) VALUES (?, ?, ?, ?)")
+            .bind(&action.action_id)
+            .bind(action.account_id.0.to_string())
+            .bind(action.executed_at.to_rfc3339())
+            .bind(serde_json::to_string(action)?)
+            .execute(self.db.pool())
+            .await
+            .map_err(db_err)?;
+        Ok(())
+    }
+
+    async fn load_inbox(&self) -> Result<Vec<UnifiedInboxMessage>> {
+        let rows = sqlx::query("SELECT payload FROM inbox_messages ORDER BY updated_at DESC LIMIT 2000")
+            .fetch_all(self.db.pool())
+            .await
+            .map_err(db_err)?;
+        Ok(rows
+            .into_iter()
+            .filter_map(|r| serde_json::from_str(&r.get::<String, _>("payload")).ok())
+            .collect())
+    }
+
+    async fn save_message(&self, message: &UnifiedInboxMessage) -> Result<()> {
+        sqlx::query(
+            "INSERT INTO inbox_messages (id, account_id, updated_at, payload) VALUES (?, ?, ?, ?) \
+             ON CONFLICT(id) DO UPDATE SET updated_at = excluded.updated_at, payload = excluded.payload",
+        )
+        .bind(&message.message_id)
+        .bind(message.account_id.0.to_string())
+        .bind(Utc::now().to_rfc3339())
+        .bind(serde_json::to_string(message)?)
+        .execute(self.db.pool())
+        .await
+        .map_err(db_err)?;
+        Ok(())
+    }
+}
