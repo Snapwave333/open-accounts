@@ -20,7 +20,7 @@
       </div>
     </div>
 
-    <!-- Clean 4-Tab Switcher in Center -->
+    <!-- Clean 5-Tab Switcher in Center (3rd Tab = Agent Chat) -->
     <div class="topbar-center">
       <nav class="tab-pill-group">
         <button
@@ -37,6 +37,13 @@
           (click)="setTab('flow')"
         >
           <span>Activity Flow</span>
+        </button>
+        <button
+          class="tab-pill"
+          [class.active]="activeTab() === 'chat'"
+          (click)="setTab('chat')"
+        >
+          <span>Agent Chat</span>
         </button>
         <button
           class="tab-pill"
@@ -68,6 +75,65 @@
       </button>
     </div>
   </header>
+
+  <!-- REUSABLE REAL BRAND LOGO TEMPLATE -->
+  <ng-template #brandLogo let-brand="brand" let-size="size">
+    <div class="brand-logo-box" [style.width.px]="size || 24" [style.height.px]="size || 24" [ngSwitch]="brand">
+      <!-- Instagram Official Camera Mark -->
+      <svg *ngSwitchCase="'instagram'" viewBox="0 0 24 24" width="14" height="14" fill="none">
+        <defs>
+          <linearGradient id="igGrad" x1="2" y1="22" x2="22" y2="2" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#feda75"/>
+            <stop offset="35%" stop-color="#fa7e1e"/>
+            <stop offset="70%" stop-color="#d62976"/>
+            <stop offset="100%" stop-color="#4f5bd5"/>
+          </linearGradient>
+        </defs>
+        <rect x="2.5" y="2.5" width="19" height="19" rx="5.5" stroke="url(#igGrad)" stroke-width="2.1"/>
+        <circle cx="12" cy="12" r="4.3" stroke="url(#igGrad)" stroke-width="2.1"/>
+        <circle cx="17.3" cy="6.7" r="1.2" fill="#d62976"/>
+      </svg>
+
+      <!-- TikTok Official Note Mark -->
+      <svg *ngSwitchCase="'tiktok'" viewBox="0 0 24 24" width="14" height="14" fill="none">
+        <path d="M16.6 5.82A4.28 4.28 0 0 1 15.54 3h-3.09v12.4a2.59 2.59 0 0 1-2.59 2.5c-1.42 0-2.6-1.16-2.6-2.6 0-1.72 1.66-3.01 3.37-2.48V9.66c-3.45-.46-6.47 2.22-6.47 5.64 0 3.33 2.76 5.7 5.69 5.7 3.14 0 5.69-2.55 5.69-5.7V9.01a7.35 7.35 0 0 0 4.3 1.38V7.3s-1.88.09-3.24-1.48Z" fill="#ffffff"/>
+        <path d="M16.6 5.82A4.28 4.28 0 0 1 15.54 3h-1.2v12.4a2.59 2.59 0 0 1-2.59 2.5" stroke="#25f4ee" stroke-width="1"/>
+        <path d="M15.54 9.01a7.35 7.35 0 0 0 4.3 1.38V7.3" stroke="#fe2c55" stroke-width="1"/>
+      </svg>
+
+      <!-- YouTube Official Play Crest -->
+      <svg *ngSwitchCase="'youtube'" viewBox="0 0 24 24" width="15" height="15" fill="none">
+        <rect x="2" y="4.5" width="20" height="15" rx="4.2" fill="#ff0033"/>
+        <polygon points="10,8.8 16,12 10,15.2" fill="#ffffff"/>
+      </svg>
+
+      <!-- Shopify Official Shopping Bag -->
+      <svg *ngSwitchCase="'shopify'" viewBox="0 0 24 24" width="14" height="14" fill="none">
+        <path d="M18.5 6.5L16.8 20.5L6.5 19.2L4.8 7.5L8.5 6.5V5.5C8.5 3.8 9.8 2.5 11.5 2.5C13.2 2.5 14.5 3.8 14.5 5.5V6.5H18.5Z" fill="#95bf47"/>
+        <path d="M13.2 10.2C12.3 9.7 10.8 9.9 10.6 10.9C10.4 11.8 11.7 12.2 12.6 12.7C13.6 13.3 13.8 14.7 12.8 15.6C11.8 16.5 9.9 16.2 9.1 15.5" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+
+      <!-- PayPal Official Double-P Monogram -->
+      <svg *ngSwitchCase="'paypal'" viewBox="0 0 24 24" width="14" height="14" fill="none">
+        <path d="M7.2 19.5L9.4 4.5H15.2C17.8 4.5 19.3 6.1 18.8 8.9C18.3 11.9 16.2 13.5 13.2 13.5H10.5L9.6 19.5H7.2Z" fill="#003087"/>
+        <path d="M5.5 21L7.7 6H13.5C16.1 6 17.6 7.6 17.1 10.4C16.6 13.4 14.5 15 11.5 15H8.8L7.9 21H5.5Z" fill="#0079c1" fill-opacity="0.9"/>
+      </svg>
+
+      <!-- Gmail Official M Envelope -->
+      <svg *ngSwitchCase="'gmail'" viewBox="0 0 24 24" width="14" height="14" fill="none">
+        <rect x="2.5" y="4.5" width="19" height="15" rx="2.5" fill="#141414" stroke="#ea4335" stroke-width="1.5"/>
+        <path d="M3.5 6.5L12 12.8L20.5 6.5" stroke="#ea4335" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M3.5 18V7.5" stroke="#4285f4" stroke-width="2" stroke-linecap="round"/>
+        <path d="M20.5 18V7.5" stroke="#34a853" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+
+      <!-- Outlook / Email Official Crest -->
+      <svg *ngSwitchDefault viewBox="0 0 24 24" width="14" height="14" fill="none">
+        <rect x="2.5" y="4.5" width="19" height="15" rx="2.5" fill="#0078d4"/>
+        <path d="M3.5 7L12 12.5L20.5 7" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+  </ng-template>
 
   <!-- PURE BLACK WORKSPACE -->
   <div class="app-body">
@@ -159,7 +225,10 @@
             <div class="flow-cards-list">
               <div *ngFor="let item of tauri.justDidItems()" class="flow-card">
                 <div class="flow-card-top">
-                  <span class="badge">{{ item.tag }}</span>
+                  <div class="account-chip-inline">
+                    <ng-container *ngTemplateOutlet="brandLogo; context: { brand: item.platform, size: 22 }"></ng-container>
+                    <span class="account-chip-handle">{{ item.account_handle }}</span>
+                  </div>
                   <span class="mono flow-time">{{ item.time_label }}</span>
                 </div>
                 <div class="flow-card-title">{{ item.title }}</div>
@@ -168,7 +237,7 @@
             </div>
           </div>
 
-          <!-- PANEL 2: ACTIVELY DOING (SINGLE EMERALD ACCENT FOCUS) -->
+          <!-- PANEL 2: ACTIVELY DOING (WITH REAL LOGOS + EXPLICIT ETA) -->
           <div class="flow-column active-column">
             <div class="flow-column-header">
               <div>
@@ -184,8 +253,11 @@
             <div class="flow-cards-list">
               <div *ngFor="let item of tauri.activelyDoingItems()" class="flow-card live-card">
                 <div class="flow-card-top">
-                  <span class="badge accent">{{ item.tag }}</span>
-                  <span class="mono flow-time accent-text">{{ item.time_label }}</span>
+                  <div class="account-chip-inline">
+                    <ng-container *ngTemplateOutlet="brandLogo; context: { brand: item.platform, size: 22 }"></ng-container>
+                    <span class="account-chip-handle">{{ item.account_handle }}</span>
+                  </div>
+                  <span class="eta-pill live">{{ item.eta }}</span>
                 </div>
                 <div class="flow-card-title">{{ item.title }}</div>
                 <p class="flow-card-detail">{{ item.detail }}</p>
@@ -193,7 +265,7 @@
             </div>
           </div>
 
-          <!-- PANEL 3: PLAN TO DO NEXT -->
+          <!-- PANEL 3: PLAN TO DO NEXT (WITH REAL LOGOS + EXPLICIT ETA) -->
           <div class="flow-column">
             <div class="flow-column-header">
               <div>
@@ -209,8 +281,11 @@
             <div class="flow-cards-list">
               <div *ngFor="let item of tauri.planToDoNextItems()" class="flow-card">
                 <div class="flow-card-top">
-                  <span class="badge">{{ item.tag }}</span>
-                  <span class="mono flow-time">{{ item.time_label }}</span>
+                  <div class="account-chip-inline">
+                    <ng-container *ngTemplateOutlet="brandLogo; context: { brand: item.platform, size: 22 }"></ng-container>
+                    <span class="account-chip-handle">{{ item.account_handle }}</span>
+                  </div>
+                  <span class="eta-pill">{{ item.eta }}</span>
                 </div>
                 <div class="flow-card-title">{{ item.title }}</div>
                 <p class="flow-card-detail">{{ item.detail }}</p>
@@ -221,7 +296,137 @@
         </div>
       </section>
 
-      <!-- TAB 3: ACCOUNTS -->
+      <!-- TAB 3: AGENT CHAT (MINIMALIST HUMAN <-> IN-APP LM AGENT WITH ATTACHMENTS) -->
+      <section *ngIf="activeTab() === 'chat'" class="workspace-view">
+        <div
+          class="chat-container"
+          [class.drag-active]="isDragOver()"
+          (dragover)="onChatDragOver($event)"
+          (dragleave)="onChatDragLeave($event)"
+          (drop)="onChatDrop($event)"
+        >
+          <!-- Chat Top Header -->
+          <div class="chat-header">
+            <div class="chat-agent-identity">
+              <span class="agent-online-dot"></span>
+              <div>
+                <h3>OpenAccounts LM Agent</h3>
+                <span class="chat-subtitle">Direct bridge to your 7 accounts &amp; 39 StickExplainers studio agents · Drop files anywhere to attach</span>
+              </div>
+            </div>
+
+            <div class="chat-scope-wrap">
+              <span class="scope-label">ROUTE TO</span>
+              <select
+                class="scope-select"
+                [ngModel]="chatTargetScope()"
+                (ngModelChange)="chatTargetScope.set($event)"
+              >
+                <option value="All Accounts & Studio Agents">All Accounts &amp; Studio Agents</option>
+                <option value="C. Coral & E. Emerald (Social & Engagement)">Social &amp; Engagement (C. Coral / E. Emerald)</option>
+                <option value="V. Sterling & J. Jade (CEO & Editorial)">CEO &amp; Editorial (V. Sterling / J. Jade)</option>
+                <option value="R. Ruby & F. Fuchsia (YouTube / TikTok / Reels)">Publishing (R. Ruby / F. Fuchsia)</option>
+                <option value="G. Graphite (Garbage Collector)">Garbage Collector (G. Graphite)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Scrollable Messages Stream -->
+          <div class="chat-messages">
+            <div
+              *ngFor="let msg of tauri.agentChatMessages()"
+              class="chat-bubble-row"
+              [class.human]="msg.sender === 'human'"
+            >
+              <div class="chat-bubble">
+                <div class="bubble-meta">
+                  <span class="bubble-author">{{ msg.author_label }}</span>
+                  <span class="bubble-scope" *ngIf="msg.target_scope">{{ msg.target_scope }}</span>
+                  <span class="mono bubble-time">{{ msg.timestamp }}</span>
+                </div>
+
+                <p class="bubble-text" *ngIf="msg.text">{{ msg.text }}</p>
+
+                <!-- Rendered Attachments inside Bubble -->
+                <div class="bubble-attachments" *ngIf="msg.attachments && msg.attachments.length > 0">
+                  <div *ngFor="let att of msg.attachments" class="attachment-card">
+                    <img *ngIf="att.is_image && att.data_url" [src]="att.data_url" class="att-thumb" alt="attachment"/>
+                    <div *ngIf="!att.is_image" class="att-file-icon">FILE</div>
+                    <div class="att-meta">
+                      <span class="att-name">{{ att.name }}</span>
+                      <span class="mono att-size">{{ att.size_label }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Action Prompts + Composer with Attachments Handling -->
+          <div class="chat-composer-area">
+            <!-- Quick Prompt Chips -->
+            <div class="quick-prompts-row">
+              <button class="prompt-chip" (click)="sendQuickPrompt('Status check across @snapwave, @clearlydrawnlessons, and @ClearlyDrawnLessons')">
+                Status check across accounts
+              </button>
+              <button class="prompt-chip" (click)="sendQuickPrompt('Queue next Cartoon Kitchen recipe card on @snapwave')">
+                Queue next IG Kitchen card
+              </button>
+              <button class="prompt-chip" (click)="sendQuickPrompt('Run outbound engagement batch on #animefood and #studioghibli')">
+                Run engagement batch
+              </button>
+              <button class="prompt-chip" (click)="sendQuickPrompt('Run garbage collection sweep with G. Graphite')">
+                Run GC sweep
+              </button>
+            </div>
+
+            <!-- Staged Attachments Tray -->
+            <div class="staged-attachments-tray" *ngIf="stagedAttachments().length > 0">
+              <div *ngFor="let att of stagedAttachments()" class="staged-att-chip">
+                <img *ngIf="att.is_image && att.data_url" [src]="att.data_url" class="staged-thumb" alt="preview"/>
+                <span *ngIf="!att.is_image" class="staged-ext">FILE</span>
+                <div class="staged-info">
+                  <span class="staged-name">{{ att.name }}</span>
+                  <span class="mono staged-size">{{ att.size_label }}</span>
+                </div>
+                <button class="staged-remove" (click)="removeAttachment(att.id)" title="Remove attachment">×</button>
+              </div>
+            </div>
+
+            <!-- Input Row with File Picker + Text Input + Send -->
+            <div class="composer-input-row">
+              <input
+                #chatFileInput
+                type="file"
+                multiple
+                style="display: none;"
+                (change)="onChatFilesSelected($event)"
+              />
+              <button class="btn-attach" (click)="chatFileInput.click()" title="Attach images, videos, scripts, or files">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                </svg>
+                <span>Attach</span>
+              </button>
+
+              <input
+                type="text"
+                class="chat-text-input"
+                placeholder="Message the in-app LM agent or drop files to attach..."
+                [ngModel]="chatInput()"
+                (ngModelChange)="chatInput.set($event)"
+                (keyup.enter)="sendChatMessage()"
+              />
+
+              <button class="btn btn-primary" (click)="sendChatMessage()">
+                <span>Send</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: ACCOUNTS (WITH REAL BRAND LOGOS) -->
       <section *ngIf="activeTab() === 'accounts'" class="workspace-view">
         <div class="panel">
           <div class="panel-header">
@@ -262,7 +467,12 @@
             </thead>
             <tbody>
               <tr *ngFor="let acc of tauri.accounts()">
-                <td><span class="badge">{{ acc.platform | uppercase }}</span></td>
+                <td>
+                  <div class="platform-brand-cell">
+                    <ng-container *ngTemplateOutlet="brandLogo; context: { brand: getAccountBrandKey(acc), size: 28 }"></ng-container>
+                    <span class="badge">{{ acc.platform | uppercase }}</span>
+                  </div>
+                </td>
                 <td><strong>{{ acc.username }}</strong></td>
                 <td class="mono" style="color: var(--text-muted);">{{ acc.email || '—' }}</td>
                 <td><span class="badge accent">AUTOPILOT</span></td>
@@ -272,7 +482,7 @@
         </div>
       </section>
 
-      <!-- TAB 4: VAULT -->
+      <!-- TAB 5: VAULT -->
       <section *ngIf="activeTab() === 'vault'" class="workspace-view">
         <div class="panel" *ngIf="!tauri.vaultUnlocked()">
           <div class="panel-header">

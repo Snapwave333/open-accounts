@@ -5,6 +5,7 @@ import {
   AccountCreationPreflightReport,
   AccountRecord,
   ActiveOperation,
+  ChatAttachment,
   PlatformKnowledgeProfile,
   TauriService,
   UnifiedInboxMessage,
@@ -13,6 +14,7 @@ import {
 export type NavTab =
   | 'home'
   | 'flow'
+  | 'chat'
   | 'accounts'
   | 'create'
   | 'social'
@@ -114,6 +116,107 @@ export class App implements OnInit {
   bridgeSubject = signal<string>('Sync Episode Shorts & Comment Replies');
   bridgeBody = signal<string>('Ready to publish today’s 3x 9:16 Shorts and reply to top Cartoon Kitchen comments.');
   bridgeCreateDirective = signal<boolean>(true);
+
+  // In-App LM Agent Chat & Attachments State
+  chatInput = signal<string>('');
+  chatTargetScope = signal<string>('All Accounts & Studio Agents');
+  stagedAttachments = signal<ChatAttachment[]>([]);
+  isDragOver = signal<boolean>(false);
+
+  getAccountBrandKey(acc: AccountRecord): string {
+    const u = (acc.username || '').toLowerCase();
+    const p = (acc.platform || '').toLowerCase();
+    if (u.includes('gmail.com')) return 'gmail';
+    if (u.includes('outlook.com') || u.includes('hotmail.com')) return 'outlook';
+    if (p === 'paypal' || u.includes('paypal')) return 'paypal';
+    if (p === 'shopify' || u.includes('myshopify')) return 'shopify';
+    if (p === 'youtube') return 'youtube';
+    if (p === 'tiktok') return 'tiktok';
+    if (p === 'instagram') return 'instagram';
+    return p;
+  }
+
+  onChatFilesSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      this.processFiles(Array.from(input.files));
+      input.value = '';
+    }
+  }
+
+  onChatDragOver(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragOver.set(true);
+  }
+
+  onChatDragLeave(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragOver.set(false);
+  }
+
+  onChatDrop(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDragOver.set(false);
+    if (event.dataTransfer?.files && event.dataTransfer.files.length > 0) {
+      this.processFiles(Array.from(event.dataTransfer.files));
+    }
+  }
+
+  private processFiles(files: File[]) {
+    for (const file of files) {
+      const kb = file.size / 1024;
+      const sizeLabel = kb >= 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(kb))} KB`;
+      const isImg = file.type.startsWith('image/');
+      const attId = `att-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+
+      if (isImg) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const newAtt: ChatAttachment = {
+            id: attId,
+            name: file.name,
+            size_label: sizeLabel,
+            mime_type: file.type || 'image/png',
+            is_image: true,
+            data_url: typeof reader.result === 'string' ? reader.result : undefined,
+          };
+          this.stagedAttachments.update((prev) => [...prev, newAtt]);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        const newAtt: ChatAttachment = {
+          id: attId,
+          name: file.name,
+          size_label: sizeLabel,
+          mime_type: file.type || 'application/octet-stream',
+          is_image: false,
+        };
+        this.stagedAttachments.update((prev) => [...prev, newAtt]);
+      }
+    }
+  }
+
+  removeAttachment(id: string) {
+    this.stagedAttachments.update((prev) => prev.filter((a) => a.id !== id));
+  }
+
+  async sendQuickPrompt(prompt: string) {
+    this.chatInput.set(prompt);
+    await this.sendChatMessage();
+  }
+
+  async sendChatMessage() {
+    const text = this.chatInput().trim();
+    const atts = this.stagedAttachments();
+    if (!text && atts.length === 0) return;
+
+    this.chatInput.set('');
+    this.stagedAttachments.set([]);
+    await this.tauri.sendAgentChatMessage(text, this.chatTargetScope(), atts);
+  }
 
   constructor() {
     this.loadPlatformProfiles();

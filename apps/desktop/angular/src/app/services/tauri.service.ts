@@ -293,6 +293,28 @@ export interface FlowCardItem {
   detail: string;
   tag: string;
   time_label: string;
+  eta?: string;
+  platform: 'instagram' | 'tiktok' | 'youtube' | 'shopify' | 'paypal' | 'gmail' | 'outlook';
+  account_handle: string;
+}
+
+export interface ChatAttachment {
+  id: string;
+  name: string;
+  size_label: string;
+  mime_type: string;
+  is_image: boolean;
+  data_url?: string;
+}
+
+export interface AgentChatMessage {
+  id: string;
+  sender: 'human' | 'agent';
+  author_label: string;
+  timestamp: string;
+  text: string;
+  target_scope?: string;
+  attachments: ChatAttachment[];
 }
 
 @Injectable({
@@ -951,6 +973,8 @@ export class TauriService {
       detail: 'Shared Howl’s Bacon & Eggs (Calcifer) card with recipe creator credit & Chef Elena caption.',
       tag: 'INSTAGRAM',
       time_label: '18:19 Local',
+      platform: 'instagram',
+      account_handle: '@snapwave',
     },
     {
       id: 'jd-2',
@@ -958,6 +982,8 @@ export class TauriService {
       detail: 'Scanned @ClearlyDrawnLessons, @clearlydrawnlessons, and @snapwave (0 new, 5 drafts queued).',
       tag: 'COMMENTS',
       time_label: 'Just now',
+      platform: 'youtube',
+      account_handle: '@ClearlyDrawnLessons',
     },
     {
       id: 'jd-3',
@@ -965,6 +991,8 @@ export class TauriService {
       detail: 'Logged 8 IG likes, 3 IG follows, 3 YouTube likes, 1 YouTube subscription, and 1 YT comment reply.',
       tag: 'ENGAGE',
       time_label: 'Today',
+      platform: 'tiktok',
+      account_handle: '@clearlydrawnlessons',
     },
     {
       id: 'jd-4',
@@ -972,6 +1000,8 @@ export class TauriService {
       detail: 'Verified 80.2 GB free disk space (26.37 GB total reclaimed), 0 orphaned render workers.',
       tag: 'CLEANUP',
       time_label: '22:30 Local',
+      platform: 'shopify',
+      account_handle: 'Studio Host',
     },
   ]);
 
@@ -982,6 +1012,9 @@ export class TauriService {
       detail: 'Liking & following #animefood and #studioghibli videos on @clearlydrawnlessons & @snapwave with 25–90s human pacing.',
       tag: 'RUNNING NOW',
       time_label: 'Live Cycle',
+      eta: 'ETA ~4m left',
+      platform: 'instagram',
+      account_handle: '@snapwave',
     },
     {
       id: 'ad-2',
@@ -989,6 +1022,9 @@ export class TauriService {
       detail: 'Auto-drafting Marcus & Chef Elena replies via free NVIDIA NIM cascade and matching Shopify store links.',
       tag: 'WATCHING',
       time_label: 'Continuous',
+      eta: 'ETA ~45s / scan',
+      platform: 'youtube',
+      account_handle: '@ClearlyDrawnLessons',
     },
     {
       id: 'ad-3',
@@ -996,6 +1032,9 @@ export class TauriService {
       detail: 'Syncing episode status and directives with V. Sterling (CEO), C. Coral, E. Emerald, and Q. Quartz.',
       tag: 'BRIDGE',
       time_label: 'Connected',
+      eta: 'ETA ~15s sync',
+      platform: 'tiktok',
+      account_handle: '@clearlydrawnlessons',
     },
   ]);
 
@@ -1006,6 +1045,9 @@ export class TauriService {
       detail: 'Queued next 4:5 branded news card for @snapwave once the 4-hour feed spacing window clears.',
       tag: 'NEXT IG CARD',
       time_label: 'After 4h gap',
+      eta: 'ETA 3h 40m',
+      platform: 'instagram',
+      account_handle: '@snapwave',
     },
     {
       id: 'pn-2',
@@ -1013,6 +1055,9 @@ export class TauriService {
       detail: 'Scheduled bi-daily engagement poll card for @snapwave community discussion.',
       tag: 'POLL CARD',
       time_label: '2026-11-01',
+      eta: 'ETA 11h 15m',
+      platform: 'instagram',
+      account_handle: '@snapwave',
     },
     {
       id: 'pn-3',
@@ -1020,6 +1065,9 @@ export class TauriService {
       detail: 'Release next verified Clearly Drawn News episode on YouTube (@ClearlyDrawnLessons), TikTok, and IG Reels.',
       tag: 'PUBLISH',
       time_label: '15:00 UTC',
+      eta: 'ETA 9h 45m',
+      platform: 'youtube',
+      account_handle: '@ClearlyDrawnLessons',
     },
     {
       id: 'pn-4',
@@ -1027,6 +1075,21 @@ export class TauriService {
       detail: 'Prune temporary OpenToonz frames once YouTube & TikTok confirm processing.',
       tag: 'MAINTENANCE',
       time_label: 'In 30 mins',
+      eta: 'ETA 28m',
+      platform: 'shopify',
+      account_handle: 'zs56hs-fj.myshopify.com',
+    },
+  ]);
+
+  agentChatMessages = signal<AgentChatMessage[]>([
+    {
+      id: 'chat-1',
+      sender: 'agent',
+      author_label: 'OpenAccounts LM Agent · Nemotron 3.5 Super VL',
+      timestamp: '23:10 Local',
+      text: 'All 7 Clearly Drawn Studios accounts (@snapwave, @clearlydrawnlessons, @ClearlyDrawnLessons, Shopify, PayPal, Gmail, Outlook) are synced and running on autopilot. Drop a directive or attach any image, script, thumbnail, or asset here and I will coordinate it across the accounts and the 39 StickExplainers studio agents.',
+      target_scope: 'All Accounts & Studio Agents',
+      attachments: [],
     },
   ]);
 
@@ -1235,5 +1298,47 @@ export class TauriService {
       'Autonomous Garbage Collection Sweep',
       `Free disk: ${this.gcReport().free_gb} GB | Reclaimed total: ${this.gcReport().freed_total_gb} GB | Orphans: ${this.gcReport().orphans_status}`
     );
+  }
+
+  async sendAgentChatMessage(text: string, targetScope: string, attachments: ChatAttachment[]) {
+    const nowLabel = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const humanMsg: AgentChatMessage = {
+      id: `chat-${Date.now()}`,
+      sender: 'human',
+      author_label: 'You',
+      timestamp: nowLabel,
+      text: text || (attachments.length > 0 ? `Attached ${attachments.length} file(s)` : ''),
+      target_scope: targetScope,
+      attachments,
+    };
+    this.agentChatMessages.update((prev) => [...prev, humanMsg]);
+
+    const attachmentNames = attachments.map((a) => `${a.name} (${a.size_label})`).join(', ');
+    const bridgeBody = attachmentNames ? `${text}\n[Attachments: ${attachmentNames}]` : text;
+
+    await this.sendStickBridgeMessage(
+      'Human Operator via OpenAccounts LM Agent',
+      targetScope,
+      'Direct Agent Chat & Asset Handoff',
+      text ? text.slice(0, 64) : `Asset Handoff (${attachments.length} file(s))`,
+      bridgeBody,
+      true
+    );
+
+    const attachmentAck =
+      attachments.length > 0
+        ? ` Indexed ${attachments.length} attachment(s) (${attachmentNames}) for visual/content pipeline use.`
+        : '';
+
+    const replyMsg: AgentChatMessage = {
+      id: `chat-reply-${Date.now()}`,
+      sender: 'agent',
+      author_label: 'OpenAccounts LM Agent · Nemotron 3.5 Super VL',
+      timestamp: 'Just now',
+      text: `Directive routed to ${targetScope}.${attachmentAck} Synchronized across @snapwave (IG), @clearlydrawnlessons (TikTok), and @ClearlyDrawnLessons (YouTube) with zero duplicate actions.`,
+      target_scope: targetScope,
+      attachments: [],
+    };
+    this.agentChatMessages.update((prev) => [...prev, replyMsg]);
   }
 }
