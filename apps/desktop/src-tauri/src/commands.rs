@@ -368,6 +368,7 @@ pub async fn approve_and_publish_post(
         .publishing_engine
         .approve_and_publish(&post_id)
         .await
+        .map(|_| ())
         .map_err(|e| e.to_string())
 }
 

@@ -23,3 +23,6 @@ chrono.workspace = true
 uuid.workspace = true
 tokio.workspace = true
 tracing.workspace = true
+
+[dev-dependencies]
+openaccounts-platform-intelligence = { path = "../platform-intelligence" }

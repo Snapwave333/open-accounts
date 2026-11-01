@@ -8,6 +8,36 @@ export interface SystemStats {
   updated_at: string;
 }
 
+export interface SystemHardwareMetrics {
+  cpu_percent: number;
+  gpu_percent: number;
+  memory_used_gb: number;
+  memory_total_gb: number;
+  disk_percent: number;
+}
+
+export interface ActiveOperation {
+  id: string;
+  name: string;
+  description: string;
+  progress: number;
+  status: 'running' | 'paused' | 'awaiting_approval' | 'completed';
+  platform: string;
+  started_at: string;
+  steps: string[];
+  current_step_index: number;
+  logs: string[];
+}
+
+export interface NotificationItem {
+  id: string;
+  title: string;
+  message: string;
+  timestamp: string;
+  type: 'security' | 'workflow' | 'policy' | 'system';
+  read: boolean;
+}
+
 export interface AccountRecord {
   id: string;
   platform: string;
@@ -15,6 +45,7 @@ export interface AccountRecord {
   email?: string;
   phone?: string;
   status: string;
+  health_score?: number;
   created_at: string;
   last_active?: string;
 }
@@ -115,7 +146,6 @@ export interface PolicyAlert {
   created_at: string;
 }
 
-// Social Media Manager & Marketing Types
 export interface BrandProfile {
   brand_id: string;
   name: string;
@@ -225,6 +255,137 @@ export class TauriService {
     updated_at: new Date().toISOString(),
   });
 
+  hardware = signal<SystemHardwareMetrics>({
+    cpu_percent: 14,
+    gpu_percent: 22,
+    memory_used_gb: 3.8,
+    memory_total_gb: 16.0,
+    disk_percent: 42,
+  });
+
+  activeOperations = signal<ActiveOperation[]>([
+    {
+      id: 'op-01',
+      name: 'Instagram Trend Digest & Reel Generation',
+      description: 'Synthesizing verified audio and compiling 9:16 vertical video reel with FFmpeg and Vector Craft',
+      progress: 74,
+      status: 'running',
+      platform: 'instagram',
+      started_at: '12 mins ago',
+      current_step_index: 3,
+      steps: [
+        'Scan verified tech hashtags on Instagram Graph API',
+        'Synthesize natural voiceover script via LM gateway',
+        'Normalize audio levels to -14 LUFS',
+        'Composite 1080x1920 graphic overlays with Vector Craft',
+        'Stage for scheduled automated publication',
+      ],
+      logs: [
+        '[12:00:14] Initialized task context with Argon2id session credentials',
+        '[12:02:40] Voiceover track synthesized (28.4s, 48kHz, stereo)',
+        '[12:05:12] EBU R128 audio loudness normalized to -14.1 LUFS',
+        '[12:07:30] Compiling frame batch #1240-2400 via FFmpeg h264_nvenc...',
+      ],
+    },
+    {
+      id: 'op-02',
+      name: 'Reddit Developer Discussion Engagement',
+      description: 'Synthesizing technical response for r/devops offline cryptography thread within rate limits',
+      progress: 45,
+      status: 'running',
+      platform: 'reddit',
+      started_at: '18 mins ago',
+      current_step_index: 2,
+      steps: [
+        'Scan subscribed technical subreddits for relevant inquiries',
+        'Verify target thread complies with community guidelines',
+        'Generate cryptographic technical explanation',
+        'Await human operator gate approval before submission',
+      ],
+      logs: [
+        '[11:58:02] Matched post query: "Best practices for local credential isolation"',
+        '[12:01:10] Verified sub rules: link posts disallowed, technical code examples permitted',
+        '[12:04:19] Formulated 320-word technical analysis with Argon2id citations',
+      ],
+    },
+    {
+      id: 'op-03',
+      name: 'Nightly Argon2id Key Derivation & Vault Scrub',
+      description: 'Zeroizing volatile memory buffers, rotating ephemeral slice salts, and flushing SQLite journals',
+      progress: 100,
+      status: 'completed',
+      platform: 'vault',
+      started_at: '1 hour ago',
+      current_step_index: 4,
+      steps: [
+        'Enumerate locked credential records in local SQLite pool',
+        'Re-derive AES-256-GCM master key with Argon2id parameters',
+        'Perform zeroize_memory() on ephemeral plaintext buffers',
+        'Write tamper-evident integrity hash to audit journal',
+      ],
+      logs: [
+        '[11:15:00] Master vault integrity check started',
+        '[11:15:04] Argon2id parameters verified: m=65536, t=3, p=4',
+        '[11:15:08] All plaintext memory buffers successfully overwritten with zeros',
+        '[11:15:09] Checkpoint journal signed: 0x9f4a...88c2',
+      ],
+    },
+    {
+      id: 'op-04',
+      name: 'TikTok Short-Form Video Color Grading',
+      description: 'Batch applying brand color LUTs and dynamic subtitle alignment via Photo Craft CLI',
+      progress: 32,
+      status: 'paused',
+      platform: 'tiktok',
+      started_at: '35 mins ago',
+      current_step_index: 1,
+      steps: [
+        'Extract audio timestamps for kinetic subtitle tracking',
+        'Apply high-contrast dark color palette in Photo Craft',
+        'Encode H.265 vertical 60fps video stream',
+      ],
+      logs: [
+        '[11:42:11] Subtitles parsed: 18 keyframes extracted',
+        '[11:45:00] Operator triggered manual pause for asset inspection',
+      ],
+    },
+  ]);
+
+  notifications = signal<NotificationItem[]>([
+    {
+      id: 'notif-1',
+      title: 'Human Gate Intervention Required',
+      message: 'Cloudflare Turnstile challenge encountered during Instagram account registration preflight.',
+      timestamp: '5 mins ago',
+      type: 'security',
+      read: false,
+    },
+    {
+      id: 'notif-2',
+      title: 'Video Asset Compilation Finished',
+      message: 'FFmpeg rendered 1080x1920 (9:16) reel for Q4 Product Launch campaign.',
+      timestamp: '22 mins ago',
+      type: 'workflow',
+      read: false,
+    },
+    {
+      id: 'notif-3',
+      title: 'Platform Rate Limit Sync',
+      message: 'X developer tier limits verified. Backoff delay set to 60s per automated action.',
+      timestamp: '45 mins ago',
+      type: 'policy',
+      read: true,
+    },
+    {
+      id: 'notif-4',
+      title: 'Vault Cryptographic Scrub Complete',
+      message: 'Offline memory buffers zeroized. Argon2id salt refreshed without errors.',
+      timestamp: '1 hour ago',
+      type: 'system',
+      read: true,
+    },
+  ]);
+
   accounts = signal<AccountRecord[]>([
     {
       id: 'acc-1',
@@ -232,6 +393,7 @@ export class TauriService {
       username: 'growth_brand_ai',
       email: 'instagram_01@openaccounts.local',
       status: 'active',
+      health_score: 98,
       created_at: '2026-10-15T10:00:00Z',
       last_active: '2 mins ago',
     },
@@ -241,6 +403,7 @@ export class TauriService {
       username: 'u/AutoDevDesk',
       email: 'reddit_dev@openaccounts.local',
       status: 'active',
+      health_score: 95,
       created_at: '2026-10-18T14:30:00Z',
       last_active: '5 mins ago',
     },
@@ -250,6 +413,7 @@ export class TauriService {
       username: 'StudioContentSync',
       email: 'yt_sync@openaccounts.local',
       status: 'active',
+      health_score: 100,
       created_at: '2026-10-20T08:00:00Z',
       last_active: '1 hour ago',
     },
@@ -259,6 +423,7 @@ export class TauriService {
       username: '@DevOpsShorts',
       email: 'tiktok_ops@openaccounts.local',
       status: 'active',
+      health_score: 92,
       created_at: '2026-10-22T19:00:00Z',
       last_active: '15 mins ago',
     },
@@ -268,8 +433,39 @@ export class TauriService {
       username: '@OpenAccountsCore',
       email: 'x_brand@openaccounts.local',
       status: 'active',
+      health_score: 94,
       created_at: '2026-10-25T11:20:00Z',
       last_active: 'Just now',
+    },
+    {
+      id: 'acc-6',
+      platform: 'linkedin',
+      username: 'openaccounts-platform',
+      email: 'li_corp@openaccounts.local',
+      status: 'active',
+      health_score: 97,
+      created_at: '2026-10-26T09:40:00Z',
+      last_active: '3 hours ago',
+    },
+    {
+      id: 'acc-7',
+      platform: 'github',
+      username: 'openaccounts-robot',
+      email: 'gh_bot@openaccounts.local',
+      status: 'active',
+      health_score: 100,
+      created_at: '2026-10-12T16:10:00Z',
+      last_active: '20 mins ago',
+    },
+    {
+      id: 'acc-8',
+      platform: 'discord',
+      username: 'OpenAccountsNotify#4412',
+      email: 'dc_notify@openaccounts.local',
+      status: 'active',
+      health_score: 96,
+      created_at: '2026-10-28T13:00:00Z',
+      last_active: '10 mins ago',
     },
   ]);
 
@@ -340,24 +536,23 @@ export class TauriService {
     },
   ]);
 
-  // Social Marketing Signals
   brands = signal<BrandProfile[]>([
     {
       brand_id: 'brand-01',
       name: 'OpenAccounts AI',
       tagline: 'Autonomous Account Infrastructure',
       visual_identity: {
-        primary_hex: '#2563eb',
-        secondary_hex: '#0f172a',
+        primary_hex: '#141722',
+        secondary_hex: '#0b0d12',
         accent_hex: '#d946ef',
         font_family: 'Inter, sans-serif',
       },
       voice: {
-        tone_adjectives: ['Authoritative', 'Innovative', 'Helpful'],
-        audience_persona: 'Engineers, marketers, and technical founders.',
-        writing_rules: ['Direct statements', 'Highlight offline cryptography'],
-        prohibited_words: ['quick cash', 'spam bot'],
-        escalation_triggers: ['legal', 'vulnerability', 'chargeback'],
+        tone_adjectives: ['Authoritative', 'Innovative', 'Pragmatic'],
+        audience_persona: 'Engineers, marketers, and technical founders requiring automated scale.',
+        writing_rules: ['Direct statements', 'Highlight offline cryptography', 'Never over-promise'],
+        prohibited_words: ['quick cash', 'spam bot', 'guaranteed clicks'],
+        escalation_triggers: ['legal', 'vulnerability', 'chargeback', 'abuse'],
       },
       linked_account_ids: ['acc-1', 'acc-3', 'acc-5'],
     },
@@ -368,7 +563,7 @@ export class TauriService {
       campaign_id: 'camp-01',
       brand_id: 'brand-01',
       title: 'Q4 Product Launch — Autonomous Account Workforce',
-      objective: 'Brand Awareness & Developer Signups',
+      objective: 'Brand Awareness & Technical Adoption',
       target_platforms: ['Instagram', 'YouTube', 'TikTok', 'X'],
       target_audience: 'Technical creators and operations teams',
       content_formats: ['Reels (9:16)', 'Shorts (9:16)', 'X Threads'],
@@ -376,6 +571,19 @@ export class TauriService {
       start_date: '2026-11-01',
       end_date: '2026-11-30',
       status: 'Active',
+    },
+    {
+      campaign_id: 'camp-02',
+      brand_id: 'brand-01',
+      title: 'Developer Security & Offline Vault Showcase',
+      objective: 'Educate security community on Argon2id buffer isolation',
+      target_platforms: ['Reddit', 'YouTube', 'LinkedIn', 'GitHub'],
+      target_audience: 'DevSecOps engineers and cybersecurity architects',
+      content_formats: ['Deep-dive Video', 'Reddit Case Study', 'GitHub Guide'],
+      hashtags: ['#Argon2id', '#CyberSecurity', '#RustLang', '#PrivacyFirst'],
+      start_date: '2026-11-05',
+      end_date: '2026-12-15',
+      status: 'Planned',
     },
   ]);
 
@@ -420,46 +628,46 @@ export class TauriService {
 
   creativeTools = signal<ToolCapability[]>([
     {
-      name: 'Vector Craft CLI',
+      name: 'Vector Craft',
       command: 'vectorcraft-cli',
       is_available: true,
       version: 'v0.11.0',
       supported_features: ['Vector Graphics', 'SVG/PDF Rendering', 'Logo & Badge Generation'],
     },
     {
-      name: 'Photo Craft CLI',
+      name: 'Photo Craft',
       command: 'photocraft-cli',
       is_available: true,
       version: 'v0.9.0',
       supported_features: ['Image Editing', 'Layer Compositing', 'Smart Sharpen', 'Batch Color Grade'],
     },
     {
-      name: 'Effect Craft CLI',
+      name: 'OpenToonz',
+      command: 'tcomposer.exe',
+      is_available: true,
+      version: 'v1.5.0',
+      supported_features: ['2D Character Animation', 'Scene Rendering', 'Frame Cleanup'],
+    },
+    {
+      name: 'Effect Craft',
       command: 'effectcraft-cli',
       is_available: true,
       version: 'v0.10.0',
       supported_features: ['Motion Graphics', 'Lottie Export', 'Video Compositing', 'Transitions'],
     },
     {
+      name: 'Blender',
+      command: 'blender.exe',
+      is_available: true,
+      version: 'v5.1.2',
+      supported_features: ['3D Modeling', 'Cinematic Camera', 'Eevee & Cycles Render'],
+    },
+    {
       name: 'FFmpeg CLI',
       command: 'ffmpeg',
       is_available: true,
-      version: '9.0.2',
+      version: 'v9.0.2',
       supported_features: ['Transcoding', '9:16 Reel Resizing', 'Audio Normalization (-14 LUFS)', 'Subtitles'],
-    },
-    {
-      name: 'OpenToonz Animation Suite',
-      command: 'tcomposer.exe',
-      is_available: true,
-      version: '1.5.0',
-      supported_features: ['2D Character Animation', 'Scene Rendering', 'Frame Cleanup'],
-    },
-    {
-      name: 'Blender 3D',
-      command: 'blender.exe',
-      is_available: true,
-      version: '5.1.2',
-      supported_features: ['3D Modeling', 'Cinematic Camera', 'Eevee & Cycles Render'],
     },
   ]);
 
@@ -553,9 +761,45 @@ export class TauriService {
     { role: 'ComplianceAgent', title: 'Policy & Rate Limit Gatekeeper', current_task: 'Enforcing official Graph and X API compliance limits', assigned_model_profile: 'Deterministic Policy Engine', is_active: true },
   ]);
 
-  isAutonomousLoopRunning = signal<boolean>(false);
+  isAutonomousLoopRunning = signal<boolean>(true);
   vaultUnlocked = signal<boolean>(false);
   killSwitchActive = signal<boolean>(false);
+
+  toggleOperationPause(id: string) {
+    this.activeOperations.update((ops) =>
+      ops.map((op) => {
+        if (op.id === id) {
+          const nextStatus = op.status === 'running' ? 'paused' : 'running';
+          return { ...op, status: nextStatus };
+        }
+        return op;
+      })
+    );
+  }
+
+  retryOperation(id: string) {
+    this.activeOperations.update((ops) =>
+      ops.map((op) => {
+        if (op.id === id) {
+          return {
+            ...op,
+            status: 'running',
+            progress: Math.min(100, op.progress + 15),
+            logs: [...op.logs, `[${new Date().toLocaleTimeString()}] Operator triggered retry sequence`],
+          };
+        }
+        return op;
+      })
+    );
+  }
+
+  markAllNotificationsRead() {
+    this.notifications.update((items) => items.map((i) => ({ ...i, read: true })));
+  }
+
+  clearNotifications() {
+    this.notifications.set([]);
+  }
 
   async invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
     if (this.isTauriAvailable) {

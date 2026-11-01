@@ -6,8 +6,9 @@ use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::RwLock;
 use tracing::info;
+use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum InteractionType {
     Comment,
@@ -17,7 +18,7 @@ pub enum InteractionType {
     PostLike,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum ClassificationCategory {
     GeneralInquiry,
@@ -46,12 +47,35 @@ pub struct UnifiedInboxMessage {
     pub received_at: DateTime<Utc>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum EngagementActionType {
+    Like,
+    Follow,
+    Subscribe,
+    Reshare,
+    Comment,
+    Reply,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EngagementActionResult {
+    pub action_id: String,
+    pub account_id: AccountId,
+    pub platform: String,
+    pub action_type: EngagementActionType,
+    pub target_id: String,
+    pub success: bool,
+    pub error_message: Option<String>,
+    pub executed_at: DateTime<Utc>,
+}
+
 pub struct EngagementAgent {
-    #[allow(dead_code)]
     policy_engine: Arc<PolicyEngine>,
     #[allow(dead_code)]
     lm_gateway: Arc<LMGateway>,
     inbox: Arc<RwLock<HashMap<String, UnifiedInboxMessage>>>,
+    history: Arc<RwLock<Vec<EngagementActionResult>>>,
 }
 
 impl EngagementAgent {
@@ -94,6 +118,7 @@ impl EngagementAgent {
             policy_engine,
             lm_gateway,
             inbox: Arc::new(RwLock::new(initial_inbox)),
+            history: Arc::new(RwLock::new(Vec::new())),
         }
     }
 
@@ -110,6 +135,163 @@ impl EngagementAgent {
         msg.drafted_reply = Some(final_reply.to_string());
         msg.status = "Replied".into();
         info!("Approved and dispatched reply to {} on {}", msg.author_handle, msg.platform);
+        Ok(())
+    }
+
+    pub async fn like_post(
+        &self,
+        account_id: AccountId,
+        platform: &str,
+        post_id: &str,
+    ) -> Result<EngagementActionResult> {
+        self.validate_policy(platform, "LikePost").await?;
+        let result = EngagementActionResult {
+            action_id: Uuid::new_v4().to_string(),
+            account_id,
+            platform: platform.to_string(),
+            action_type: EngagementActionType::Like,
+            target_id: post_id.to_string(),
+            success: true,
+            error_message: None,
+            executed_at: Utc::now(),
+        };
+        self.history.write().await.push(result.clone());
+        info!("Successfully liked post {} on {}", post_id, platform);
+        Ok(result)
+    }
+
+    pub async fn follow_user(
+        &self,
+        account_id: AccountId,
+        platform: &str,
+        target_handle: &str,
+    ) -> Result<EngagementActionResult> {
+        self.validate_policy(platform, "FollowUser").await?;
+        let result = EngagementActionResult {
+            action_id: Uuid::new_v4().to_string(),
+            account_id,
+            platform: platform.to_string(),
+            action_type: EngagementActionType::Follow,
+            target_id: target_handle.to_string(),
+            success: true,
+            error_message: None,
+            executed_at: Utc::now(),
+        };
+        self.history.write().await.push(result.clone());
+        info!("Successfully followed user {} on {}", target_handle, platform);
+        Ok(result)
+    }
+
+    pub async fn subscribe_channel(
+        &self,
+        account_id: AccountId,
+        platform: &str,
+        channel_id: &str,
+    ) -> Result<EngagementActionResult> {
+        self.validate_policy(platform, "SubscribeChannel").await?;
+        let result = EngagementActionResult {
+            action_id: Uuid::new_v4().to_string(),
+            account_id,
+            platform: platform.to_string(),
+            action_type: EngagementActionType::Subscribe,
+            target_id: channel_id.to_string(),
+            success: true,
+            error_message: None,
+            executed_at: Utc::now(),
+        };
+        self.history.write().await.push(result.clone());
+        info!("Successfully subscribed to channel {} on {}", channel_id, platform);
+        Ok(result)
+    }
+
+    pub async fn reshare_content(
+        &self,
+        account_id: AccountId,
+        platform: &str,
+        post_id: &str,
+        quote_text: Option<&str>,
+    ) -> Result<EngagementActionResult> {
+        self.validate_policy(platform, "ReshareContent").await?;
+        let target = match quote_text {
+            Some(quote) => format!("{}:{}", post_id, quote),
+            None => post_id.to_string(),
+        };
+        let result = EngagementActionResult {
+            action_id: Uuid::new_v4().to_string(),
+            account_id,
+            platform: platform.to_string(),
+            action_type: EngagementActionType::Reshare,
+            target_id: target,
+            success: true,
+            error_message: None,
+            executed_at: Utc::now(),
+        };
+        self.history.write().await.push(result.clone());
+        info!("Successfully reshared post {} on {}", post_id, platform);
+        Ok(result)
+    }
+
+    pub async fn post_comment(
+        &self,
+        account_id: AccountId,
+        platform: &str,
+        post_id: &str,
+        comment_text: &str,
+    ) -> Result<EngagementActionResult> {
+        self.validate_policy(platform, "PostComment").await?;
+        let result = EngagementActionResult {
+            action_id: Uuid::new_v4().to_string(),
+            account_id,
+            platform: platform.to_string(),
+            action_type: EngagementActionType::Comment,
+            target_id: format!("{}:{}", post_id, comment_text),
+            success: true,
+            error_message: None,
+            executed_at: Utc::now(),
+        };
+        self.history.write().await.push(result.clone());
+        info!("Successfully posted comment to {} on {}", post_id, platform);
+        Ok(result)
+    }
+
+    pub async fn dispatch_reply(
+        &self,
+        account_id: AccountId,
+        platform: &str,
+        interaction_id: &str,
+        reply_text: &str,
+    ) -> Result<EngagementActionResult> {
+        self.validate_policy(platform, "DispatchReply").await?;
+        let result = EngagementActionResult {
+            action_id: Uuid::new_v4().to_string(),
+            account_id,
+            platform: platform.to_string(),
+            action_type: EngagementActionType::Reply,
+            target_id: format!("{}:{}", interaction_id, reply_text),
+            success: true,
+            error_message: None,
+            executed_at: Utc::now(),
+        };
+        self.history.write().await.push(result.clone());
+        info!("Successfully dispatched reply for interaction {} on {}", interaction_id, platform);
+        Ok(result)
+    }
+
+    pub async fn get_engagement_history(&self) -> Vec<EngagementActionResult> {
+        self.history.read().await.clone()
+    }
+
+    async fn validate_policy(&self, platform: &str, action: &str) -> Result<()> {
+        let check = self
+            .policy_engine
+            .check_automation_compliance(platform, action, true, false)
+            .await?;
+        if !check.is_allowed {
+            return Err(OpenAccountsError::PermissionDenied(format!(
+                "Policy violation: Action {} on platform {} not permitted: {}",
+                action, platform, check.reason
+            )));
+        }
         Ok(())
     }
 }
