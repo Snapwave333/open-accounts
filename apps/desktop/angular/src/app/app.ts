@@ -36,6 +36,13 @@ export class App {
   newSecretValue = signal<string>('');
   newSecretAccount = signal<string>('');
 
+  showModelForm = signal<boolean>(false);
+  modelProvider = signal<string>('anthropic');
+  modelId = signal<string>('');
+  modelProfileId = signal<string>('');
+  modelEndpoint = signal<string>('');
+  modelKeyEnv = signal<string>('');
+
   replyDrafts = signal<Record<string, string>>({});
   signupPlatform = signal<string>('reddit');
   signupCategory = signal<string>('brand');
@@ -110,6 +117,30 @@ export class App {
   async redraft(msg: InboxMessage) {
     const draft = await this.tauri.redraftInbox(msg.message_id);
     if (draft !== null) this.setDraft(msg.message_id, draft);
+  }
+
+  async addModel() {
+    const modelId = this.modelId().trim();
+    if (!modelId) return;
+    const provider = this.modelProvider();
+    const id = this.modelProfileId().trim() || `${provider}-${modelId}`;
+    const ok = await this.tauri.registerProfile({
+      id,
+      name: `${provider} · ${modelId}`,
+      provider_type: provider,
+      endpoint: this.modelEndpoint().trim() || null,
+      model_id: modelId,
+      api_key_secret_id: this.modelKeyEnv().trim() || null,
+      max_tokens: 1024,
+      temperature: 0.4,
+    });
+    if (ok) {
+      this.modelId.set('');
+      this.modelProfileId.set('');
+      this.modelEndpoint.set('');
+      this.modelKeyEnv.set('');
+      this.showModelForm.set(false);
+    }
   }
 
   async startSignup() {

@@ -281,10 +281,38 @@ pub async fn list_lm_profiles(state: State<'_, AppState>) -> CmdResult<Vec<Model
 
 #[tauri::command(rename_all = "snake_case")]
 pub async fn register_lm_profile(state: State<'_, AppState>, profile: ModelProfile) -> CmdResult<()> {
-    if profile.id.trim().is_empty() || profile.model_id.trim().is_empty() {
+    let mut profile = profile;
+    profile.id = profile.id.trim().to_lowercase().replace(' ', "-");
+    if profile.id.is_empty() || profile.model_id.trim().is_empty() {
         return Err("Profile id and model id are required".into());
     }
+    if profile.id == openaccounts_lm_gateway::DEFAULT_PROFILE_ID || profile.id == "nim-vision-cascade" {
+        return Err("Built-in profiles cannot be replaced".into());
+    }
+    if let Some(endpoint) = profile.endpoint.as_deref().filter(|e| !e.trim().is_empty()) {
+        if !(endpoint.starts_with("http://") || endpoint.starts_with("https://")) {
+            return Err("Endpoint must start with http:// or https://".into());
+        }
+    }
+    if profile.name.trim().is_empty() {
+        profile.name = profile.id.clone();
+    }
+    crate::profiles::save(&state.db, &profile).await?;
     state.lm_gateway.register_profile(profile).await;
+    *state.connection_cache.write().await = None;
+    Ok(())
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub async fn remove_lm_profile(state: State<'_, AppState>, profile_id: String) -> CmdResult<()> {
+    if !state.lm_gateway.remove_profile(&profile_id).await {
+        return Err(format!("LM profile '{profile_id}' cannot be removed"));
+    }
+    crate::profiles::delete(&state.db, &profile_id).await?;
+    if state.db.get_setting(agent::CHAT_PROFILE_SETTING).await.ok().flatten().as_deref() == Some(profile_id.as_str()) {
+        state.db.set_setting(agent::CHAT_PROFILE_SETTING, openaccounts_lm_gateway::DEFAULT_PROFILE_ID).await.map_err(err)?;
+    }
+    *state.connection_cache.write().await = None;
     Ok(())
 }
 
@@ -294,6 +322,16 @@ pub async fn set_chat_lm_profile(state: State<'_, AppState>, profile_id: String)
         return Err(format!("LM profile '{profile_id}' is not registered"));
     }
     state.db.set_setting(agent::CHAT_PROFILE_SETTING, &profile_id).await.map_err(err)
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub async fn get_chat_lm_profile(state: State<'_, AppState>) -> CmdResult<String> {
+    Ok(state
+        .db
+        .get_setting(agent::CHAT_PROFILE_SETTING)
+        .await
+        .map_err(err)?
+        .unwrap_or_else(|| openaccounts_lm_gateway::DEFAULT_PROFILE_ID.to_string()))
 }
 
 #[tauri::command(rename_all = "snake_case")]

@@ -1638,3 +1638,32 @@
     word-break: break-word;
   }
 }
+
+.model-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+
+  .model-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  select {
+    min-width: 260px;
+  }
+}
+
+.model-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+
+  input {
+    width: 210px;
+  }
+}

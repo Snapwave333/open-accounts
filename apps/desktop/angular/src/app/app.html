@@ -425,6 +425,34 @@
               </div>
             </div>
 
+            <div class="model-bar">
+              <label class="model-label">Model</label>
+              <select [ngModel]="tauri.chatProfile()" (ngModelChange)="tauri.setChatProfile($event)">
+                <option *ngFor="let p of tauri.lmProfiles()" [value]="p.id">{{ p.name }}</option>
+              </select>
+              <button class="btn-micro" (click)="showModelForm.set(!showModelForm())">{{ showModelForm() ? 'Close' : '+ Model' }}</button>
+              <button
+                class="btn-micro"
+                *ngIf="tauri.chatProfile() !== 'nim-cascade'"
+                (click)="tauri.removeProfile(tauri.chatProfile())"
+              >Remove</button>
+            </div>
+            <div class="model-form" *ngIf="showModelForm()">
+              <select [ngModel]="modelProvider()" (ngModelChange)="modelProvider.set($event)">
+                <option value="anthropic">Anthropic</option>
+                <option value="openaicompatible">OpenAI-compatible</option>
+                <option value="gemini">Gemini</option>
+                <option value="openrouter">OpenRouter</option>
+                <option value="ollama">Ollama (local)</option>
+                <option value="nvidianim">NVIDIA NIM</option>
+              </select>
+              <input type="text" placeholder="Model id (e.g. claude-sonnet-5-5)" [ngModel]="modelId()" (ngModelChange)="modelId.set($event)" />
+              <input type="text" placeholder="Profile id (optional)" [ngModel]="modelProfileId()" (ngModelChange)="modelProfileId.set($event)" />
+              <input type="text" placeholder="Endpoint (optional)" [ngModel]="modelEndpoint()" (ngModelChange)="modelEndpoint.set($event)" />
+              <input type="text" placeholder="API key env var (optional)" [ngModel]="modelKeyEnv()" (ngModelChange)="modelKeyEnv.set($event)" />
+              <button class="btn btn-primary" (click)="addModel()">Save model</button>
+            </div>
+
             <div class="scope-pills-bar">
               <button
                 *ngFor="let scope of chatScopes()"

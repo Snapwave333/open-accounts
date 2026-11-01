@@ -26,6 +26,8 @@ macro_rules! app_commands {
             list_lm_profiles,
             register_lm_profile,
             set_chat_lm_profile,
+            get_chat_lm_profile,
+            remove_lm_profile,
             get_lm_usage,
             agent_chat,
             trigger_kill_switch,
@@ -84,6 +86,7 @@ mod agent;
 mod commands;
 mod connections;
 mod flow;
+mod profiles;
 mod state;
 mod tokens;
 #[cfg(test)]

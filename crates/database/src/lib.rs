@@ -261,6 +261,8 @@ impl Database {
             ("audit_logs", "prev_hash", "ALTER TABLE audit_logs ADD COLUMN prev_hash TEXT"),
             ("audit_logs", "entry_hash", "ALTER TABLE audit_logs ADD COLUMN entry_hash TEXT"),
             ("human_tasks", "title", "ALTER TABLE human_tasks ADD COLUMN title TEXT"),
+            ("lm_providers", "max_tokens", "ALTER TABLE lm_providers ADD COLUMN max_tokens INTEGER"),
+            ("lm_providers", "temperature", "ALTER TABLE lm_providers ADD COLUMN temperature REAL"),
         ] {
             if !self.column_exists(table, column).await? {
                 sqlx::query(ddl)

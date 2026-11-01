@@ -166,6 +166,17 @@ export interface RegistrationReport {
   signup_url?: string | null;
 }
 
+export interface LmProfile {
+  id: string;
+  name: string;
+  provider_type: string;
+  endpoint?: string | null;
+  model_id: string;
+  api_key_secret_id?: string | null;
+  max_tokens?: number | null;
+  temperature?: number | null;
+}
+
 export interface AgentChatReply {
   reply: string;
   model: string;
@@ -212,6 +223,8 @@ export class TauriService {
   vaultStatus = signal<VaultStatus | null>(null);
   vaultSecrets = signal<SecretMetadata[]>([]);
   connections = signal<ConnectionStatus[]>([]);
+  lmProfiles = signal<LmProfile[]>([]);
+  chatProfile = signal<string>('nim-cascade');
   inbox = signal<InboxMessage[]>([]);
   registrations = signal<RegistrationReport[]>([]);
   lastRegistration = signal<RegistrationReport | null>(null);
@@ -323,6 +336,7 @@ export class TauriService {
         this.load<StickBridgeState>('get_stick_bridge_state', (v) => this.setIfChanged(this.bridgeState, v)),
         this.refreshVault(),
         this.refreshConnections(false),
+        this.refreshProfiles(),
       ]);
     } finally {
       this.loading.set(false);
@@ -337,6 +351,29 @@ export class TauriService {
     } else {
       this.vaultSecrets.set([]);
     }
+  }
+
+  async refreshProfiles(): Promise<void> {
+    await Promise.all([
+      this.load<LmProfile[]>('list_lm_profiles', (v) => this.setIfChanged(this.lmProfiles, v.filter((p) => !p.id.includes('vision')))),
+      this.load<string>('get_chat_lm_profile', (v) => this.setIfChanged(this.chatProfile, v)),
+    ]);
+  }
+
+  setChatProfile(profileId: string) {
+    return this.act('set_chat_lm_profile', { profile_id: profileId }, () => this.refreshProfiles());
+  }
+
+  registerProfile(profile: LmProfile) {
+    return this.act('register_lm_profile', { profile }, () =>
+      Promise.all([this.refreshProfiles(), this.refreshConnections(true)]).then(() => undefined)
+    );
+  }
+
+  removeProfile(profileId: string) {
+    return this.act('remove_lm_profile', { profile_id: profileId }, () =>
+      Promise.all([this.refreshProfiles(), this.refreshConnections(true)]).then(() => undefined)
+    );
   }
 
   async refreshConnections(force: boolean): Promise<void> {

@@ -130,6 +130,20 @@ const check = (cond, message) => {
     await page.locator('.status-label', { hasText: 'PAUSED' }).waitFor();
 
     await tab('Agent Chat');
+    await page.getByRole('button', { name: '+ Model' }).click();
+    await page.locator('.model-form select').selectOption('ollama');
+    await page.getByPlaceholder('Model id (e.g. claude-sonnet-5-5)').fill('llama3.2');
+    await page.getByPlaceholder('Endpoint (optional)').fill('http://127.0.0.1:9');
+    await page.getByRole('button', { name: 'Save model' }).click();
+    await page
+      .locator('.model-bar select option[value="ollama-llama3.2"]')
+      .waitFor({ state: 'attached' });
+    await page.locator('.model-bar select').selectOption('ollama-llama3.2');
+    await page.waitForTimeout(400);
+    check(
+      (await page.locator('.model-bar select').inputValue()) === 'ollama-llama3.2',
+      'chat model selection did not stick',
+    );
     await page.getByPlaceholder(/Message the in-app LM agent/).fill('What needs my attention?');
     await page.getByRole('button', { name: 'Send' }).click();
     await page.locator('.chat-bubble-row.error').waitFor({ timeout: 15000 });

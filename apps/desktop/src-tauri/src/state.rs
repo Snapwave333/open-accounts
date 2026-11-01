@@ -150,6 +150,11 @@ impl AppState {
 
         let vault = Arc::new(VaultManager::with_database(db.clone()).await.map_err(|e| e.to_string())?);
         let lm_gateway = Arc::new(LMGateway::new());
+        match crate::profiles::load_into(&db, &lm_gateway).await {
+            Ok(n) if n > 0 => info!("Restored {} LM profiles", n),
+            Ok(_) => {}
+            Err(e) => warn!("Could not restore LM profiles: {}", e),
+        }
         let human_controller = Arc::new(HumanInterventionController::with_database(db.clone()).await.map_err(|e| e.to_string())?);
         let permission_engine = Arc::new(PermissionEngine::new());
         let audit_engine = Arc::new(AuditEngine::new(db.clone()));
@@ -436,6 +441,18 @@ mod tests {
 
             let audit = state.audit_engine.verify_integrity().await.unwrap();
             assert!(audit.is_intact);
+
+            let profile = openaccounts_lm_gateway::ModelProfile {
+                id: "persisted-claude".into(),
+                name: "Persisted Claude".into(),
+                provider_type: openaccounts_lm_gateway::ModelProviderType::Anthropic,
+                endpoint: None,
+                model_id: "claude-sonnet-5-5".into(),
+                api_key_secret_id: Some("ANTHROPIC_API_KEY".into()),
+                max_tokens: Some(700),
+                temperature: Some(0.3),
+            };
+            crate::profiles::save(&state.db, &profile).await.unwrap();
         }
 
         let state = AppState::init_at(root.clone()).await.expect("second boot");
@@ -445,6 +462,10 @@ mod tests {
         state.vault.unlock("end-to-end-master").await.unwrap();
         assert_eq!(state.vault.list_metadata().await.len(), 1);
         assert!(!state.social_media_manager.is_loop_running());
+        let restored = state.lm_gateway.list_profiles().await;
+        let claude = restored.iter().find(|p| p.id == "persisted-claude").expect("profile restored after restart");
+        assert_eq!(claude.max_tokens, Some(700));
+        assert_eq!(claude.provider_type, openaccounts_lm_gateway::ModelProviderType::Anthropic);
 
         std::fs::remove_dir_all(&root).ok();
     }

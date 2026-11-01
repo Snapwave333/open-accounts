@@ -157,6 +157,33 @@ fn ui_payloads_round_trip_through_real_ipc() {
     assert_eq!(h.ok("get_system_stats", json!({}))["system_status"], "EMERGENCY_HALTED");
     h.ok("reset_kill_switch", json!({}));
 
+    let profile = json!({
+        "id": "Local Llama",
+        "name": "",
+        "provider_type": "ollama",
+        "endpoint": "http://127.0.0.1:9",
+        "model_id": "llama3.2",
+        "api_key_secret_id": null,
+        "max_tokens": 256,
+        "temperature": 0.2
+    });
+    h.ok("register_lm_profile", json!({ "profile": profile }));
+    let mut bad = profile.clone();
+    bad["endpoint"] = json!("ftp://nope");
+    assert!(h.err("register_lm_profile", json!({ "profile": bad })).contains("http"));
+    let mut builtin = profile.clone();
+    builtin["id"] = json!("nim-cascade");
+    assert!(h.err("register_lm_profile", json!({ "profile": builtin })).contains("Built-in"));
+    assert!(h.ok("list_lm_profiles", json!({})).as_array().unwrap().iter().any(|p| p["id"] == "local-llama"));
+    assert_eq!(h.ok("get_chat_lm_profile", json!({})), "nim-cascade");
+    h.ok("set_chat_lm_profile", json!({ "profile_id": "local-llama" }));
+    assert_eq!(h.ok("get_chat_lm_profile", json!({})), "local-llama");
+    let chat_err = h.err("agent_chat", json!({ "message": "hi", "scope": "All accounts" }));
+    assert!(chat_err.contains("local-llama") || chat_err.contains("nim-cascade"), "{chat_err}");
+    h.ok("remove_lm_profile", json!({ "profile_id": "local-llama" }));
+    assert_eq!(h.ok("get_chat_lm_profile", json!({})), "nim-cascade");
+    assert!(h.err("remove_lm_profile", json!({ "profile_id": "nim-cascade" })).contains("cannot be removed"));
+
     assert!(h.err("resolve_human_task", json!({ "task_id": "not-a-uuid" })).contains("Invalid task id"));
     assert!(h
         .err("agent_chat", json!({ "message": "hi", "scope": "All accounts", "history": [], "attachments": [] }))
