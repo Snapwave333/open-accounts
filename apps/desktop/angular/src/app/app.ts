@@ -1,11 +1,12 @@
-import { Component, HostListener, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, HostListener, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { AccountRecord, ChatAttachment, EngagementQuota, TauriService } from './services/tauri.service';
+import { AccountRecord, ChatAttachment, EngagementQuota, InboxMessage, TauriService } from './services/tauri.service';
 
 export type NavTab = 'home' | 'flow' | 'chat' | 'accounts' | 'vault';
 
 const ALL_SCOPE = 'All accounts';
+const API_PLATFORMS = new Set(['x', 'youtube', 'reddit', 'instagram']);
 const TEXT_ATTACHMENT_LIMIT = 64 * 1024;
 const TEXT_MIME = /^(text\/|application\/(json|xml|javascript|x-yaml|yaml|csv))/;
 
@@ -15,6 +16,7 @@ const TEXT_MIME = /^(text\/|application\/(json|xml|javascript|x-yaml|yaml|csv))/
   imports: [CommonModule, FormsModule],
   templateUrl: './app.html',
   styleUrl: './app.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class App {
   tauri = inject(TauriService);
@@ -33,6 +35,17 @@ export class App {
   newSecretType = signal<string>('OAuthToken');
   newSecretValue = signal<string>('');
   newSecretAccount = signal<string>('');
+
+  replyDrafts = signal<Record<string, string>>({});
+  signupPlatform = signal<string>('reddit');
+  signupCategory = signal<string>('brand');
+  signupUsername = signal<string>('');
+  signupEmail = signal<string>('');
+  pendingDelete = signal<string | null>(null);
+
+  needsYouCount = computed(
+    () => this.tauri.humanTasks().length + this.tauri.inboxNeedingReview().length + this.tauri.registrations().length
+  );
 
   chatInput = signal<string>('');
   chatTargetScope = signal<string>(ALL_SCOPE);
@@ -65,6 +78,60 @@ export class App {
   });
 
   pendingInboxCount = computed(() => this.tauri.planToDoNextItems().filter((i) => i.kind === 'inbox').length);
+
+  trackById = (_: number, item: { id: string }) => item.id;
+  trackByMessage = (_: number, item: InboxMessage) => item.message_id;
+  trackByAccount = (_: number, item: { account_id: string }) => item.account_id;
+  trackByService = (_: number, item: { service: string; kind: string }) => `${item.kind}:${item.service}`;
+
+  supportsApi(acc: AccountRecord): boolean {
+    return API_PLATFORMS.has(acc.platform);
+  }
+
+  draftFor(msg: InboxMessage): string {
+    return this.replyDrafts()[msg.message_id] ?? msg.drafted_reply ?? '';
+  }
+
+  setDraft(id: string, text: string) {
+    this.replyDrafts.update((d) => ({ ...d, [id]: text }));
+  }
+
+  async sendReply(msg: InboxMessage) {
+    const text = this.draftFor(msg).trim();
+    if (!text) return;
+    if (await this.tauri.sendInboxReply(msg.message_id, text)) {
+      this.replyDrafts.update((d) => {
+        const { [msg.message_id]: _, ...rest } = d;
+        return rest;
+      });
+    }
+  }
+
+  async redraft(msg: InboxMessage) {
+    const draft = await this.tauri.redraftInbox(msg.message_id);
+    if (draft !== null) this.setDraft(msg.message_id, draft);
+  }
+
+  async startSignup() {
+    await this.tauri.startGuidedSignup(
+      this.signupPlatform(),
+      this.signupCategory(),
+      this.signupUsername().trim() || null,
+      this.signupEmail().trim() || null
+    );
+    this.signupUsername.set('');
+    this.signupEmail.set('');
+  }
+
+  async confirmDelete(acc: AccountRecord) {
+    if (this.pendingDelete() !== acc.id) {
+      this.pendingDelete.set(acc.id);
+      setTimeout(() => this.pendingDelete.update((v) => (v === acc.id ? null : v)), 4000);
+      return;
+    }
+    this.pendingDelete.set(null);
+    await this.tauri.deleteAccount(acc.id);
+  }
 
   setTab(tab: NavTab) {
     this.activeTab.set(tab);

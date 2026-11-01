@@ -75,6 +75,8 @@ pub struct AppState {
     pub email_manager: Arc<EmailIdentityManager>,
     pub multi_account_registry: Arc<MultiAccountRegistry>,
     pub account_creator: Arc<AccountCreator>,
+    pub connectors: Arc<ConnectorRegistry>,
+    pub connection_cache: Arc<RwLock<crate::connections::ConnectionCache>>,
     pub brand_manager: Arc<BrandManager>,
     pub content_strategy: Arc<ContentStrategyEngine>,
     pub creative_pipeline: Arc<CreativePipeline>,
@@ -138,7 +140,10 @@ where
 
 impl AppState {
     pub async fn init() -> Result<Self, String> {
-        let dir = data_dir();
+        Self::init_at(data_dir()).await
+    }
+
+    pub async fn init_at(dir: PathBuf) -> Result<Self, String> {
         let db_path = dir.join(DB_FILE);
         info!("Using data directory {}", dir.display());
         let db = Arc::new(Database::init(&db_path).await.map_err(|e| format!("Database init failed: {e}"))?);
@@ -253,6 +258,8 @@ impl AppState {
             email_manager,
             multi_account_registry,
             account_creator,
+            connectors,
+            connection_cache: Arc::new(RwLock::new(None)),
             brand_manager,
             content_strategy,
             creative_pipeline,
@@ -375,5 +382,70 @@ impl AppState {
             }),
         )
         .await;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use openaccounts_credential_vault::{SecretPayload, SecretType};
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn app_boots_end_to_end_and_persists_across_restarts() {
+        let root = std::env::temp_dir().join(format!("oa-e2e-{}", uuid::Uuid::new_v4()));
+        std::env::set_var("OPENACCOUNTS_STICK_ROOT", std::env::temp_dir().join("oa-no-studio-fixture"));
+        for var in ["NVIDIA_API_KEY", "X_ACCESS_TOKEN", "YOUTUBE_ACCESS_TOKEN", "REDDIT_ACCESS_TOKEN", "INSTAGRAM_ACCESS_TOKEN", "GMAIL_ACCESS_TOKEN", "OUTLOOK_ACCESS_TOKEN"] {
+            std::env::remove_var(var);
+        }
+
+        {
+            let state = AppState::init_at(root.clone()).await.expect("first boot");
+            let accounts = state.account_registry.list_accounts().await.unwrap();
+            assert_eq!(accounts.len(), seed_accounts().len());
+            assert!(root.join(DB_FILE).is_file());
+
+            let jobs = state.scheduler.list_jobs().await;
+            assert_eq!(jobs.len(), 4);
+            let autopilot = jobs.iter().find(|j| j.name == "Autopilot marketing cycle").unwrap();
+            assert_eq!(state.scheduler.run_now(&autopilot.id).await.unwrap(), "skipped: autopilot paused");
+
+            let flow = crate::flow::build(&state).await;
+            assert!(flow.up_next.iter().filter(|i| i.kind == "job").count() >= 4);
+            assert!(flow.just_did.is_empty() || flow.just_did.iter().all(|i| !i.title.is_empty()));
+
+            let statuses = crate::connections::statuses(&state, true).await;
+            let social: Vec<_> = statuses.iter().filter(|s| s.kind == "social").collect();
+            assert_eq!(social.len(), 4);
+            assert!(social.iter().all(|s| !s.connected && s.detail.contains("not connected")));
+            assert!(statuses.iter().any(|s| s.kind == "email" && !s.connected));
+            assert!(statuses.iter().any(|s| s.kind == "lm" && !s.connected && s.detail.contains("NVIDIA_API_KEY")));
+
+            let chat = crate::agent::chat(&state, "What needs my attention?", "All accounts", vec![], vec![]).await;
+            assert!(chat.unwrap_err().contains("No language model answered"));
+
+            state.vault.unlock("end-to-end-master").await.unwrap();
+            state
+                .vault
+                .store_secret(None, SecretType::OAuthToken, "x:access_token".into(), SecretPayload { value: "vault-token".into(), metadata: None })
+                .await
+                .unwrap();
+            assert!(state.connectors.connector_for("x").await.is_ok());
+            assert!(state.connectors.connector_for("reddit").await.is_err());
+            state.vault.lock().await;
+            assert!(state.connectors.connector_for("x").await.is_err());
+
+            let audit = state.audit_engine.verify_integrity().await.unwrap();
+            assert!(audit.is_intact);
+        }
+
+        let state = AppState::init_at(root.clone()).await.expect("second boot");
+        assert_eq!(state.account_registry.list_accounts().await.unwrap().len(), seed_accounts().len());
+        assert!(state.vault.is_initialized().await);
+        assert!(state.vault.unlock("wrong-password").await.is_err());
+        state.vault.unlock("end-to-end-master").await.unwrap();
+        assert_eq!(state.vault.list_metadata().await.len(), 1);
+        assert!(!state.social_media_manager.is_loop_running());
+
+        std::fs::remove_dir_all(&root).ok();
     }
 }

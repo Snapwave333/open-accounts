@@ -6,7 +6,8 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "e2e": "ng build && cd ../src-tauri && cargo test ui_end_to_end -- --ignored"
   },
   "private": true,
   "packageManager": "npm@11.19.0",
@@ -25,6 +26,7 @@
     "@angular/build": "^22.2.5",
     "@angular/cli": "^22.2.5",
     "@angular/compiler-cli": "^22.2.0",
+    "playwright": "1.63.0",
     "prettier": "^3.8.1",
     "typescript": "~6.0.2"
   }

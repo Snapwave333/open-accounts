@@ -27,7 +27,7 @@
           (click)="setTab('home')"
         >
           <span>Needs You</span>
-          <span class="tab-count">{{ tauri.humanTasks().length }}</span>
+          <span class="tab-count">{{ needsYouCount() }}</span>
         </button>
         <button
           class="tab-pill"
@@ -167,11 +167,11 @@
               <span class="panel-header-subtitle">Everything else runs silently in the background</span>
             </div>
             <span class="badge accent">
-              {{ tauri.humanTasks().length === 0 ? 'ALL CLEAR' : tauri.humanTasks().length + ' WAITING' }}
+              {{ needsYouCount() === 0 ? 'ALL CLEAR' : needsYouCount() + ' WAITING' }}
             </span>
           </div>
 
-          <div *ngIf="tauri.humanTasks().length === 0" class="empty-clear-state">
+          <div *ngIf="needsYouCount() === 0" class="empty-clear-state">
             <div class="check-badge">✓</div>
             <div class="clear-text">
               <strong>Nothing needs you right now</strong>
@@ -180,7 +180,7 @@
           </div>
 
           <div class="tasks-list" *ngIf="tauri.humanTasks().length > 0">
-            <div *ngFor="let task of tauri.humanTasks()" class="task-card">
+            <div *ngFor="let task of tauri.humanTasks(); trackBy: trackById" class="task-card">
               <div class="task-title-row">
                 <span class="badge accent">{{ task.challenge_type }}</span>
                 <strong>{{ task.title }}</strong>
@@ -194,6 +194,79 @@
                   </button>
                   <button class="btn btn-primary" (click)="tauri.resolveTask(task.id)">
                     <span>Mark Resolved</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel" *ngIf="tauri.inboxNeedingReview().length > 0">
+          <div class="panel-header">
+            <div>
+              <h3>Replies Awaiting Review</h3>
+              <span class="panel-header-subtitle">Synced from your connected accounts and drafted by the engagement agent</span>
+            </div>
+            <span class="badge accent">{{ tauri.inboxNeedingReview().length }}</span>
+          </div>
+          <div class="tasks-list">
+            <div *ngFor="let msg of tauri.inboxNeedingReview(); trackBy: trackByMessage" class="task-card">
+              <div class="task-title-row">
+                <ng-container *ngTemplateOutlet="brandLogo; context: { brand: msg.platform, size: 22 }"></ng-container>
+                <strong>{{ msg.author_handle }}</strong>
+                <span class="badge" [class.accent]="!msg.requires_human_approval">{{ msg.category | uppercase }}</span>
+                <span class="mono" style="color: var(--text-muted); font-size: 11px;">{{ formatTime(msg.received_at) }}</span>
+              </div>
+              <p class="task-instructions">{{ msg.content_text }}</p>
+              <textarea
+                class="reply-editor"
+                rows="3"
+                placeholder="Write a reply…"
+                [ngModel]="draftFor(msg)"
+                (ngModelChange)="setDraft(msg.message_id, $event)"
+              ></textarea>
+              <div class="task-actions">
+                <a *ngIf="msg.permalink" class="mono" style="font-size: 12px;" [href]="msg.permalink" target="_blank" rel="noopener">Open original</a>
+                <span *ngIf="!msg.permalink"></span>
+                <div style="display: flex; gap: 8px;">
+                  <button class="btn btn-secondary" (click)="tauri.archiveInbox(msg.message_id)">Archive</button>
+                  <button class="btn btn-secondary" [disabled]="tauri.isBusy('redraft-' + msg.message_id)" (click)="redraft(msg)">
+                    {{ tauri.isBusy('redraft-' + msg.message_id) ? 'Drafting…' : 'Redraft' }}
+                  </button>
+                  <button class="btn btn-primary" [disabled]="tauri.isBusy('inbox-' + msg.message_id) || !draftFor(msg).trim()" (click)="sendReply(msg)">
+                    {{ tauri.isBusy('inbox-' + msg.message_id) ? 'Sending…' : 'Send Reply' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel" *ngIf="tauri.registrations().length > 0">
+          <div class="panel-header">
+            <div>
+              <h3>Sign-ups In Progress</h3>
+              <span class="panel-header-subtitle">Finish the form in the opened browser, then confirm here</span>
+            </div>
+          </div>
+          <div class="tasks-list">
+            <div *ngFor="let reg of tauri.registrations(); trackBy: trackByAccount" class="task-card">
+              <div class="task-title-row">
+                <ng-container *ngTemplateOutlet="brandLogo; context: { brand: reg.platform, size: 22 }"></ng-container>
+                <strong>{{ reg.username }}</strong>
+                <span class="mono" style="color: var(--text-muted); font-size: 12px;">{{ reg.allocated_email }}</span>
+              </div>
+              <ol class="step-list">
+                <li *ngFor="let step of reg.step_results" [class.passed]="step.passed">
+                  <span class="mono">{{ step.passed ? '✓' : '…' }}</span> {{ step.name }} — {{ step.details }}
+                </li>
+              </ol>
+              <div class="task-actions">
+                <span class="mono" style="color: var(--text-muted); font-size: 12px;">{{ reg.signup_url }}</span>
+                <div style="display: flex; gap: 8px;">
+                  <button class="btn btn-secondary" (click)="tauri.cancelRegistration(reg.account_id)">Cancel</button>
+                  <button class="btn btn-primary" [disabled]="tauri.isBusy('complete-' + reg.account_id)" (click)="tauri.completeRegistration(reg.account_id)">
+                    {{ tauri.isBusy('complete-' + reg.account_id) ? 'Checking email…' : 'I finished sign-up' }}
                   </button>
                 </div>
               </div>
@@ -251,7 +324,7 @@
 
             <div class="flow-cards-list">
               <div *ngIf="tauri.justDidItems().length === 0" class="flow-empty">Nothing recorded yet.</div>
-              <div *ngFor="let item of tauri.justDidItems()" class="flow-card">
+              <div *ngFor="let item of tauri.justDidItems(); trackBy: trackById" class="flow-card">
                 <div class="flow-card-top">
                   <div class="account-chip-inline">
                     <ng-container *ngTemplateOutlet="brandLogo; context: { brand: item.platform, size: 20 }"></ng-container>
@@ -279,7 +352,7 @@
 
             <div class="flow-cards-list">
               <div *ngIf="tauri.activelyDoingItems().length === 0" class="flow-empty">Nothing running right now.</div>
-              <div *ngFor="let item of tauri.activelyDoingItems()" class="flow-card live-card">
+              <div *ngFor="let item of tauri.activelyDoingItems(); trackBy: trackById" class="flow-card live-card">
                 <div class="flow-card-top">
                   <div class="account-chip-inline">
                     <ng-container *ngTemplateOutlet="brandLogo; context: { brand: item.platform, size: 20 }"></ng-container>
@@ -313,7 +386,7 @@
 
             <div class="flow-cards-list">
               <div *ngIf="tauri.planToDoNextItems().length === 0" class="flow-empty">Queue is empty.</div>
-              <div *ngFor="let item of tauri.planToDoNextItems()" class="flow-card">
+              <div *ngFor="let item of tauri.planToDoNextItems(); trackBy: trackById" class="flow-card">
                 <div class="flow-card-top">
                   <div class="account-chip-inline">
                     <ng-container *ngTemplateOutlet="brandLogo; context: { brand: item.platform, size: 20 }"></ng-container>
@@ -452,6 +525,66 @@
         <div class="panel">
           <div class="panel-header">
             <div>
+              <h3>Connections</h3>
+              <span class="panel-header-subtitle">Live checks against each service. Store tokens in the Vault as &lt;platform&gt;:access_token or use environment variables.</span>
+            </div>
+            <button class="btn-micro" (click)="tauri.refreshConnections(true)">Re-check</button>
+          </div>
+          <div class="connection-grid">
+            <div *ngFor="let c of tauri.connections(); trackBy: trackByService" class="connection-chip" [class.ok]="c.connected">
+              <span class="status-dot"></span>
+              <div>
+                <strong>{{ c.service }}</strong>
+                <span class="connection-detail">{{ c.detail }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <h3>Guided Sign-up</h3>
+              <span class="panel-header-subtitle">Checks policy, stores a generated password in the vault, opens the real sign-up page, and waits for you to finish it</span>
+            </div>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <select [ngModel]="signupPlatform()" (ngModelChange)="signupPlatform.set($event)">
+              <option value="reddit">Reddit</option>
+              <option value="x">X</option>
+              <option value="youtube">YouTube</option>
+              <option value="instagram">Instagram</option>
+              <option value="tiktok">TikTok</option>
+              <option value="discord">Discord</option>
+              <option value="twitch">Twitch</option>
+              <option value="github">GitHub</option>
+            </select>
+            <select [ngModel]="signupCategory()" (ngModelChange)="signupCategory.set($event)">
+              <option value="brand">Brand</option>
+              <option value="business">Business</option>
+              <option value="creative_project">Creative project</option>
+              <option value="community">Community</option>
+              <option value="personal">Personal</option>
+            </select>
+            <input type="text" placeholder="Desired username" style="width: 180px;" [ngModel]="signupUsername()" (ngModelChange)="signupUsername.set($event)" />
+            <input type="email" placeholder="Email (or use connected mailbox)" style="width: 230px;" [ngModel]="signupEmail()" (ngModelChange)="signupEmail.set($event)" />
+            <button class="btn btn-primary" [disabled]="tauri.isBusy('signup')" (click)="startSignup()">
+              {{ tauri.isBusy('signup') ? 'Running checks…' : 'Start sign-up' }}
+            </button>
+          </div>
+          <div *ngIf="tauri.lastRegistration() as reg" class="registration-result" [class.failed]="reg.status === 'Failed'">
+            <strong>{{ reg.platform }} · {{ reg.status }}</strong>
+            <ol class="step-list">
+              <li *ngFor="let step of reg.step_results" [class.passed]="step.passed">
+                <span class="mono">{{ step.passed ? '✓' : '✗' }}</span> {{ step.name }} — {{ step.details }}
+              </li>
+            </ol>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div>
               <h3>Managed Accounts ({{ tauri.accounts().length }})</h3>
               <span class="panel-header-subtitle">Stored in the local OpenAccounts registry</span>
             </div>
@@ -496,10 +629,11 @@
                 <th>Email</th>
                 <th>Status</th>
                 <th>Last Active</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let acc of tauri.accounts()">
+              <tr *ngFor="let acc of tauri.accounts(); trackBy: trackById">
                 <td>
                   <div class="platform-brand-cell">
                     <ng-container *ngTemplateOutlet="brandLogo; context: { brand: getAccountBrandKey(acc), size: 28 }"></ng-container>
@@ -510,6 +644,17 @@
                 <td class="mono" style="color: var(--text-muted);">{{ acc.email || '—' }}</td>
                 <td><span class="badge" [class.accent]="acc.status === 'active'">{{ acc.status | uppercase }}</span></td>
                 <td class="mono" style="color: var(--text-muted);">{{ formatTime(acc.last_active) }}</td>
+                <td style="text-align: right; white-space: nowrap;">
+                  <ng-container *ngIf="supportsApi(acc)">
+                    <button class="btn-micro" [disabled]="tauri.isBusy('sync-' + acc.id) || !tauri.connectedPlatforms().has(acc.platform)" (click)="tauri.syncInbox(acc.id)">
+                      {{ tauri.isBusy('sync-' + acc.id) ? 'Syncing…' : 'Sync inbox' }}
+                    </button>
+                    <button class="btn-micro" [disabled]="tauri.isBusy('metrics-' + acc.id) || !tauri.connectedPlatforms().has(acc.platform)" (click)="tauri.refreshMetrics(acc.id)">
+                      Metrics
+                    </button>
+                  </ng-container>
+                  <button class="btn-micro" (click)="confirmDelete(acc)">{{ pendingDelete() === acc.id ? 'Confirm' : 'Remove' }}</button>
+                </td>
               </tr>
             </tbody>
           </table>

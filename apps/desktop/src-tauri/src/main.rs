@@ -1,47 +1,11 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-mod agent;
-mod commands;
-mod flow;
-mod state;
-mod tokens;
-
-use commands::*;
-use state::AppState;
-use tauri::Manager;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-
-#[tokio::main]
-async fn main() {
-    tracing_subscriber::registry()
-        .with(tracing_subscriber::EnvFilter::new(
-            std::env::var("RUST_LOG").unwrap_or_else(|_| "info".into()),
-        ))
-        .with(tracing_subscriber::fmt::layer())
-        .init();
-
-    let state = match AppState::init().await {
-        Ok(state) => state,
-        Err(e) => {
-            tracing::error!("OpenAccounts failed to start: {}", e);
-            std::process::exit(1);
-        }
-    };
-
-    tauri::Builder::default()
-        .plugin(tauri_plugin_opener::init())
-        .manage(state)
-        .setup(|app| {
-            if let Some(window) = app.get_webview_window("main") {
-                let _ = window.show();
-                let _ = window.unminimize();
-                let _ = window.set_focus();
-            }
-            Ok(())
-        })
-        .invoke_handler(tauri::generate_handler![
+macro_rules! app_commands {
+    () => {
+        tauri::generate_handler![
             get_system_stats,
             get_activity_flow,
+            get_connection_status,
             run_flow_item,
             list_scheduled_jobs,
             list_accounts,
@@ -112,7 +76,53 @@ async fn main() {
             get_last_garbage_collection,
             run_garbage_collection,
             send_stick_bridge_message,
-        ])
+        ]
+    };
+}
+
+mod agent;
+mod commands;
+mod connections;
+mod flow;
+mod state;
+mod tokens;
+#[cfg(test)]
+mod ipc_tests;
+
+use commands::*;
+use state::AppState;
+use tauri::Manager;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+
+#[tokio::main]
+async fn main() {
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::EnvFilter::new(
+            std::env::var("RUST_LOG").unwrap_or_else(|_| "info".into()),
+        ))
+        .with(tracing_subscriber::fmt::layer())
+        .init();
+
+    let state = match AppState::init().await {
+        Ok(state) => state,
+        Err(e) => {
+            tracing::error!("OpenAccounts failed to start: {}", e);
+            std::process::exit(1);
+        }
+    };
+
+    tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
+        .manage(state)
+        .setup(|app| {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.unminimize();
+                let _ = window.set_focus();
+            }
+            Ok(())
+        })
+        .invoke_handler(app_commands!())
         .run(tauri::generate_context!())
         .expect("error while running OpenAccounts application");
 }

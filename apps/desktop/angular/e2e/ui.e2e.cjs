@@ -1,0 +1,155 @@
+const { chromium } = require('playwright');
+
+const base = process.argv[2];
+if (!base) {
+  console.error('usage: node ui.e2e.cjs <bridge-url>');
+  process.exit(2);
+}
+
+const failures = [];
+const check = (cond, message) => {
+  if (!cond) failures.push(message);
+};
+
+(async () => {
+  const browser = await chromium.launch();
+  const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
+  const consoleErrors = [];
+  page.on('pageerror', (e) => consoleErrors.push(e.message));
+  page.on('console', (m) => {
+    if (m.type() === 'error' && !m.text().includes('fonts.g')) consoleErrors.push(m.text());
+  });
+
+  await page.addInitScript(() => {
+    window.__TAURI_INTERNALS__ = {
+      invoke: async (cmd, args) => {
+        const res = await fetch('/__invoke', {
+          method: 'POST',
+          body: JSON.stringify({ cmd, args: args ?? {} }),
+        });
+        const body = await res.json();
+        if (!body.ok) throw body.error;
+        return body.value;
+      },
+      transformCallback: () => 0,
+    };
+  });
+
+  const tab = (name) => page.locator('.tab-pill', { hasText: name }).first().click();
+  const banner = () =>
+    page
+      .locator('.backend-banner')
+      .textContent({ timeout: 500 })
+      .catch(() => null);
+
+  try {
+    await page.goto(base, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(800);
+    check((await banner()) === null, `unexpected error banner on load: ${await banner()}`);
+    check(
+      (await page.locator('.pulse-value').first().textContent())?.trim() !== '0',
+      'seeded accounts not shown',
+    );
+
+    await tab('Accounts');
+    await page.waitForSelector('.data-table tbody tr');
+    const before = await page.locator('.data-table tbody tr').count();
+    check(before >= 7, `expected seeded accounts, saw ${before}`);
+    await page.getByPlaceholder('Handle (e.g. @myaccount)').fill('@e2e_browser');
+    await page
+      .locator('select')
+      .filter({ has: page.locator('option[value="paypal"]') })
+      .selectOption('x');
+    await page.getByRole('button', { name: '+ Add' }).click();
+    await page.waitForTimeout(600);
+    check(
+      (await page.locator('.data-table tbody tr').count()) === before + 1,
+      'new account did not appear',
+    );
+    check(
+      await page.locator('td', { hasText: '@e2e_browser' }).isVisible(),
+      'new account row missing',
+    );
+
+    const chips = page.locator('.connection-chip');
+    await chips.first().waitFor();
+    check((await chips.count()) >= 5, 'connection statuses missing');
+    check(
+      (await page.locator('.connection-chip.ok').count()) === 0,
+      'a service claims to be connected without credentials',
+    );
+
+    await page
+      .locator('td', { hasText: '@e2e_browser' })
+      .locator('xpath=..')
+      .getByRole('button', { name: 'Remove' })
+      .click();
+    await page
+      .locator('td', { hasText: '@e2e_browser' })
+      .locator('xpath=..')
+      .getByRole('button', { name: 'Confirm' })
+      .click();
+    await page.waitForTimeout(600);
+    check(
+      (await page.locator('.data-table tbody tr').count()) === before,
+      'account removal did not persist',
+    );
+
+    await tab('Vault');
+    await page.getByPlaceholder('Create master password…').fill('browser-e2e-master');
+    await page.getByRole('button', { name: 'Create Vault' }).click();
+    await page.getByRole('button', { name: 'Lock Vault' }).waitFor();
+    await page.getByPlaceholder('Label (e.g. x:access_token)').fill('e2e:note');
+    await page.getByPlaceholder('Secret value').fill('super-secret-value');
+    await page.getByRole('button', { name: 'Store' }).click();
+    await page.locator('td', { hasText: 'e2e:note' }).waitFor();
+    await page.getByRole('button', { name: 'Lock Vault' }).click();
+    await page.getByPlaceholder('Master password…').fill('not-the-password');
+    await page.getByRole('button', { name: 'Unlock Vault' }).click();
+    await page.locator('.vault-error').waitFor();
+    check(
+      (await page.locator('.vault-error').textContent()).includes('Incorrect'),
+      'wrong vault password was not rejected',
+    );
+    await page.getByPlaceholder('Master password…').fill('browser-e2e-master');
+    await page.getByRole('button', { name: 'Unlock Vault' }).click();
+    await page.locator('td', { hasText: 'e2e:note' }).waitFor();
+
+    await tab('Activity Flow');
+    const jobCard = page.locator('.flow-card', { hasText: 'Autopilot marketing cycle' });
+    await jobCard.waitFor();
+    await jobCard.getByRole('button', { name: 'Run' }).click();
+    await page.waitForTimeout(600);
+    check((await banner()) === null, `running a job raised: ${await banner()}`);
+
+    await page.getByRole('button', { name: 'Resume' }).click();
+    await page.locator('.status-label', { hasText: 'AUTOPILOT' }).waitFor();
+    await page.getByRole('button', { name: 'Kill Switch' }).click();
+    await page.locator('.status-label', { hasText: 'HALTED' }).waitFor();
+    await page.getByRole('button', { name: 'Reset Stop' }).click();
+    await page.locator('.status-label', { hasText: 'PAUSED' }).waitFor();
+
+    await tab('Agent Chat');
+    await page.getByPlaceholder(/Message the in-app LM agent/).fill('What needs my attention?');
+    await page.getByRole('button', { name: 'Send' }).click();
+    await page.locator('.chat-bubble-row.error').waitFor({ timeout: 15000 });
+    check(
+      (await page.locator('.chat-bubble-row.error').textContent()).includes(
+        'No language model answered',
+      ),
+      'chat did not surface the missing-model error',
+    );
+  } catch (e) {
+    failures.push(`step failed: ${e.message}`);
+    await page.screenshot({ path: 'e2e-failure.png' }).catch(() => {});
+  } finally {
+    await browser.close();
+  }
+
+  if (consoleErrors.length) failures.push(`console errors: ${consoleErrors.join(' | ')}`);
+  if (failures.length) {
+    console.error(failures.join('\n'));
+    process.exit(1);
+  }
+  console.log('ui e2e passed');
+})();

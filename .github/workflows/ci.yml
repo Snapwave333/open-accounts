@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [master, "claude/**"]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libsoup-3.0-dev libjavascriptcoregtk-4.1-dev \
+            libgtk-3-dev librsvg2-dev libayatana-appindicator3-dev ffmpeg
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/desktop/angular/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: apps/desktop/angular
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: apps/desktop/angular
+        run: npx ng build
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Tests
+        run: cargo test --workspace
+
+      - name: Install Playwright Chromium
+        working-directory: apps/desktop/angular
+        run: npx playwright install --with-deps chromium
+
+      - name: UI end-to-end
+        working-directory: apps/desktop/src-tauri
+        run: cargo test ui_end_to_end -- --ignored

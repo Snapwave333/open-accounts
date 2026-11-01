@@ -44,6 +44,8 @@ openaccounts-social-media-manager = { path = "../../../crates/social-media-manag
 openaccounts-platform-connectors = { path = "../../../crates/platform-connectors" }
 openaccounts-embedded-browser-adapter = { path = "../../../crates/embedded-browser-adapter" }
 async-trait.workspace = true
+futures.workspace = true
+regex.workspace = true
 
 serde.workspace = true
 serde_json.workspace = true
@@ -54,3 +56,6 @@ tracing.workspace = true
 tracing-subscriber.workspace = true
 tauri.workspace = true
 tauri-plugin-opener.workspace = true
+
+[dev-dependencies]
+tauri = { workspace = true, features = ["test"] }

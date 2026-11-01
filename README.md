@@ -88,6 +88,15 @@ OpenAccounts is a desktop application designed to create, manage, secure, and au
 
 ---
 
+## 🧪 Testing
+
+| Command | Covers |
+| :--- | :--- |
+| `cargo test --workspace` | Unit and integration tests for every crate, a full `AppState` boot/restart test, and IPC round-trips of the exact payloads the UI sends |
+| `cd apps/desktop/angular && npm run e2e` | Builds the UI and drives it in headless Chromium against the real backend through Tauri's IPC handlers (accounts, vault, activity flow, kill switch, agent chat) |
+
+Browser-driven tests use a local Chromium (`OPENACCOUNTS_CHROME_PATH` or Playwright's browser) and skip cleanly when none is installed; render tests use `ffmpeg`.
+
 ## 🔌 Connecting Real Services
 
 Nothing in OpenAccounts fakes success. When a service is not connected, the action fails with a clear "not connected" error instead of pretending to work. Provide credentials through environment variables (or the Windows user environment):

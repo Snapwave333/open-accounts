@@ -1,4 +1,4 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, WritableSignal, computed, signal } from '@angular/core';
 
 export interface SystemStats {
   total_accounts: number;
@@ -123,6 +123,49 @@ export interface AgentChatMessage {
   attachments: ChatAttachment[];
 }
 
+export interface ConnectionStatus {
+  service: string;
+  kind: 'social' | 'email' | 'lm' | string;
+  connected: boolean;
+  detail: string;
+}
+
+export interface InboxMessage {
+  message_id: string;
+  account_id: string;
+  platform: string;
+  author_handle: string;
+  interaction_type: string;
+  content_text: string;
+  category: string;
+  sentiment_score: number;
+  drafted_reply?: string | null;
+  is_auto_reply_eligible: boolean;
+  requires_human_approval: boolean;
+  status: string;
+  received_at: string;
+  permalink?: string | null;
+}
+
+export interface PreflightStep {
+  step: number;
+  name: string;
+  passed: boolean;
+  details: string;
+}
+
+export interface RegistrationReport {
+  account_id: string;
+  platform: string;
+  allocated_email: string;
+  username: string;
+  step_results: PreflightStep[];
+  is_ready_for_automation: boolean;
+  status: 'Failed' | 'AwaitingHuman' | 'Completed';
+  human_task_id?: string | null;
+  signup_url?: string | null;
+}
+
 export interface AgentChatReply {
   reply: string;
   model: string;
@@ -168,27 +211,52 @@ export class TauriService {
   bridgeState = signal<StickBridgeState | null>(null);
   vaultStatus = signal<VaultStatus | null>(null);
   vaultSecrets = signal<SecretMetadata[]>([]);
+  connections = signal<ConnectionStatus[]>([]);
+  inbox = signal<InboxMessage[]>([]);
+  registrations = signal<RegistrationReport[]>([]);
+  lastRegistration = signal<RegistrationReport | null>(null);
+  busy = signal<Set<string>>(new Set());
   agentChatMessages = signal<AgentChatMessage[]>([]);
   chatPending = signal<boolean>(false);
   isAutonomousLoopRunning = signal<boolean>(false);
   killSwitchActive = signal<boolean>(false);
 
   vaultUnlocked = computed(() => this.vaultStatus()?.unlocked ?? false);
+  inboxNeedingReview = computed(() =>
+    this.inbox().filter((m) => (m.status === 'New' || m.status === 'PendingApproval') && (m.requires_human_approval || !!m.drafted_reply))
+  );
+  connectedPlatforms = computed(() => new Set(this.connections().filter((c) => c.kind === 'social' && c.connected).map((c) => c.service)));
   justDidItems = computed(() => this.flow().just_did);
   activelyDoingItems = computed(() => this.flow().actively_doing);
   planToDoNextItems = computed(() => this.flow().up_next);
 
   private fastTimer?: ReturnType<typeof setInterval>;
   private slowTimer?: ReturnType<typeof setInterval>;
+  private liveInFlight = false;
+  private allInFlight = false;
 
   constructor() {
     if (this.backendConnected) {
       void this.refreshAll();
-      this.fastTimer = setInterval(() => void this.refreshLive(), 5000);
-      this.slowTimer = setInterval(() => void this.refreshAll(), 30000);
+      this.fastTimer = setInterval(() => this.visible() && void this.refreshLive(), 5000);
+      this.slowTimer = setInterval(() => this.visible() && void this.refreshAll(), 30000);
+      if (typeof document !== 'undefined') {
+        document.addEventListener('visibilitychange', () => {
+          if (this.visible()) void this.refreshAll();
+        });
+      }
     } else {
       this.lastError.set(new BackendUnavailableError().message);
     }
+  }
+
+  private visible(): boolean {
+    return typeof document === 'undefined' || !document.hidden;
+  }
+
+  private setIfChanged<T>(target: WritableSignal<T>, value: T) {
+    if (JSON.stringify(target()) === JSON.stringify(value)) return;
+    target.set(value);
   }
 
   async invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
@@ -221,37 +289,74 @@ export class TauriService {
   }
 
   async refreshLive(): Promise<void> {
+    if (this.liveInFlight) return;
+    this.liveInFlight = true;
+    try {
+      await this.refreshLiveNow();
+    } finally {
+      this.liveInFlight = false;
+    }
+  }
+
+  private async refreshLiveNow(): Promise<void> {
     await Promise.all([
-      this.load<SystemStats>('get_system_stats', (v) => this.stats.set(v)),
-      this.load<HumanTask[]>('list_human_tasks', (v) => this.humanTasks.set(v)),
-      this.load<ActivityFlow>('get_activity_flow', (v) => this.flow.set(v)),
-      this.load<boolean>('is_kill_switch_active', (v) => this.killSwitchActive.set(v)),
-      this.load<boolean>('is_autonomous_marketing_loop_running', (v) => this.isAutonomousLoopRunning.set(v)),
+      this.load<SystemStats>('get_system_stats', (v) => this.setIfChanged(this.stats, v)),
+      this.load<HumanTask[]>('list_human_tasks', (v) => this.setIfChanged(this.humanTasks, v)),
+      this.load<ActivityFlow>('get_activity_flow', (v) => this.setIfChanged(this.flow, v)),
+      this.load<boolean>('is_kill_switch_active', (v) => this.setIfChanged(this.killSwitchActive, v)),
+      this.load<boolean>('is_autonomous_marketing_loop_running', (v) => this.setIfChanged(this.isAutonomousLoopRunning, v)),
+      this.load<InboxMessage[]>('list_unified_inbox', (v) => this.setIfChanged(this.inbox, v)),
+      this.load<RegistrationReport[]>('list_pending_registrations', (v) => this.setIfChanged(this.registrations, v)),
     ]);
   }
 
   async refreshAll(): Promise<void> {
+    if (this.allInFlight) return;
+    this.allInFlight = true;
     this.loading.set(true);
     try {
       await Promise.all([
-        this.refreshLive(),
-        this.load<AccountRecord[]>('list_accounts', (v) => this.accounts.set(v)),
-        this.load<EngagementQuota[]>('get_engagement_quotas', (v) => this.quotas.set(v)),
-        this.load<GarbageCollectionReport | null>('get_last_garbage_collection', (v) => this.gcReport.set(v)),
-        this.load<StickBridgeState>('get_stick_bridge_state', (v) => this.bridgeState.set(v)),
+        this.refreshLiveNow(),
+        this.load<AccountRecord[]>('list_accounts', (v) => this.setIfChanged(this.accounts, v)),
+        this.load<EngagementQuota[]>('get_engagement_quotas', (v) => this.setIfChanged(this.quotas, v)),
+        this.load<GarbageCollectionReport | null>('get_last_garbage_collection', (v) => this.setIfChanged(this.gcReport, v)),
+        this.load<StickBridgeState>('get_stick_bridge_state', (v) => this.setIfChanged(this.bridgeState, v)),
         this.refreshVault(),
+        this.refreshConnections(false),
       ]);
     } finally {
       this.loading.set(false);
+      this.allInFlight = false;
     }
   }
 
   async refreshVault(): Promise<void> {
-    await this.load<VaultStatus>('get_vault_status', (v) => this.vaultStatus.set(v));
+    await this.load<VaultStatus>('get_vault_status', (v) => this.setIfChanged(this.vaultStatus, v));
     if (this.vaultUnlocked()) {
-      await this.load<SecretMetadata[]>('list_vault_secrets', (v) => this.vaultSecrets.set(v));
+      await this.load<SecretMetadata[]>('list_vault_secrets', (v) => this.setIfChanged(this.vaultSecrets, v));
     } else {
       this.vaultSecrets.set([]);
+    }
+  }
+
+  async refreshConnections(force: boolean): Promise<void> {
+    await this.load<ConnectionStatus[]>('get_connection_status', (v) => this.setIfChanged(this.connections, v), { force });
+  }
+
+  isBusy(key: string): boolean {
+    return this.busy().has(key);
+  }
+
+  private async withBusy<T>(key: string, work: () => Promise<T>): Promise<T> {
+    this.busy.update((s) => new Set(s).add(key));
+    try {
+      return await work();
+    } finally {
+      this.busy.update((s) => {
+        const next = new Set(s);
+        next.delete(key);
+        return next;
+      });
     }
   }
 
@@ -265,6 +370,80 @@ export class TauriService {
       this.reportError(errorMessage(err));
       return false;
     }
+  }
+
+  sendInboxReply(messageId: string, reply: string) {
+    return this.withBusy(`inbox-${messageId}`, () =>
+      this.act('approve_and_send_inbox_reply', { message_id: messageId, final_reply: reply })
+    );
+  }
+
+  archiveInbox(messageId: string) {
+    return this.act('archive_inbox_message', { message_id: messageId });
+  }
+
+  async redraftInbox(messageId: string): Promise<string | null> {
+    return this.withBusy(`redraft-${messageId}`, async () => {
+      try {
+        const draft = await this.invoke<string | null>('redraft_inbox_reply', { message_id: messageId });
+        await this.refreshLive();
+        return draft;
+      } catch (err) {
+        this.reportError(errorMessage(err));
+        return null;
+      }
+    });
+  }
+
+  syncInbox(accountId: string) {
+    return this.withBusy(`sync-${accountId}`, () => this.act('sync_inbox', { account_id: accountId }));
+  }
+
+  refreshMetrics(accountId: string) {
+    return this.withBusy(`metrics-${accountId}`, () => this.act('refresh_social_metrics', { account_id: accountId }));
+  }
+
+  deleteAccount(accountId: string) {
+    return this.act('delete_account', { account_id: accountId }, () => this.refreshAll());
+  }
+
+  async startGuidedSignup(platform: string, category: string, username: string | null, email: string | null): Promise<void> {
+    await this.withBusy('signup', async () => {
+      try {
+        const report = await this.invoke<RegistrationReport>('execute_10_step_account_preflight', {
+          platform,
+          category_str: category,
+          desired_username: username,
+          preferred_email: email,
+          email_provider_id: null,
+        });
+        this.lastRegistration.set(report);
+        this.clearError();
+        await this.refreshLive();
+      } catch (err) {
+        this.reportError(errorMessage(err));
+      }
+    });
+  }
+
+  async completeRegistration(accountId: string): Promise<void> {
+    await this.withBusy(`complete-${accountId}`, async () => {
+      try {
+        const report = await this.invoke<RegistrationReport>('complete_account_registration', {
+          account_id: accountId,
+          timeout_seconds: 60,
+        });
+        this.lastRegistration.set(report);
+        this.clearError();
+        await this.refreshAll();
+      } catch (err) {
+        this.reportError(errorMessage(err));
+      }
+    });
+  }
+
+  cancelRegistration(accountId: string) {
+    return this.act('cancel_account_registration', { account_id: accountId });
   }
 
   resolveTask(id: string) {
@@ -303,7 +482,7 @@ export class TauriService {
   async unlockVault(password: string): Promise<string | null> {
     try {
       await this.invoke('unlock_vault', { password });
-      await this.refreshVault();
+      await Promise.all([this.refreshVault(), this.refreshConnections(true)]);
       return null;
     } catch (err) {
       await this.refreshVault();
@@ -319,7 +498,7 @@ export class TauriService {
     return this.act(
       'store_vault_secret',
       { label, secret_type: secretType, value, account_id: accountId },
-      () => this.refreshVault()
+      () => Promise.all([this.refreshVault(), this.refreshConnections(true)]).then(() => undefined)
     );
   }
 

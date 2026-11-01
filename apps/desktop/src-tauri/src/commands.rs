@@ -74,6 +74,14 @@ pub async fn get_activity_flow(state: State<'_, AppState>) -> CmdResult<Activity
 }
 
 #[tauri::command(rename_all = "snake_case")]
+pub async fn get_connection_status(
+    state: State<'_, AppState>,
+    force: Option<bool>,
+) -> CmdResult<Vec<crate::connections::ConnectionStatus>> {
+    Ok(crate::connections::statuses(&state, force.unwrap_or(false)).await)
+}
+
+#[tauri::command(rename_all = "snake_case")]
 pub async fn run_flow_item(state: State<'_, AppState>, kind: String, ref_id: Option<String>) -> CmdResult<String> {
     if state.automation_engine.is_kill_switch_active() {
         return Err("Kill switch is active; reset it before running automations".into());
