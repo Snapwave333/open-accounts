@@ -1,0 +1,17 @@
+[package]
+name = "openaccounts-engagement-agent"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+openaccounts-core = { path = "../core" }
+openaccounts-policy-engine = { path = "../policy-engine" }
+openaccounts-lm-gateway = { path = "../lm-gateway" }
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+uuid.workspace = true
+tokio.workspace = true
+tracing.workspace = true

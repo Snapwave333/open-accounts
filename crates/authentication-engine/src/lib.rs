@@ -27,6 +27,7 @@ pub struct AuthSessionRecord {
 }
 
 pub struct AuthenticationEngine {
+    #[allow(dead_code)]
     vault: Arc<VaultManager>,
 }
 

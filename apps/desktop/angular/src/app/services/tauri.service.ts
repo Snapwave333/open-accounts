@@ -115,6 +115,102 @@ export interface PolicyAlert {
   created_at: string;
 }
 
+// Social Media Manager & Marketing Types
+export interface BrandProfile {
+  brand_id: string;
+  name: string;
+  tagline: string;
+  visual_identity: {
+    primary_hex: string;
+    secondary_hex: string;
+    accent_hex: string;
+    font_family: string;
+  };
+  voice: {
+    tone_adjectives: string[];
+    audience_persona: string;
+    writing_rules: string[];
+    prohibited_words: string[];
+    escalation_triggers: string[];
+  };
+  linked_account_ids: string[];
+}
+
+export interface CampaignBrief {
+  campaign_id: string;
+  brand_id: string;
+  title: string;
+  objective: string;
+  target_platforms: string[];
+  target_audience: string;
+  content_formats: string[];
+  hashtags: string[];
+  start_date: string;
+  end_date: string;
+  status: string;
+}
+
+export interface CalendarPostSlot {
+  slot_id: string;
+  campaign_id?: string;
+  brand_id: string;
+  target_platform: string;
+  scheduled_time: string;
+  content_type: string;
+  caption: string;
+  hashtags: string[];
+  is_approved: boolean;
+  status: string;
+}
+
+export interface ToolCapability {
+  name: string;
+  command: string;
+  is_available: boolean;
+  version?: string;
+  supported_features: string[];
+}
+
+export interface UnifiedInboxMessage {
+  message_id: string;
+  account_id: { 0: string };
+  platform: string;
+  author_handle: string;
+  interaction_type: string;
+  content_text: string;
+  category: string;
+  sentiment_score: number;
+  drafted_reply?: string;
+  is_auto_reply_eligible: boolean;
+  requires_human_approval: boolean;
+  status: string;
+  received_at: string;
+}
+
+export interface VerifiedPlatformMetric {
+  metric_id: string;
+  platform: string;
+  account_id: string;
+  impressions: number;
+  reach: number;
+  views: number;
+  engagement_rate: number;
+  comments: number;
+  shares: number;
+  saves: number;
+  conversions: number;
+  is_verified_by_api: boolean;
+  captured_at: string;
+}
+
+export interface SubAgentAssignment {
+  role: string;
+  title: string;
+  current_task: string;
+  assigned_model_profile: string;
+  is_active: boolean;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -123,7 +219,7 @@ export class TauriService {
 
   stats = signal<SystemStats>({
     total_accounts: 24,
-    active_automations: 6,
+    active_automations: 8,
     pending_human_tasks: 2,
     system_status: 'ONLINE',
     updated_at: new Date().toISOString(),
@@ -159,12 +255,12 @@ export class TauriService {
     },
     {
       id: 'acc-4',
-      platform: 'discord',
-      username: 'CommunityBot#9921',
-      email: 'discord_mod@openaccounts.local',
-      status: 'idle',
+      platform: 'tiktok',
+      username: '@DevOpsShorts',
+      email: 'tiktok_ops@openaccounts.local',
+      status: 'active',
       created_at: '2026-10-22T19:00:00Z',
-      last_active: '12 mins ago',
+      last_active: '15 mins ago',
     },
     {
       id: 'acc-5',
@@ -244,6 +340,220 @@ export class TauriService {
     },
   ]);
 
+  // Social Marketing Signals
+  brands = signal<BrandProfile[]>([
+    {
+      brand_id: 'brand-01',
+      name: 'OpenAccounts AI',
+      tagline: 'Autonomous Account Infrastructure',
+      visual_identity: {
+        primary_hex: '#2563eb',
+        secondary_hex: '#0f172a',
+        accent_hex: '#d946ef',
+        font_family: 'Inter, sans-serif',
+      },
+      voice: {
+        tone_adjectives: ['Authoritative', 'Innovative', 'Helpful'],
+        audience_persona: 'Engineers, marketers, and technical founders.',
+        writing_rules: ['Direct statements', 'Highlight offline cryptography'],
+        prohibited_words: ['quick cash', 'spam bot'],
+        escalation_triggers: ['legal', 'vulnerability', 'chargeback'],
+      },
+      linked_account_ids: ['acc-1', 'acc-3', 'acc-5'],
+    },
+  ]);
+
+  campaigns = signal<CampaignBrief[]>([
+    {
+      campaign_id: 'camp-01',
+      brand_id: 'brand-01',
+      title: 'Q4 Product Launch — Autonomous Account Workforce',
+      objective: 'Brand Awareness & Developer Signups',
+      target_platforms: ['Instagram', 'YouTube', 'TikTok', 'X'],
+      target_audience: 'Technical creators and operations teams',
+      content_formats: ['Reels (9:16)', 'Shorts (9:16)', 'X Threads'],
+      hashtags: ['#OpenAccounts', '#DevTools', '#AIAutomation', '#TechReels'],
+      start_date: '2026-11-01',
+      end_date: '2026-11-30',
+      status: 'Active',
+    },
+  ]);
+
+  calendarPosts = signal<CalendarPostSlot[]>([
+    {
+      slot_id: 'slot-101',
+      campaign_id: 'camp-01',
+      brand_id: 'brand-01',
+      target_platform: 'Instagram',
+      scheduled_time: 'Tomorrow, 10:00 AM',
+      content_type: 'Reel (9:16 Vertical)',
+      caption: 'Meet your new autonomous social media department. Built-in Vector Craft, Photo Craft, and FFmpeg integration. 🚀',
+      hashtags: ['#OpenAccounts', '#AIAutomation', '#Reels'],
+      is_approved: true,
+      status: 'Scheduled',
+    },
+    {
+      slot_id: 'slot-102',
+      campaign_id: 'camp-01',
+      brand_id: 'brand-01',
+      target_platform: 'TikTok',
+      scheduled_time: 'Tomorrow, 2:30 PM',
+      content_type: 'Short Video (9:16)',
+      caption: 'Why manual account operations are dead in 2026. Watch full explainer.',
+      hashtags: ['#TechTok', '#CodingLife', '#Automation'],
+      is_approved: false,
+      status: 'AwaitingApproval',
+    },
+    {
+      slot_id: 'slot-103',
+      campaign_id: 'camp-01',
+      brand_id: 'brand-01',
+      target_platform: 'YouTube',
+      scheduled_time: 'Nov 3, 9:00 AM',
+      content_type: 'Shorts (9:16)',
+      caption: 'Offline encrypted vault + multi-account isolation in action.',
+      hashtags: ['#YouTubeShorts', '#CyberSecurity'],
+      is_approved: true,
+      status: 'Scheduled',
+    },
+  ]);
+
+  creativeTools = signal<ToolCapability[]>([
+    {
+      name: 'Vector Craft CLI',
+      command: 'vectorcraft-cli',
+      is_available: true,
+      version: 'v0.11.0',
+      supported_features: ['Vector Graphics', 'SVG/PDF Rendering', 'Logo & Badge Generation'],
+    },
+    {
+      name: 'Photo Craft CLI',
+      command: 'photocraft-cli',
+      is_available: true,
+      version: 'v0.9.0',
+      supported_features: ['Image Editing', 'Layer Compositing', 'Smart Sharpen', 'Batch Color Grade'],
+    },
+    {
+      name: 'Effect Craft CLI',
+      command: 'effectcraft-cli',
+      is_available: true,
+      version: 'v0.10.0',
+      supported_features: ['Motion Graphics', 'Lottie Export', 'Video Compositing', 'Transitions'],
+    },
+    {
+      name: 'FFmpeg CLI',
+      command: 'ffmpeg',
+      is_available: true,
+      version: '9.0.2',
+      supported_features: ['Transcoding', '9:16 Reel Resizing', 'Audio Normalization (-14 LUFS)', 'Subtitles'],
+    },
+    {
+      name: 'OpenToonz Animation Suite',
+      command: 'tcomposer.exe',
+      is_available: true,
+      version: '1.5.0',
+      supported_features: ['2D Character Animation', 'Scene Rendering', 'Frame Cleanup'],
+    },
+    {
+      name: 'Blender 3D',
+      command: 'blender.exe',
+      is_available: true,
+      version: '5.1.2',
+      supported_features: ['3D Modeling', 'Cinematic Camera', 'Eevee & Cycles Render'],
+    },
+  ]);
+
+  inboxMessages = signal<UnifiedInboxMessage[]>([
+    {
+      message_id: 'inb-101',
+      account_id: { 0: 'acc-1' },
+      platform: 'instagram',
+      author_handle: '@creator_studio',
+      interaction_type: 'comment',
+      content_text: 'Does OpenAccounts support scheduling 9:16 Instagram Reels automatically?',
+      category: 'sales_lead',
+      sentiment_score: 0.85,
+      drafted_reply: 'Yes! OpenAccounts includes full 9:16 Reel rendering, audio normalization, and automated publishing via official Graph API.',
+      is_auto_reply_eligible: true,
+      requires_human_approval: false,
+      status: 'New',
+      received_at: '2026-10-31 20:15:00',
+    },
+    {
+      message_id: 'inb-102',
+      account_id: { 0: 'acc-5' },
+      platform: 'x',
+      author_handle: '@enterprise_buyer',
+      interaction_type: 'direct_message',
+      content_text: 'We want to purchase an enterprise license and require custom legal terms for our multi-account setup.',
+      category: 'security_or_legal_escalation',
+      sentiment_score: 0.5,
+      drafted_reply: 'Thank you for reaching out. A human account executive has been notified to provide custom licensing terms.',
+      is_auto_reply_eligible: false,
+      requires_human_approval: true,
+      status: 'PendingApproval',
+      received_at: '2026-10-31 20:20:00',
+    },
+  ]);
+
+  verifiedMetrics = signal<VerifiedPlatformMetric[]>([
+    {
+      metric_id: 'm-01',
+      platform: 'instagram',
+      account_id: 'growth_brand_ai',
+      impressions: 48200,
+      reach: 39500,
+      views: 28400,
+      engagement_rate: 6.8,
+      comments: 312,
+      shares: 124,
+      saves: 840,
+      conversions: 45,
+      is_verified_by_api: true,
+      captured_at: '2026-10-31 20:00:00',
+    },
+    {
+      metric_id: 'm-02',
+      platform: 'youtube',
+      account_id: 'StudioContentSync',
+      impressions: 112000,
+      reach: 89000,
+      views: 74200,
+      engagement_rate: 8.2,
+      comments: 540,
+      shares: 410,
+      saves: 1200,
+      conversions: 89,
+      is_verified_by_api: true,
+      captured_at: '2026-10-31 20:00:00',
+    },
+    {
+      metric_id: 'm-03',
+      platform: 'tiktok',
+      account_id: '@DevOpsShorts',
+      impressions: 86500,
+      reach: 71000,
+      views: 59300,
+      engagement_rate: 9.4,
+      comments: 420,
+      shares: 615,
+      saves: 1890,
+      conversions: 62,
+      is_verified_by_api: true,
+      captured_at: '2026-10-31 20:10:00',
+    },
+  ]);
+
+  collaboratingAgents = signal<SubAgentAssignment[]>([
+    { role: 'ContentStrategist', title: 'Head of Marketing Strategy', current_task: 'Synthesizing cross-platform audience briefs', assigned_model_profile: 'Claude 3.5 Sonnet', is_active: true },
+    { role: 'TrendResearcher', title: 'Live Trend Intelligence Agent', current_task: 'Scanning viral hashtag velocity on TikTok and X', assigned_model_profile: 'Gemini 1.5 Flash', is_active: true },
+    { role: 'GraphicDesigner', title: 'Vector & Photo Production Specialist', current_task: 'Driving Vector Craft CLI & Photo Craft CLI', assigned_model_profile: 'Local Tool Router', is_active: true },
+    { role: 'VideoDirector', title: 'Short-Form Video & Reel Director', current_task: 'Assembling 9:16 vertical reels with FFmpeg & Effect Craft', assigned_model_profile: 'GPT-4o', is_active: true },
+    { role: 'CommunityManager', title: 'Community Moderation & Engagement', current_task: 'Classifying incoming audience comments and inquiries', assigned_model_profile: 'Ollama Llama-3.1', is_active: true },
+    { role: 'ComplianceAgent', title: 'Policy & Rate Limit Gatekeeper', current_task: 'Enforcing official Graph and X API compliance limits', assigned_model_profile: 'Deterministic Policy Engine', is_active: true },
+  ]);
+
+  isAutonomousLoopRunning = signal<boolean>(false);
   vaultUnlocked = signal<boolean>(false);
   killSwitchActive = signal<boolean>(false);
 
@@ -290,64 +600,39 @@ export class TauriService {
         this.emailIdentities.update((prev) => [newIdent, ...prev]);
         return newIdent as unknown as T;
       }
-      case 'run_policy_monitor_cycle': {
-        const alert: PolicyAlert = {
-          alert_id: `palert-${Date.now()}`,
-          platform_id: 'all_platforms',
-          severity: 'Info',
-          message: 'Continuous Policy Intelligence Monitor verified all 22 official platform sources.',
-          created_at: new Date().toISOString().replace('T', ' ').substring(0, 19),
-        };
-        this.policyAlerts.update((prev) => [alert, ...prev]);
-        return [alert] as unknown as T;
-      }
-      case 'simulate_policy_change': {
-        const alert: PolicyAlert = {
-          alert_id: `palert-${Date.now()}`,
-          platform_id: (args?.['platform_id'] as string) || 'instagram',
-          severity: 'Critical_Pause',
-          message: `Policy Change Alert: ${args?.['platform_id']} updated terms. Affected automations safely paused.`,
-          created_at: new Date().toISOString().replace('T', ' ').substring(0, 19),
-        };
-        this.policyAlerts.update((prev) => [alert, ...prev]);
+      case 'list_brands':
+        return this.brands() as unknown as T;
+      case 'list_campaigns':
+        return this.campaigns() as unknown as T;
+      case 'list_calendar_posts':
+        return this.calendarPosts() as unknown as T;
+      case 'list_creative_tools':
+        return this.creativeTools() as unknown as T;
+      case 'list_unified_inbox':
+        return this.inboxMessages() as unknown as T;
+      case 'approve_and_send_inbox_reply': {
+        const messageId = args?.['message_id'] as string;
+        this.inboxMessages.update((msgs) =>
+          msgs.map((m) =>
+            m.message_id === messageId
+              ? { ...m, status: 'Replied', drafted_reply: args?.['final_reply'] as string }
+              : m
+          )
+        );
         return undefined as unknown as T;
       }
-      case 'execute_10_step_account_preflight': {
-        const plat = (args?.['platform'] as string) || 'instagram';
-        const report: AccountCreationPreflightReport = {
-          account_id: `acc-${Date.now()}`,
-          platform: plat,
-          allocated_email: `${plat}_${Date.now()}@openaccounts.io`,
-          username: (args?.['desired_username'] as string) || `auto_${plat}_user`,
-          is_ready_for_automation: true,
-          step_results: [
-            { step: 1, name: 'Official Platform Policy Verification', passed: true, details: `Verified community guidelines and API terms for ${plat}.` },
-            { step: 2, name: 'Account Eligibility & Multi-Account Checks', passed: true, details: `Authorized under ${plat} multiple account rules.` },
-            { step: 3, name: 'Authorized Email Identity Allocation', passed: true, details: `Allocated isolated mailbox via custom domain provisioner.` },
-            { step: 4, name: 'Secure Credential Preparation', passed: true, details: `Generated 24-character high-entropy password.` },
-            { step: 5, name: 'Registration Execution via Approved Provider', passed: true, details: `Dispatched registration form payload to Chrome Relay session.` },
-            { step: 6, name: 'Human Intervention Gate Checkpoint', passed: true, details: `User confirmed legal consent & completed Turnstile challenge.` },
-            { step: 7, name: 'Email Verification & Ownership Confirmation', passed: true, details: `Extracted verification OTP code and confirmed ownership.` },
-            { step: 8, name: 'Secure Credential Vaulting', passed: true, details: `Credentials encrypted in offline vault with Argon2id key derivation.` },
-            { step: 9, name: 'Account Registry Creation', passed: true, details: `Account entity registered and isolated in database.` },
-            { step: 10, name: 'Final Compliance & Audit Verification', passed: true, details: `Audit log committed with execution hash.` },
-          ],
-        };
-        this.accounts.update((prev) => [
-          {
-            id: report.account_id,
-            platform: plat,
-            username: report.username,
-            email: report.allocated_email,
-            status: 'active',
-            created_at: new Date().toISOString(),
-            last_active: 'Just now',
-          },
-          ...prev,
-        ]);
-        this.stats.update((s) => ({ ...s, total_accounts: s.total_accounts + 1 }));
-        return report as unknown as T;
-      }
+      case 'list_social_analytics':
+        return this.verifiedMetrics() as unknown as T;
+      case 'list_collaborating_agents':
+        return this.collaboratingAgents() as unknown as T;
+      case 'start_autonomous_marketing_loop':
+        this.isAutonomousLoopRunning.set(true);
+        return undefined as unknown as T;
+      case 'pause_autonomous_marketing_loop':
+        this.isAutonomousLoopRunning.set(false);
+        return undefined as unknown as T;
+      case 'is_autonomous_marketing_loop_running':
+        return this.isAutonomousLoopRunning() as unknown as T;
       case 'is_vault_unlocked':
         return this.vaultUnlocked() as unknown as T;
       case 'unlock_vault':
@@ -380,6 +665,14 @@ export class TauriService {
       await this.invoke('reset_kill_switch');
     } else {
       await this.invoke('trigger_kill_switch');
+    }
+  }
+
+  async toggleMarketingLoop() {
+    if (this.isAutonomousLoopRunning()) {
+      await this.invoke('pause_autonomous_marketing_loop');
+    } else {
+      await this.invoke('start_autonomous_marketing_loop');
     }
   }
 }

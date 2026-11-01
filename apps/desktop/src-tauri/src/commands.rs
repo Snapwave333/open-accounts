@@ -2,10 +2,14 @@ use crate::state::AppState;
 use openaccounts_account_creator::{AccountCreationPreflightReport, AccountCreationPreflightRequest};
 use openaccounts_account_identity_manager::AccountCategory;
 use openaccounts_account_registry::AccountRecord;
+use openaccounts_brand_manager::BrandProfile;
 use openaccounts_chrome_relay_adapter::{ChromeRelayAdapter, ChromeRelayConfig};
+use openaccounts_content_strategy::{CalendarPostSlot, CampaignBrief, TrendTopic};
 use openaccounts_core::{AccountId, Platform, SystemStats, TaskId};
+use openaccounts_creative_pipeline::{CreativeAssetSpec, CreativeJobStatus, ToolCapability};
 use openaccounts_credential_vault::SecretMetadataView;
 use openaccounts_email_identity::EmailIdentity;
+use openaccounts_engagement_agent::UnifiedInboxMessage;
 use openaccounts_human_intervention::HumanTask;
 use openaccounts_lm_gateway::ModelProfile;
 use openaccounts_multi_account_registry::ManagedAccountView;
@@ -13,6 +17,9 @@ use openaccounts_platform_intelligence::PlatformKnowledgeProfile;
 use openaccounts_policy_engine::PolicyCheckResult;
 use openaccounts_policy_monitor::PolicyMonitorAlert;
 use openaccounts_policy_versioning::PolicyVersionRecord;
+use openaccounts_publishing_engine::SocialPostPayload;
+use openaccounts_social_analytics::VerifiedPlatformMetric;
+use openaccounts_social_media_manager::SubAgentAssignment;
 use std::sync::Arc;
 use tauri::State;
 
@@ -157,7 +164,7 @@ pub async fn is_kill_switch_active(state: State<'_, AppState>) -> Result<bool, S
     Ok(state.automation_engine.is_kill_switch_active())
 }
 
-// --- PLATFORM INTELLIGENCE & COMPLIANCE COMMANDS ---
+// --- PLATFORM INTELLIGENCE & COMPLIANCE ---
 
 #[tauri::command]
 pub async fn list_platform_profiles(
@@ -217,7 +224,7 @@ pub async fn get_policy_version_history(
     Ok(state.policy_versioning.get_history(&platform_id).await)
 }
 
-// --- EMAIL IDENTITY COMMANDS ---
+// --- EMAIL IDENTITY ---
 
 #[tauri::command]
 pub async fn list_email_identities(
@@ -239,7 +246,7 @@ pub async fn allocate_email_identity(
         .map_err(|e| e.to_string())
 }
 
-// --- MULTI-ACCOUNT REGISTRY COMMANDS ---
+// --- MULTI-ACCOUNT REGISTRY ---
 
 #[tauri::command]
 pub async fn list_managed_multi_accounts(
@@ -289,4 +296,134 @@ pub async fn execute_10_step_account_preflight(
         .execute_10_step_preflight(browser, req)
         .await
         .map_err(|e| e.to_string())
+}
+
+// --- SOCIAL MEDIA MARKETING & CREATIVE ENGINE COMMANDS ---
+
+#[tauri::command]
+pub async fn list_brands(state: State<'_, AppState>) -> Result<Vec<BrandProfile>, String> {
+    Ok(state.brand_manager.list_brands().await)
+}
+
+#[tauri::command]
+pub async fn list_campaigns(state: State<'_, AppState>) -> Result<Vec<CampaignBrief>, String> {
+    Ok(state.content_strategy.list_campaigns().await)
+}
+
+#[tauri::command]
+pub async fn list_calendar_posts(
+    state: State<'_, AppState>,
+) -> Result<Vec<CalendarPostSlot>, String> {
+    Ok(state.content_strategy.list_calendar().await)
+}
+
+#[tauri::command]
+pub async fn research_trends(
+    state: State<'_, AppState>,
+    platform: String,
+) -> Result<Vec<TrendTopic>, String> {
+    Ok(state.content_strategy.research_trends(&platform).await)
+}
+
+#[tauri::command]
+pub async fn list_creative_tools(
+    state: State<'_, AppState>,
+) -> Result<Vec<ToolCapability>, String> {
+    Ok(state.creative_pipeline.list_tools().await)
+}
+
+#[tauri::command]
+pub async fn create_creative_job(
+    state: State<'_, AppState>,
+    spec: CreativeAssetSpec,
+) -> Result<String, String> {
+    state
+        .creative_pipeline
+        .create_production_job(spec)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn get_creative_job_status(
+    state: State<'_, AppState>,
+    job_id: String,
+) -> Result<Option<CreativeJobStatus>, String> {
+    Ok(state.creative_pipeline.get_job_status(&job_id).await)
+}
+
+#[tauri::command]
+pub async fn list_publishing_posts(
+    state: State<'_, AppState>,
+) -> Result<Vec<SocialPostPayload>, String> {
+    Ok(state.publishing_engine.list_posts().await)
+}
+
+#[tauri::command]
+pub async fn approve_and_publish_post(
+    state: State<'_, AppState>,
+    post_id: String,
+) -> Result<(), String> {
+    state
+        .publishing_engine
+        .approve_and_publish(&post_id)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn list_unified_inbox(
+    state: State<'_, AppState>,
+) -> Result<Vec<UnifiedInboxMessage>, String> {
+    Ok(state.engagement_agent.list_inbox().await)
+}
+
+#[tauri::command]
+pub async fn approve_and_send_inbox_reply(
+    state: State<'_, AppState>,
+    message_id: String,
+    final_reply: String,
+) -> Result<(), String> {
+    state
+        .engagement_agent
+        .approve_and_send_reply(&message_id, &final_reply)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn list_social_analytics(
+    state: State<'_, AppState>,
+) -> Result<Vec<VerifiedPlatformMetric>, String> {
+    Ok(state.social_analytics.list_metrics().await)
+}
+
+#[tauri::command]
+pub async fn start_autonomous_marketing_loop(
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    state.social_media_manager.start_autonomous_loop();
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn pause_autonomous_marketing_loop(
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    state.social_media_manager.pause_autonomous_loop();
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn is_autonomous_marketing_loop_running(
+    state: State<'_, AppState>,
+) -> Result<bool, String> {
+    Ok(state.social_media_manager.is_loop_running())
+}
+
+#[tauri::command]
+pub async fn list_collaborating_agents(
+    state: State<'_, AppState>,
+) -> Result<Vec<SubAgentAssignment>, String> {
+    Ok(state.social_media_manager.list_collaborating_agents())
 }

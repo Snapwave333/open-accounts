@@ -4,12 +4,16 @@ use openaccounts_account_registry::AccountRegistry;
 use openaccounts_audit_engine::AuditEngine;
 use openaccounts_authentication_engine::AuthenticationEngine;
 use openaccounts_automation_engine::AutomationEngine;
+use openaccounts_brand_manager::BrandManager;
 use openaccounts_compliance_audit::ComplianceAuditEngine;
+use openaccounts_content_strategy::ContentStrategyEngine;
+use openaccounts_creative_pipeline::CreativePipeline;
 use openaccounts_credential_vault::VaultManager;
 use openaccounts_database::Database;
 use openaccounts_email_identity::EmailIdentityManager;
 use openaccounts_email_provider_gateway::{EmailProviderType, MockEmailProviderAdapter};
 use openaccounts_email_verification::EmailVerificationEngine;
+use openaccounts_engagement_agent::EngagementAgent;
 use openaccounts_event_bus::EventBus;
 use openaccounts_human_intervention::HumanInterventionController;
 use openaccounts_lm_gateway::LMGateway;
@@ -19,9 +23,13 @@ use openaccounts_platform_intelligence::PlatformIntelligence;
 use openaccounts_policy_engine::PolicyEngine;
 use openaccounts_policy_monitor::PolicyMonitor;
 use openaccounts_policy_versioning::PolicyVersioningRegistry;
+use openaccounts_publishing_engine::PublishingEngine;
 use openaccounts_scheduler::TaskScheduler;
+use openaccounts_social_analytics::SocialAnalyticsEngine;
+use openaccounts_social_media_manager::SocialMediaManagerAgent;
 use std::sync::Arc;
 
+#[allow(dead_code)]
 pub struct AppState {
     pub db: Arc<Database>,
     pub vault: Arc<VaultManager>,
@@ -44,6 +52,13 @@ pub struct AppState {
     pub multi_account_registry: Arc<MultiAccountRegistry>,
     pub compliance_audit: Arc<ComplianceAuditEngine>,
     pub account_creator: Arc<AccountCreator>,
+    pub brand_manager: Arc<BrandManager>,
+    pub content_strategy: Arc<ContentStrategyEngine>,
+    pub creative_pipeline: Arc<CreativePipeline>,
+    pub publishing_engine: Arc<PublishingEngine>,
+    pub engagement_agent: Arc<EngagementAgent>,
+    pub social_analytics: Arc<SocialAnalyticsEngine>,
+    pub social_media_manager: Arc<SocialMediaManagerAgent>,
 }
 
 impl AppState {
@@ -67,7 +82,6 @@ impl AppState {
         let scheduler = Arc::new(TaskScheduler::new());
         let event_bus = Arc::new(EventBus::new());
 
-        // Platform Intelligence & Policy subsystems
         let platform_intelligence = Arc::new(PlatformIntelligence::new());
         let policy_engine = Arc::new(PolicyEngine::new(platform_intelligence.clone()));
         let policy_versioning = Arc::new(PolicyVersioningRegistry::new());
@@ -76,7 +90,6 @@ impl AppState {
             policy_versioning.clone(),
         ));
 
-        // Email Identity & Verification
         let email_manager = Arc::new(EmailIdentityManager::new());
         let mock_email_adapter = Arc::new(MockEmailProviderAdapter::new(
             EmailProviderType::CustomDomainApi,
@@ -87,7 +100,6 @@ impl AppState {
             .await;
         let email_verification = Arc::new(EmailVerificationEngine::new());
 
-        // Authentication & Compliance
         let auth_engine = Arc::new(AuthenticationEngine::new(vault.clone()));
         let identity_manager = Arc::new(AccountIdentityManager::new());
         let multi_account_registry = Arc::new(MultiAccountRegistry::new(
@@ -97,7 +109,6 @@ impl AppState {
         ));
         let compliance_audit = Arc::new(ComplianceAuditEngine::new(db.clone()));
 
-        // Account Creator with 10-step Preflight
         let account_creator = Arc::new(AccountCreator::new(
             vault.clone(),
             human_controller.clone(),
@@ -105,6 +116,30 @@ impl AppState {
             email_manager.clone(),
             compliance_audit.clone(),
             account_registry.clone(),
+        ));
+
+        // Social Media Manager & Marketing Subsystems
+        let brand_manager = Arc::new(BrandManager::new());
+        let content_strategy = Arc::new(ContentStrategyEngine::new(
+            brand_manager.clone(),
+            lm_gateway.clone(),
+        ));
+        let creative_pipeline = Arc::new(CreativePipeline::new());
+        creative_pipeline.discover_tools().await;
+
+        let publishing_engine = Arc::new(PublishingEngine::new(policy_engine.clone()));
+        let engagement_agent = Arc::new(EngagementAgent::new(
+            policy_engine.clone(),
+            lm_gateway.clone(),
+        ));
+        let social_analytics = Arc::new(SocialAnalyticsEngine::new());
+        let social_media_manager = Arc::new(SocialMediaManagerAgent::new(
+            brand_manager.clone(),
+            content_strategy.clone(),
+            creative_pipeline.clone(),
+            publishing_engine.clone(),
+            engagement_agent.clone(),
+            social_analytics.clone(),
         ));
 
         Self {
@@ -129,6 +164,13 @@ impl AppState {
             multi_account_registry,
             compliance_audit,
             account_creator,
+            brand_manager,
+            content_strategy,
+            creative_pipeline,
+            publishing_engine,
+            engagement_agent,
+            social_analytics,
+            social_media_manager,
         }
     }
 }

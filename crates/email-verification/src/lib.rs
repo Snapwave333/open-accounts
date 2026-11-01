@@ -49,7 +49,7 @@ impl EmailVerificationEngine {
         &self,
         provider: Arc<dyn EmailProviderAdapter>,
         expected_sender_domain: &str,
-        timeout_seconds: u64,
+        _timeout_seconds: u64,
     ) -> Result<VerificationCodeExtraction> {
         info!("Listening for verification message from {}", expected_sender_domain);
         let start = Utc::now();

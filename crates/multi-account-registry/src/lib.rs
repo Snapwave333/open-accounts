@@ -1,10 +1,9 @@
 use openaccounts_account_identity_manager::{AccountCategory, AccountIdentityManager};
 use openaccounts_account_registry::{AccountRecord, AccountRegistry};
-use openaccounts_core::{AccountId, OpenAccountsError, Result};
+use openaccounts_core::{OpenAccountsError, Result};
 use openaccounts_policy_engine::PolicyEngine;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use tracing::info;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ManagedAccountView {

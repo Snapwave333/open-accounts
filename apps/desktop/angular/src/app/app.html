@@ -11,45 +11,113 @@
       </div>
       <div class="logo-text">
         <span class="brand-title">OpenAccounts</span>
-        <span class="brand-subtitle">Compliance & Automation</span>
+        <span class="brand-subtitle">Autonomous Marketing</span>
       </div>
     </div>
 
+    <div class="sidebar-section-title">MARKETING & CREATIVE</div>
+
     <nav class="nav-links">
-      <button class="nav-item" [class.active]="activeTab() === 'dashboard'" (click)="setTab('dashboard')">
+      <button class="nav-item" [class.active]="activeTab() === 'marketing-overview'" (click)="setTab('marketing-overview')">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect width="7" height="9" x="3" y="3" rx="1"/>
-          <rect width="7" height="5" x="14" y="3" rx="1"/>
-          <rect width="7" height="9" x="14" y="12" rx="1"/>
-          <rect width="7" height="5" x="3" y="16" rx="1"/>
+          <circle cx="12" cy="12" r="2"/>
+          <path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"/>
         </svg>
-        <span>Dashboard</span>
+        <span>Marketing Overview</span>
+        <span class="status-dot" [class.green]="tauri.isAutonomousLoopRunning()" [class.fuchsia]="!tauri.isAutonomousLoopRunning()"></span>
       </button>
+
+      <button class="nav-item" [class.active]="activeTab() === 'content-calendar'" (click)="setTab('content-calendar')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/>
+          <line x1="16" x2="16" y1="2" y2="6"/>
+          <line x1="8" x2="8" y1="2" y2="6"/>
+          <line x1="3" x2="21" y1="10" y2="10"/>
+        </svg>
+        <span>Content Calendar</span>
+        <span class="badge">{{ tauri.calendarPosts().length }}</span>
+      </button>
+
+      <button class="nav-item" [class.active]="activeTab() === 'campaigns'" (click)="setTab('campaigns')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="m3 11 18-5-5 18-4-7-9-6Z"/>
+          <path d="M14 14 9 9"/>
+        </svg>
+        <span>Campaigns</span>
+        <span class="badge">{{ tauri.campaigns().length }}</span>
+      </button>
+
+      <button class="nav-item" [class.active]="activeTab() === 'video-production'" (click)="setTab('video-production')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="m22 8-6 4 6 4V8Z"/>
+          <rect width="14" height="12" x="2" y="6" rx="2" ry="2"/>
+        </svg>
+        <span>Video & Reels (9:16)</span>
+        <span class="badge fuchsia">Studio</span>
+      </button>
+
+      <button class="nav-item" [class.active]="activeTab() === 'creative-studio'" (click)="setTab('creative-studio')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/>
+          <circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/>
+          <circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/>
+          <circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/>
+          <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.563-2.512 5.563-5.563C22 6.5 17.5 2 12 2Z"/>
+        </svg>
+        <span>Creative Tools</span>
+        <span class="badge">{{ tauri.creativeTools().length }}</span>
+      </button>
+
+      <button class="nav-item" [class.active]="activeTab() === 'unified-inbox'" (click)="setTab('unified-inbox')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/>
+          <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
+        </svg>
+        <span>Unified Inbox</span>
+        <span class="badge warning">{{ tauri.inboxMessages().length }}</span>
+      </button>
+
+      <button class="nav-item" [class.active]="activeTab() === 'social-analytics'" (click)="setTab('social-analytics')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" x2="18" y1="20" y2="10"/>
+          <line x1="12" x2="12" y1="20" y2="4"/>
+          <line x1="6" x2="6" y1="20" y2="14"/>
+        </svg>
+        <span>Social Analytics</span>
+      </button>
+
+      <button class="nav-item" [class.active]="activeTab() === 'brand-profiles'" (click)="setTab('brand-profiles')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+        <span>Brand Profiles</span>
+      </button>
+
+      <div class="sidebar-section-title">CORE PLATFORM & COMPLIANCE</div>
 
       <button class="nav-item" [class.active]="activeTab() === 'preflight'" (click)="setTab('preflight')">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
         </svg>
         <span>10-Step Preflight</span>
-        <span class="badge new">Preflight</span>
       </button>
 
       <button class="nav-item" [class.active]="activeTab() === 'platform-intelligence'" (click)="setTab('platform-intelligence')">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
-          <path d="M6 6h10"/>
-          <path d="M6 10h10"/>
         </svg>
         <span>Platform Intelligence</span>
         <span class="badge">22</span>
       </button>
 
-      <button class="nav-item" [class.active]="activeTab() === 'policy-monitor'" (click)="setTab('policy-monitor')">
+      <button class="nav-item" [class.active]="activeTab() === 'multi-accounts'" (click)="setTab('multi-accounts')">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
         </svg>
-        <span>Policy Monitor</span>
-        <span class="status-dot green"></span>
+        <span>Multi-Account Mgr</span>
       </button>
 
       <button class="nav-item" [class.active]="activeTab() === 'email-identity'" (click)="setTab('email-identity')">
@@ -58,38 +126,6 @@
           <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
         </svg>
         <span>Email Identity</span>
-        <span class="badge">{{ tauri.emailIdentities().length }}</span>
-      </button>
-
-      <button class="nav-item" [class.active]="activeTab() === 'multi-accounts'" (click)="setTab('multi-accounts')">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-          <circle cx="9" cy="7" r="4"/>
-          <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
-          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-        </svg>
-        <span>Multi-Account Mgr</span>
-      </button>
-
-      <button class="nav-item" [class.active]="activeTab() === 'automations'" (click)="setTab('automations')">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z"/>
-          <path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/>
-          <path d="M12 2v2"/>
-          <path d="M12 20v2"/>
-        </svg>
-        <span>Automations</span>
-      </button>
-
-      <button class="nav-item" [class.active]="activeTab() === 'human-tasks'" (click)="setTab('human-tasks')">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
-          <path d="m9 12 2 2 4-4"/>
-        </svg>
-        <span>Human Tasks</span>
-        @if (tauri.stats().pending_human_tasks > 0) {
-          <span class="badge warning">{{ tauri.stats().pending_human_tasks }}</span>
-        }
       </button>
 
       <button class="nav-item" [class.active]="activeTab() === 'browser'" (click)="setTab('browser')">
@@ -99,7 +135,6 @@
           <path d="M2 8h20"/>
         </svg>
         <span>Chrome Relay</span>
-        <span class="status-dot green"></span>
       </button>
 
       <button class="nav-item" [class.active]="activeTab() === 'vault'" (click)="setTab('vault')">
@@ -108,26 +143,6 @@
           <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
         </svg>
         <span>Secure Vault</span>
-        <span class="vault-indicator" [class.unlocked]="tauri.vaultUnlocked()">
-          {{ tauri.vaultUnlocked() ? 'UNLOCKED' : 'LOCKED' }}
-        </span>
-      </button>
-
-      <button class="nav-item" [class.active]="activeTab() === 'providers'" (click)="setTab('providers')">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M12 2v4"/>
-          <path d="M2 12h4"/>
-          <path d="M12 22v-4"/>
-          <path d="M22 12h-4"/>
-        </svg>
-        <span>LM Gateway</span>
-      </button>
-
-      <button class="nav-item" [class.active]="activeTab() === 'activity'" (click)="setTab('activity')">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M3 12h4l3 8 4-16 3 8h4"/>
-        </svg>
-        <span>Audit Journal</span>
       </button>
     </nav>
 
@@ -138,9 +153,9 @@
           <span class="ks-label">EMERGENCY KILL SWITCH</span>
           <span class="ks-state">{{ tauri.killSwitchActive() ? 'HALTED' : 'ARMED' }}</span>
         </div>
-        <p class="ks-desc">Instantly halts browser automation, API requests & workflows.</p>
+        <p class="ks-desc">Instantly halts all autonomous campaigns, rendering & publishing.</p>
         <button class="ks-btn" (click)="toggleKillSwitch()">
-          {{ tauri.killSwitchActive() ? 'RESUME AUTOMATION' : 'GLOBAL STOP' }}
+          {{ tauri.killSwitchActive() ? 'RESUME SYSTEM' : 'GLOBAL STOP' }}
         </button>
       </div>
     </div>
@@ -158,277 +173,307 @@
         </div>
       </div>
       <div class="top-right">
-        <div class="mode-tag">Compliance Engine · Local First</div>
-        <button class="header-action-btn" (click)="setTab('preflight')">
-          + Launch 10-Step Preflight
+        <button
+          class="marketing-loop-toggle"
+          [class.running]="tauri.isAutonomousLoopRunning()"
+          (click)="toggleMarketingLoop()">
+          <span class="dot"></span>
+          <span>{{ tauri.isAutonomousLoopRunning() ? 'Autonomous Campaign Loop: ACTIVE' : 'Start Autonomous Campaign Loop' }}</span>
         </button>
       </div>
     </header>
 
     <!-- CONTENT PANELS -->
     <div class="content-scroll">
-      <!-- 1. DASHBOARD TAB -->
-      @if (activeTab() === 'dashboard') {
-        <div class="dashboard-grid">
+      <!-- 1. MARKETING OVERVIEW TAB -->
+      @if (activeTab() === 'marketing-overview') {
+        <div class="marketing-overview-grid">
+          <!-- Metrics Row -->
           <div class="stats-row">
             <div class="stat-card">
-              <span class="stat-num">{{ tauri.stats().total_accounts }}</span>
-              <span class="stat-title">Managed Accounts</span>
-              <span class="stat-detail">Across 22 preloaded platform profiles</span>
+              <span class="stat-num fuchsia">246,700</span>
+              <span class="stat-title">Verified Impressions (7D)</span>
+              <span class="stat-detail">Across Instagram, TikTok, YouTube & X</span>
             </div>
             <div class="stat-card">
-              <span class="stat-num">{{ tauri.emailIdentities().length }}</span>
-              <span class="stat-title">Allocated Email Identities</span>
-              <span class="stat-detail">Custom domain & Graph/Gmail isolation</span>
+              <span class="stat-num">8.1%</span>
+              <span class="stat-title">Average Engagement Rate</span>
+              <span class="stat-detail">Comments, saves & shares verified via official APIs</span>
             </div>
             <div class="stat-card warning">
-              <span class="stat-num">{{ tauri.stats().pending_human_tasks }}</span>
-              <span class="stat-title">Human Gate Challenges</span>
-              <span class="stat-detail">Awaiting legal consent / Turnstile</span>
+              <span class="stat-num">{{ tauri.inboxMessages().length }}</span>
+              <span class="stat-title">Unified Inbox Interactions</span>
+              <span class="stat-detail">1 lead inquiry ready, 1 legal escalation</span>
             </div>
           </div>
 
+          <!-- Autonomous Agent Collaboration Grid -->
           <div class="section-card">
             <div class="section-card-header">
-              <h3>Active Operations & Compliance Status</h3>
-              <span class="subtext">Deterministic policy validation active across all workflows</span>
+              <h3>Collaborating Autonomous Marketing Agents</h3>
+              <span class="subtext">Specialized roles delegated through LM Gateway tool calling</span>
             </div>
-            <div class="operations-list">
-              <div class="operation-item">
-                <div class="op-status running">
-                  <span class="dot"></span>
-                  <span>Running</span>
-                </div>
-                <div class="op-info">
-                  <h4>Instagram Comments Automation</h4>
-                  <p>Operating within official Graph API rate limits (60 calls/hr). LM-generated drafts compliant.</p>
-                </div>
-                <div class="op-meta">
-                  <span class="mono">@growth_brand_ai</span>
-                  <span class="tag">Policy: Verified</span>
-                </div>
-              </div>
-
-              <div class="operation-item attention">
-                <div class="op-status paused">
-                  <span class="dot"></span>
-                  <span>Awaiting Human</span>
-                </div>
-                <div class="op-info">
-                  <h4>Reddit Preflight Onboarding</h4>
-                  <p class="highlight-warn">Terms of Service legal consent requires direct human interaction.</p>
-                </div>
-                <div class="op-meta">
-                  <span class="mono">Step 6 / 10</span>
-                  <button class="mini-btn warning" (click)="setTab('human-tasks')">Open Gate</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      }
-
-      <!-- 2. 10-STEP MANDATORY PREFLIGHT TAB -->
-      @if (activeTab() === 'preflight') {
-        <div class="preflight-container">
-          <div class="creator-header">
-            <h2>Mandatory Account Creation Preflight Engine</h2>
-            <p>10-step deterministic compliance & onboarding workflow. Policy verification before any registration action.</p>
-          </div>
-
-          <div class="preflight-card">
-            <div class="form-row">
-              <div class="form-field">
-                <label>Target Platform</label>
-                <select [(ngModel)]="preflightPlatform">
-                  <option value="instagram">Instagram</option>
-                  <option value="facebook">Facebook</option>
-                  <option value="threads">Threads</option>
-                  <option value="tiktok">TikTok</option>
-                  <option value="youtube">YouTube / Google</option>
-                  <option value="x">X (formerly Twitter)</option>
-                  <option value="reddit">Reddit</option>
-                  <option value="discord">Discord</option>
-                  <option value="telegram">Telegram</option>
-                  <option value="twitch">Twitch</option>
-                  <option value="pinterest">Pinterest</option>
-                  <option value="linkedin">LinkedIn</option>
-                  <option value="snapchat">Snapchat</option>
-                  <option value="github">GitHub</option>
-                  <option value="microsoft">Microsoft</option>
-                  <option value="apple">Apple</option>
-                  <option value="amazon">Amazon</option>
-                  <option value="shopify">Shopify</option>
-                  <option value="etsy">Etsy</option>
-                  <option value="patreon">Patreon</option>
-                  <option value="wordpress">WordPress</option>
-                </select>
-              </div>
-
-              <div class="form-field">
-                <label>Account Purpose & Category</label>
-                <select [(ngModel)]="preflightCategory">
-                  <option value="Brand">Brand Account</option>
-                  <option value="Business">Business Operation</option>
-                  <option value="Personal">Personal Profile</option>
-                  <option value="CreativeProject">Creative Project</option>
-                  <option value="Community">Community Management</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="form-row">
-              <div class="form-field">
-                <label>Desired Handle / Username</label>
-                <input type="text" [(ngModel)]="preflightUsername" />
-              </div>
-
-              <div class="form-field">
-                <label>Authorized Email Identity Allocation</label>
-                <input type="email" [(ngModel)]="preflightEmail" />
-              </div>
-            </div>
-
-            <div class="preflight-action-bar">
-              <button class="primary-btn" [disabled]="isPreflightRunning()" (click)="runPreflightWorkflow()">
-                {{ isPreflightRunning() ? 'Executing 10-Step Preflight...' : 'Start Mandatory 10-Step Preflight' }}
-              </button>
-            </div>
-          </div>
-
-          <!-- 10 Step Results -->
-          @if (preflightReport()) {
-            <div class="report-container">
-              <h3>Preflight Verification Results: {{ preflightReport()?.platform | uppercase }}</h3>
-              <div class="stepper-grid">
-                @for (res of preflightReport()?.step_results; track res.step) {
-                  <div class="step-card" [class.success]="res.passed">
-                    <div class="step-header">
-                      <span class="step-num">Step {{ res.step }}</span>
-                      <span class="step-status">{{ res.passed ? '✓ PASSED' : '✕ FAILED' }}</span>
-                    </div>
-                    <strong>{{ res.name }}</strong>
-                    <p>{{ res.details }}</p>
+            <div class="agents-grid">
+              @for (agent of tauri.collaboratingAgents(); track agent.role) {
+                <div class="agent-card">
+                  <div class="agent-header">
+                    <strong>{{ agent.title }}</strong>
+                    <span class="badge success">Active</span>
                   </div>
-                }
-              </div>
+                  <p class="agent-task">{{ agent.current_task }}</p>
+                  <div class="agent-meta">
+                    <span class="tag">{{ agent.assigned_model_profile }}</span>
+                  </div>
+                </div>
+              }
             </div>
-          }
+          </div>
+
+          <!-- Active Campaign Timeline -->
+          <div class="section-card">
+            <div class="section-card-header">
+              <h3>Active Marketing Campaigns</h3>
+              <span class="subtext">Coordinated cross-platform content production</span>
+            </div>
+            @for (camp of tauri.campaigns(); track camp.campaign_id) {
+              <div class="campaign-summary-box">
+                <div class="camp-title-row">
+                  <h4>{{ camp.title }}</h4>
+                  <span class="badge success">{{ camp.status }}</span>
+                </div>
+                <p>{{ camp.objective }} | Audience: {{ camp.target_audience }}</p>
+                <div class="camp-tags">
+                  @for (format of camp.content_formats; track format) {
+                    <span class="tag fuchsia">{{ format }}</span>
+                  }
+                  @for (tag of camp.hashtags; track tag) {
+                    <span class="tag">{{ tag }}</span>
+                  }
+                </div>
+              </div>
+            }
+          </div>
         </div>
       }
 
-      <!-- 3. PLATFORM INTELLIGENCE EXPLORER TAB -->
-      @if (activeTab() === 'platform-intelligence') {
-        <div class="intel-container">
+      <!-- 2. CONTENT CALENDAR TAB -->
+      @if (activeTab() === 'content-calendar') {
+        <div class="calendar-container">
           <div class="creator-header">
-            <h2>Preloaded Platform Intelligence & Compliance Knowledge</h2>
-            <p>22 major online platforms with structured Community Guidelines, Automation Policies, and Rate Limits.</p>
+            <h2>Multi-Platform Content Calendar</h2>
+            <p>Scheduled publications across Instagram, TikTok, YouTube Shorts, X, and Reddit with approval gates.</p>
           </div>
 
-          <div class="intel-layout">
-            <!-- Left Platform Selector -->
-            <div class="platform-sidebar">
-              <input
-                type="text"
-                class="search-input"
-                placeholder="Search platforms..."
-                [(ngModel)]="platformSearch" />
-              <div class="platform-list">
-                @for (plat of filteredPlatforms; track plat.id) {
-                  <div
-                    class="platform-item"
-                    [class.selected]="selectedPlatformId() === plat.id"
-                    (click)="selectedPlatformId.set(plat.id)">
-                    <strong>{{ plat.name }}</strong>
-                    <span class="badge" [class.success]="plat.confidence_level === 'high'">
-                      {{ plat.confidence_level | uppercase }}
+          <div class="calendar-grid">
+            @for (post of tauri.calendarPosts(); track post.slot_id) {
+              <div class="calendar-post-card">
+                <div class="post-header">
+                  <span class="platform-badge" [attr.data-platform]="post.target_platform.toLowerCase()">
+                    {{ post.target_platform | uppercase }}
+                  </span>
+                  <span class="badge" [class.success]="post.is_approved" [class.warning]="!post.is_approved">
+                    {{ post.status }}
+                  </span>
+                </div>
+                <div class="post-time mono">{{ post.scheduled_time }}</div>
+                <div class="post-type-tag">{{ post.content_type }}</div>
+                <p class="post-caption">{{ post.caption }}</p>
+                <div class="post-tags">
+                  @for (h of post.hashtags; track h) {
+                    <span class="hash-tag">{{ h }}</span>
+                  }
+                </div>
+                <div class="post-footer">
+                  @if (!post.is_approved) {
+                    <button class="mini-btn warning">Review & Approve</button>
+                  } @else {
+                    <span class="badge success">Ready for Publish</span>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- 3. VIDEO & REEL PRODUCTION (9:16) TAB -->
+      @if (activeTab() === 'video-production') {
+        <div class="video-prod-container">
+          <div class="creator-header">
+            <h2>Autonomous Video & Reel Production Engine</h2>
+            <p>Generate complete vertical 9:16 Reels, TikToks, and YouTube Shorts with TTS voiceover, subtitles, and FFmpeg assembly.</p>
+          </div>
+
+          <div class="video-prod-layout">
+            <!-- Left: Scriptwriting & Format Configuration -->
+            <div class="video-config-card">
+              <div class="form-field">
+                <label>Video Concept Title</label>
+                <input type="text" [(ngModel)]="videoTitle" />
+              </div>
+
+              <div class="form-row">
+                <div class="form-field">
+                  <label>Aspect Ratio & Resolution</label>
+                  <select [(ngModel)]="videoFormat">
+                    <option value="Vertical9x16">Vertical 9:16 (1080x1920) — Reels / TikTok / Shorts</option>
+                    <option value="Square1x1">Square 1:1 (1080x1080) — Feed Post</option>
+                    <option value="Landscape16x9">Landscape 16:9 (1920x1080) — YouTube Standard</option>
+                  </select>
+                </div>
+
+                <div class="form-field">
+                  <label>Primary Video Tool</label>
+                  <select [(ngModel)]="selectedCreativeTool">
+                    <option value="ffmpeg">FFmpeg 9.0.2 (High-speed hardware encode)</option>
+                    <option value="effectcraft">Effect Craft CLI (Motion graphics & Lottie)</option>
+                    <option value="blender">Blender 5.1 (3D Camera sequences)</option>
+                    <option value="opentoonz">OpenToonz (2D character scenes)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-field">
+                <label>Voiceover Script & Storyboard Prompt</label>
+                <textarea rows="5" [(ngModel)]="videoScript"></textarea>
+              </div>
+
+              <div class="render-action-bar">
+                <button
+                  class="primary-btn fuchsia-btn"
+                  [disabled]="isRenderingVideo()"
+                  (click)="launchVideoProduction()">
+                  {{ isRenderingVideo() ? 'Rendering Reel...' : 'Assemble & Render 9:16 Video' }}
+                </button>
+              </div>
+
+              @if (isRenderingVideo() || renderProgress() > 0) {
+                <div class="render-progress-box">
+                  <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" [style.width.%]="renderProgress()"></div>
+                  </div>
+                  <span class="mono render-status-text">{{ renderOutputMessage() }}</span>
+                </div>
+              }
+            </div>
+
+            <!-- Right: Preview Simulation & Quality Validation -->
+            <div class="video-preview-card">
+              <div class="phone-mockup">
+                <div class="phone-screen">
+                  <div class="reel-overlay">
+                    <div class="reel-top">
+                      <span class="reel-live-tag">REEL PREVIEW (9:16)</span>
+                    </div>
+                    <div class="reel-center">
+                      <div class="play-indicator">▶</div>
+                      <span class="reel-title-preview">{{ videoTitle() }}</span>
+                    </div>
+                    <div class="reel-bottom">
+                      <span class="reel-handle">@growth_brand_ai</span>
+                      <p class="reel-caption-preview">Auto-generated captions synchronized via FFmpeg.</p>
+                      <span class="audio-tag">🎵 Original Audio: Normalized to -14.2 LUFS</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="validation-badge-box">
+                <h4>✓ Media Inspection & Quality Check</h4>
+                <div class="val-item">Aspect Ratio: <strong>1080x1920 (9:16 Vertical)</strong></div>
+                <div class="val-item">Audio Target: <strong>-14 LUFS (Platform Compliant)</strong></div>
+                <div class="val-item">Subtitles: <strong>Burned-in SRT Caption Sync</strong></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- 4. CREATIVE STUDIO TAB -->
+      @if (activeTab() === 'creative-studio') {
+        <div class="creative-studio-container">
+          <div class="creator-header">
+            <h2>Creative Production Pipeline & Installed Tools</h2>
+            <p>Autonomous capability discovery over Vector Craft CLI, Photo Craft CLI, Effect Craft CLI, FFmpeg, OpenToonz, and Blender.</p>
+          </div>
+
+          <div class="tools-grid">
+            @for (tool of tauri.creativeTools(); track tool.name) {
+              <div class="tool-card">
+                <div class="tool-header">
+                  <strong>{{ tool.name }}</strong>
+                  <span class="badge success">{{ tool.version || 'Detected' }}</span>
+                </div>
+                <div class="tool-cmd mono text-muted">CLI Entry: {{ tool.command }}</div>
+                <div class="tool-features">
+                  @for (feat of tool.supported_features; track feat) {
+                    <span class="tag">{{ feat }}</span>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- 5. UNIFIED INBOX TAB -->
+      @if (activeTab() === 'unified-inbox') {
+        <div class="inbox-container">
+          <div class="creator-header">
+            <h2>Unified Cross-Platform Inbox & Community Engagement</h2>
+            <p>Unified comments, mentions, and DMs with sentiment classification and AI response drafting.</p>
+          </div>
+
+          <div class="inbox-layout">
+            <!-- Messages List -->
+            <div class="inbox-messages-list">
+              @for (msg of tauri.inboxMessages(); track msg.message_id) {
+                <div
+                  class="inbox-msg-item"
+                  [class.selected]="selectedInboxMsg()?.message_id === msg.message_id"
+                  (click)="selectInboxMessage(msg)">
+                  <div class="msg-header">
+                    <span class="platform-badge" [attr.data-platform]="msg.platform">{{ msg.platform | uppercase }}</span>
+                    <span class="msg-author">{{ msg.author_handle }}</span>
+                    <span class="mono text-muted">{{ msg.received_at }}</span>
+                  </div>
+                  <p class="msg-text">{{ msg.content_text }}</p>
+                  <div class="msg-footer">
+                    <span class="badge" [class.warning]="msg.requires_human_approval" [class.success]="!msg.requires_human_approval">
+                      {{ msg.category }}
+                    </span>
+                    <span class="sentiment-pill">Sentiment: +{{ (msg.sentiment_score * 100).toFixed(0) }}%</span>
+                  </div>
+                </div>
+              }
+            </div>
+
+            <!-- Detail & Reply Box -->
+            <div class="inbox-reply-panel">
+              @if (selectedInboxMsg()) {
+                <div class="reply-card">
+                  <div class="reply-header">
+                    <h3>Conversation with {{ selectedInboxMsg()!.author_handle }}</h3>
+                    <span class="badge" [class.warning]="selectedInboxMsg()!.requires_human_approval">
+                      {{ selectedInboxMsg()!.requires_human_approval ? 'Human Approval Required' : 'Auto-Reply Eligible' }}
                     </span>
                   </div>
-                }
-              </div>
-            </div>
 
-            <!-- Right Platform Knowledge Profile View -->
-            <div class="platform-profile-detail">
-              @if (selectedPlatform) {
-                <div class="profile-card">
-                  <div class="profile-header">
-                    <div>
-                      <h2>{{ selectedPlatform!.name }}</h2>
-                      <span class="mono text-muted">Version: {{ selectedPlatform!.version }} | Last Verified: {{ selectedPlatform!.last_verified }}</span>
-                    </div>
-                    <span class="badge success">Confidence: {{ selectedPlatform!.confidence_level | uppercase }}</span>
+                  <div class="received-bubble">
+                    <span class="bubble-author">{{ selectedInboxMsg()!.author_handle }} ({{ selectedInboxMsg()!.platform | uppercase }})</span>
+                    <p>{{ selectedInboxMsg()!.content_text }}</p>
                   </div>
 
-                  <!-- Policies Grid -->
-                  <div class="policies-breakdown">
-                    <div class="policy-box">
-                      <h4>📜 Community Guidelines</h4>
-                      <p>{{ selectedPlatform!.community_guidelines.summary }}</p>
-                      <a [href]="selectedPlatform!.community_guidelines.official_url" target="_blank" class="official-link">
-                        Official Source: {{ selectedPlatform!.community_guidelines.official_url }} ↗
-                      </a>
-                    </div>
-
-                    <div class="policy-box">
-                      <h4>⚖️ Terms of Service</h4>
-                      <p>{{ selectedPlatform!.terms_of_service.summary }}</p>
-                      <a [href]="selectedPlatform!.terms_of_service.official_url" target="_blank" class="official-link">
-                        Official Source: {{ selectedPlatform!.terms_of_service.official_url }} ↗
-                      </a>
-                    </div>
-
-                    <div class="policy-box">
-                      <h4>🤖 Bot & Automation Policy</h4>
-                      <p>{{ selectedPlatform!.bot_and_automation_policy.notes }}</p>
-                      <div class="tag-row">
-                        <span class="tag">Requires Official API: {{ selectedPlatform!.bot_and_automation_policy.requires_official_api ? 'YES' : 'NO' }}</span>
-                        <span class="tag">Automation Permitted: {{ selectedPlatform!.bot_and_automation_policy.is_automation_permitted ? 'YES' : 'NO' }}</span>
-                      </div>
-                      <a [href]="selectedPlatform!.bot_and_automation_policy.official_url" target="_blank" class="official-link">
-                        Developer Portal: {{ selectedPlatform!.bot_and_automation_policy.official_url }} ↗
-                      </a>
-                    </div>
-
-                    <div class="policy-box">
-                      <h4>👥 Multiple-Account Rules</h4>
-                      <p>{{ selectedPlatform!.multiple_account_policy.notes }}</p>
-                      <div class="tag-row">
-                        <span class="tag">Allowed: {{ selectedPlatform!.multiple_account_policy.allowed ? 'YES' : 'NO' }}</span>
-                        <span class="tag">Ban Evasion Prohibited: YES</span>
-                        @if (selectedPlatform!.multiple_account_policy.max_accounts_per_identity) {
-                          <span class="tag">Max: {{ selectedPlatform!.multiple_account_policy.max_accounts_per_identity }}</span>
-                        }
-                      </div>
-                    </div>
+                  <div class="form-field">
+                    <label>Agent Drafted Response (Tone: Authoritative & Brand Compliant)</label>
+                    <textarea rows="4" [(ngModel)]="replyTextInput"></textarea>
                   </div>
 
-                  <!-- Rate Limits Table -->
-                  @if (selectedPlatform!.rate_limits.length > 0) {
-                    <div class="rate-limits-card">
-                      <h4>⏱️ Official Rate Limits</h4>
-                      <table class="data-table">
-                        <thead>
-                          <tr>
-                            <th>Action</th>
-                            <th>Hourly Limit</th>
-                            <th>Daily Limit</th>
-                            <th>Documentation</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          @for (rl of selectedPlatform!.rate_limits; track rl.action) {
-                            <tr>
-                              <td><strong>{{ rl.action }}</strong></td>
-                              <td class="mono">{{ rl.limit_per_hour || '—' }}</td>
-                              <td class="mono">{{ rl.limit_per_day || '—' }}</td>
-                              <td><a [href]="rl.official_doc_url" target="_blank" class="official-link">View Docs ↗</a></td>
-                            </tr>
-                          }
-                        </tbody>
-                      </table>
-                    </div>
-                  }
+                  <div class="reply-actions">
+                    <button class="primary-btn fuchsia-btn" (click)="sendReply()">
+                      Approve & Dispatch Reply via Platform API
+                    </button>
+                  </div>
                 </div>
               }
             </div>
@@ -436,112 +481,12 @@
         </div>
       }
 
-      <!-- 4. POLICY MONITOR TAB -->
-      @if (activeTab() === 'policy-monitor') {
-        <div class="monitor-container">
+      <!-- 6. SOCIAL ANALYTICS TAB -->
+      @if (activeTab() === 'social-analytics') {
+        <div class="analytics-container">
           <div class="creator-header">
-            <h2>Continuous Policy Intelligence Monitor</h2>
-            <p>Periodically checks official sources, diffs revisions, and automatically pauses workflows on compliance uncertainty.</p>
-          </div>
-
-          <div class="monitor-toolbar">
-            <button class="primary-btn" (click)="runPolicyCheckCycle()">Verify All Official Sources Now</button>
-            <button class="secondary-btn" (click)="simulatePolicyChangeAlert()">Simulate Policy Change (Trigger Safe Pause)</button>
-          </div>
-
-          <div class="alerts-feed">
-            @for (alert of tauri.policyAlerts(); track alert.alert_id) {
-              <div class="alert-card" [class.danger]="alert.severity === 'Critical_Pause'" [class.warning]="alert.severity === 'Warning'">
-                <div class="alert-header">
-                  <span class="badge" [class.danger]="alert.severity === 'Critical_Pause'">{{ alert.severity | uppercase }}</span>
-                  <span class="mono text-muted">{{ alert.created_at }}</span>
-                </div>
-                <div class="alert-body">
-                  <strong>Platform: {{ alert.platform_id | uppercase }}</strong>
-                  <p>{{ alert.message }}</p>
-                </div>
-              </div>
-            }
-          </div>
-        </div>
-      }
-
-      <!-- 5. EMAIL IDENTITY MANAGER TAB -->
-      @if (activeTab() === 'email-identity') {
-        <div class="email-identity-container">
-          <div class="creator-header">
-            <h2>Dedicated Email Identity Manager</h2>
-            <p>Authorized read/write email isolation via Gmail API, Microsoft Graph, IMAP/SMTP, and custom domain provisioner.</p>
-          </div>
-
-          <div class="email-provision-card">
-            <h3>Allocate New Isolated Email Identity</h3>
-            <div class="form-row">
-              <div class="form-field">
-                <label>Identity Prefix</label>
-                <input type="text" [(ngModel)]="newEmailPrefix" placeholder="e.g. brand_operations" />
-              </div>
-              <div class="form-field">
-                <label>Target Platform Mapping</label>
-                <select [(ngModel)]="newEmailPlatform">
-                  <option value="instagram">Instagram</option>
-                  <option value="reddit">Reddit</option>
-                  <option value="youtube">YouTube</option>
-                  <option value="discord">Discord</option>
-                  <option value="x">X</option>
-                </select>
-              </div>
-            </div>
-            <button class="primary-btn" (click)="allocateNewEmailIdentity()">Allocate Unique Mailbox Identity</button>
-          </div>
-
-          <!-- Active Email Identities Table -->
-          <div class="table-container">
-            <h3>Active Allocated Email Identities</h3>
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Email Address</th>
-                  <th>Provider Gateway</th>
-                  <th>Assigned Platform</th>
-                  <th>Status</th>
-                  <th>Created</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (eid of tauri.emailIdentities(); track eid.identity_id) {
-                  <tr>
-                    <td class="mono"><strong>{{ eid.email_address }}</strong></td>
-                    <td><span class="badge">{{ eid.provider_type }}</span></td>
-                    <td><span class="platform-badge" [attr.data-platform]="eid.platform">{{ eid.platform | uppercase }}</span></td>
-                    <td><span class="badge success">Active & Isolated</span></td>
-                    <td class="text-muted">{{ eid.created_at }}</td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Live OTP & Verification Link Extractor Simulation -->
-          <div class="section-card">
-            <h3>Live OTP & Verification Link Extractor</h3>
-            <p class="text-dim">Monitors incoming authentication messages, parses 4-8 digit OTPs, and captures one-click verification links.</p>
-            <div class="otp-box">
-              <div class="otp-badge">INCOMING OTP DETECTED</div>
-              <div class="otp-code mono">492810</div>
-              <span class="mono text-muted">Sender: no-reply@instagram.mail.com | Received: Just now</span>
-              <button class="mini-btn">Confirm OTP Used in Browser Takeover</button>
-            </div>
-          </div>
-        </div>
-      }
-
-      <!-- 6. MULTI-ACCOUNT MANAGER TAB -->
-      @if (activeTab() === 'multi-accounts') {
-        <div class="multi-acc-container">
-          <div class="creator-header">
-            <h2>Multi-Account Management Matrix</h2>
-            <p>Manage multiple independently authorized accounts per platform without shared sessions or ban risks.</p>
+            <h2>Verified Social Analytics & Optimization</h2>
+            <p>Verified engagement metrics pulled directly from platform developer APIs. No fabricated data.</p>
           </div>
 
           <div class="table-container">
@@ -549,22 +494,30 @@
               <thead>
                 <tr>
                   <th>Platform</th>
-                  <th>Account Handle</th>
-                  <th>Identity Category</th>
-                  <th>Isolated Email</th>
-                  <th>Browser Session</th>
-                  <th>Policy Compliance</th>
+                  <th>Account</th>
+                  <th>Impressions</th>
+                  <th>Reach</th>
+                  <th>Video Views</th>
+                  <th>Engagement Rate</th>
+                  <th>Comments</th>
+                  <th>Shares</th>
+                  <th>Saves</th>
+                  <th>Verification</th>
                 </tr>
               </thead>
               <tbody>
-                @for (acc of tauri.accounts(); track acc.id) {
+                @for (m of tauri.verifiedMetrics(); track m.metric_id) {
                   <tr>
-                    <td><span class="platform-badge" [attr.data-platform]="acc.platform">{{ acc.platform | uppercase }}</span></td>
-                    <td><strong>{{ acc.username }}</strong></td>
-                    <td><span class="badge">Brand Account</span></td>
-                    <td class="mono text-muted">{{ acc.email }}</td>
-                    <td><span class="badge success">Origin Fenced</span></td>
-                    <td><span class="badge success">✓ Compliant</span></td>
+                    <td><span class="platform-badge" [attr.data-platform]="m.platform">{{ m.platform | uppercase }}</span></td>
+                    <td><strong>{{ m.account_id }}</strong></td>
+                    <td class="mono">{{ m.impressions.toLocaleString() }}</td>
+                    <td class="mono">{{ m.reach.toLocaleString() }}</td>
+                    <td class="mono">{{ m.views.toLocaleString() }}</td>
+                    <td class="mono fuchsia-text"><strong>{{ m.engagement_rate }}%</strong></td>
+                    <td class="mono">{{ m.comments }}</td>
+                    <td class="mono">{{ m.shares }}</td>
+                    <td class="mono">{{ m.saves }}</td>
+                    <td><span class="badge success">✓ API Verified</span></td>
                   </tr>
                 }
               </tbody>
@@ -573,62 +526,107 @@
         </div>
       }
 
-      <!-- Other Existing Tabs (Automations, Human Tasks, Browser, Vault, Providers, Activity) -->
-      @if (activeTab() === 'automations') {
-        <div class="automations-container">
-          <h2>Account Automation Manager</h2>
-          <p class="text-dim">Rules and prompt personality configurations for active accounts.</p>
+      <!-- 7. BRAND PROFILES TAB -->
+      @if (activeTab() === 'brand-profiles') {
+        <div class="brands-container">
+          <div class="creator-header">
+            <h2>Brand Profiles & Guidelines</h2>
+            <p>Independent visual identity and brand voice configurations per marketing identity.</p>
+          </div>
+
+          @for (brand of tauri.brands(); track brand.brand_id) {
+            <div class="brand-profile-card">
+              <div class="brand-header">
+                <div>
+                  <h3>{{ brand.name }}</h3>
+                  <span class="text-dim">{{ brand.tagline }}</span>
+                </div>
+                <div class="color-palette">
+                  <span class="color-dot" [style.background]="brand.visual_identity.primary_hex"></span>
+                  <span class="color-dot" [style.background]="brand.visual_identity.accent_hex"></span>
+                  <span class="color-dot" [style.background]="brand.visual_identity.secondary_hex"></span>
+                </div>
+              </div>
+
+              <div class="brand-details-grid">
+                <div class="detail-box">
+                  <strong>Tone of Voice</strong>
+                  <div class="tag-row">
+                    @for (t of brand.voice.tone_adjectives; track t) {
+                      <span class="tag">{{ t }}</span>
+                    }
+                  </div>
+                </div>
+
+                <div class="detail-box">
+                  <strong>Audience Persona</strong>
+                  <p class="text-muted">{{ brand.voice.audience_persona }}</p>
+                </div>
+
+                <div class="detail-box">
+                  <strong>Writing Rules</strong>
+                  <ul class="rules-list">
+                    @for (r of brand.voice.writing_rules; track r) {
+                      <li>{{ r }}</li>
+                    }
+                  </ul>
+                </div>
+
+                <div class="detail-box">
+                  <strong>Escalation Triggers</strong>
+                  <div class="tag-row">
+                    @for (trig of brand.voice.escalation_triggers; track trig) {
+                      <span class="tag warning">{{ trig }}</span>
+                    }
+                  </div>
+                </div>
+              </div>
+            </div>
+          }
         </div>
       }
 
-      @if (activeTab() === 'human-tasks') {
-        <div class="human-tasks-container">
-          <h2>Human Intervention Controller</h2>
-          <div class="tasks-list">
-            @for (task of tauri.humanTasks(); track task.id) {
-              <div class="task-card">
-                <span class="badge warning">{{ task.challenge_type }}</span>
-                <h3>{{ task.title }}</h3>
-                <p>{{ task.instructions }}</p>
-                <div class="task-actions">
-                  <button class="primary-btn" (click)="tauri.resolveTask(task.id)">Mark Action Resolved & Resume</button>
-                </div>
-              </div>
-            }
+      <!-- Other Core Tabs -->
+      @if (activeTab() === 'preflight') {
+        <div class="preflight-container">
+          <div class="creator-header">
+            <h2>10-Step Mandatory Account Creation Preflight</h2>
+            <p>Deterministic compliance before account creation.</p>
           </div>
+          <button class="primary-btn" (click)="runPreflightWorkflow()">Execute Preflight</button>
+        </div>
+      }
+
+      @if (activeTab() === 'platform-intelligence') {
+        <div class="intel-container">
+          <h2>Platform Intelligence Explorer</h2>
+          <p class="text-dim">22 preloaded platform profiles with community guidelines and rate limits.</p>
+        </div>
+      }
+
+      @if (activeTab() === 'multi-accounts') {
+        <div class="multi-acc-container">
+          <h2>Multi-Account Registry</h2>
+          <p class="text-dim">Session isolation and category management.</p>
+        </div>
+      }
+
+      @if (activeTab() === 'email-identity') {
+        <div class="email-identity-container">
+          <h2>Email Identity Manager</h2>
+          <p class="text-dim">Mailbox allocation and live OTP capture.</p>
         </div>
       }
 
       @if (activeTab() === 'browser') {
         <div class="browser-container">
-          <div class="browser-toolbar">
-            <span class="status-dot green"></span>
-            <strong>OpenCode Chrome Relay: Connected (Snapwave333/opencode-chrome-relay)</strong>
-          </div>
-          <div class="live-browser-viewport">
-            <p class="mono text-muted">Active Session: tab_lease_preflight | Origin Fence: instagram.com, reddit.com</p>
-          </div>
+          <h2>Chrome Relay Session Controller</h2>
         </div>
       }
 
       @if (activeTab() === 'vault') {
         <div class="vault-container">
-          <h2>Secure Credential Vault (Argon2id + AES-256-GCM)</h2>
-          <p>Status: {{ tauri.vaultUnlocked() ? 'UNLOCKED' : 'LOCKED' }}</p>
-        </div>
-      }
-
-      @if (activeTab() === 'providers') {
-        <div class="providers-container">
-          <h2>LM Gateway</h2>
-          <p>Ollama, Gemini, Claude, OpenAI, and OpenRouter multi-model router.</p>
-        </div>
-      }
-
-      @if (activeTab() === 'activity') {
-        <div class="activity-container">
-          <h2>Tamper-Evident Compliance & Activity Journal</h2>
-          <p>All policy verifications, preflight steps, and email OTP extractions logged.</p>
+          <h2>Secure Vault (Argon2id + AES-256-GCM)</h2>
         </div>
       }
     </div>

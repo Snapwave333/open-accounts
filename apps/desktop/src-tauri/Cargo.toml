@@ -34,6 +34,13 @@ openaccounts-authentication-engine = { path = "../../../crates/authentication-en
 openaccounts-account-identity-manager = { path = "../../../crates/account-identity-manager" }
 openaccounts-multi-account-registry = { path = "../../../crates/multi-account-registry" }
 openaccounts-compliance-audit = { path = "../../../crates/compliance-audit" }
+openaccounts-brand-manager = { path = "../../../crates/brand-manager" }
+openaccounts-content-strategy = { path = "../../../crates/content-strategy" }
+openaccounts-creative-pipeline = { path = "../../../crates/creative-pipeline" }
+openaccounts-publishing-engine = { path = "../../../crates/publishing-engine" }
+openaccounts-engagement-agent = { path = "../../../crates/engagement-agent" }
+openaccounts-social-analytics = { path = "../../../crates/social-analytics" }
+openaccounts-social-media-manager = { path = "../../../crates/social-media-manager" }
 
 serde.workspace = true
 serde_json.workspace = true

@@ -57,6 +57,7 @@ pub struct AccountCreator {
     vault: Arc<VaultManager>,
     human_controller: Arc<HumanInterventionController>,
     policy_engine: Arc<PolicyEngine>,
+    #[allow(dead_code)]
     email_manager: Arc<EmailIdentityManager>,
     compliance_audit: Arc<ComplianceAuditEngine>,
     account_registry: Arc<AccountRegistry>,

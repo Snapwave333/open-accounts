@@ -29,6 +29,13 @@ members = [
     "crates/account-identity-manager",
     "crates/multi-account-registry",
     "crates/compliance-audit",
+    "crates/brand-manager",
+    "crates/content-strategy",
+    "crates/creative-pipeline",
+    "crates/publishing-engine",
+    "crates/engagement-agent",
+    "crates/social-analytics",
+    "crates/social-media-manager",
     "apps/desktop/src-tauri",
 ]
 

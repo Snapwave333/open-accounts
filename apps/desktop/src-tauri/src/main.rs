@@ -46,6 +46,22 @@ async fn main() {
             allocate_email_identity,
             list_managed_multi_accounts,
             execute_10_step_account_preflight,
+            list_brands,
+            list_campaigns,
+            list_calendar_posts,
+            research_trends,
+            list_creative_tools,
+            create_creative_job,
+            get_creative_job_status,
+            list_publishing_posts,
+            approve_and_publish_post,
+            list_unified_inbox,
+            approve_and_send_inbox_reply,
+            list_social_analytics,
+            start_autonomous_marketing_loop,
+            pause_autonomous_marketing_loop,
+            is_autonomous_marketing_loop_running,
+            list_collaborating_agents,
         ])
         .run(tauri::generate_context!())
         .expect("error while running OpenAccounts application");

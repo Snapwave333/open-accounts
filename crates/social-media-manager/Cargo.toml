@@ -1,0 +1,25 @@
+[package]
+name = "openaccounts-social-media-manager"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+openaccounts-core = { path = "../core" }
+openaccounts-brand-manager = { path = "../brand-manager" }
+openaccounts-content-strategy = { path = "../content-strategy" }
+openaccounts-creative-pipeline = { path = "../creative-pipeline" }
+openaccounts-publishing-engine = { path = "../publishing-engine" }
+openaccounts-engagement-agent = { path = "../engagement-agent" }
+openaccounts-social-analytics = { path = "../social-analytics" }
+openaccounts-lm-gateway = { path = "../lm-gateway" }
+openaccounts-policy-engine = { path = "../policy-engine" }
+openaccounts-permission-engine = { path = "../permission-engine" }
+openaccounts-audit-engine = { path = "../audit-engine" }
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+uuid.workspace = true
+tokio.workspace = true
+tracing.workspace = true
