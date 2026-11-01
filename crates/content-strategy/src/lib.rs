@@ -282,11 +282,30 @@ pub fn score_trends(raw: Vec<RawTrend>) -> Vec<TrendTopic> {
     topics
 }
 
+#[async_trait::async_trait]
+pub trait CalendarStore: Send + Sync {
+    async fn load_slots(&self) -> Result<Vec<CalendarPostSlot>>;
+    async fn save_slot(&self, slot: &CalendarPostSlot) -> Result<()>;
+    async fn delete_slot(&self, slot_id: &str) -> Result<()>;
+}
+
+pub fn caption_char_limit(platform: &str) -> usize {
+    match platform.to_lowercase().as_str() {
+        "x" | "twitter" => 280,
+        "threads" => 500,
+        "bluesky" => 300,
+        "tiktok" => 2200,
+        "instagram" => 2200,
+        "youtube" => 5000,
+        "reddit" => 40000,
+        _ => 2000,
+    }
+}
+
 pub struct ContentStrategyEngine {
-    #[allow(dead_code)]
     brand_manager: Arc<BrandManager>,
-    #[allow(dead_code)]
     lm_gateway: Arc<LMGateway>,
+    store: Option<Arc<dyn CalendarStore>>,
     campaigns: Arc<RwLock<HashMap<String, CampaignBrief>>>,
     calendar: Arc<RwLock<Vec<CalendarPostSlot>>>,
     trend_sources: TrendSources,
@@ -300,6 +319,7 @@ impl ContentStrategyEngine {
             lm_gateway,
             campaigns: Arc::new(RwLock::new(HashMap::new())),
             calendar: Arc::new(RwLock::new(Vec::new())),
+            store: None,
             trend_sources: TrendSources::default(),
             client: reqwest::Client::builder()
                 .connect_timeout(Duration::from_secs(10))
@@ -315,6 +335,82 @@ impl ContentStrategyEngine {
         self
     }
 
+    pub fn with_store(mut self, store: Arc<dyn CalendarStore>) -> Self {
+        self.store = Some(store);
+        self
+    }
+
+    pub async fn restore(&self) -> Result<usize> {
+        let Some(store) = &self.store else { return Ok(0) };
+        let slots = store.load_slots().await?;
+        let n = slots.len();
+        *self.calendar.write().await = slots;
+        Ok(n)
+    }
+
+    async fn persist(&self, slot_id: &str) {
+        let Some(store) = &self.store else { return };
+        let slot = self.calendar.read().await.iter().find(|s| s.slot_id == slot_id).cloned();
+        if let Some(slot) = slot {
+            if let Err(e) = store.save_slot(&slot).await {
+                warn!("Failed to persist calendar slot {}: {}", slot_id, e);
+            }
+        }
+    }
+
+    pub async fn get_slot(&self, slot_id: &str) -> Option<CalendarPostSlot> {
+        self.calendar.read().await.iter().find(|s| s.slot_id == slot_id).cloned()
+    }
+
+    pub async fn remove_slot(&self, slot_id: &str) -> Result<bool> {
+        let removed = {
+            let mut calendar = self.calendar.write().await;
+            let before = calendar.len();
+            calendar.retain(|s| s.slot_id != slot_id);
+            calendar.len() != before
+        };
+        if removed {
+            if let Some(store) = &self.store {
+                store.delete_slot(slot_id).await?;
+            }
+        }
+        Ok(removed)
+    }
+
+    pub async fn draft_caption(&self, platform: &str, account_handle: &str, brief: &str, profile_id: &str) -> Result<String> {
+        if brief.trim().is_empty() {
+            return Err(OpenAccountsError::Automation("Describe what the post should be about".into()));
+        }
+        let limit = caption_char_limit(platform);
+        let mut system = format!(
+            "You write social media captions for {account_handle} on {platform}. Write ONE ready-to-post caption under {limit} characters. \
+Plain text, up to 5 relevant hashtags at the end, no surrounding quotes, no commentary."
+        );
+        if let Some(brand) = self.brand_manager.list_brands().await.into_iter().next() {
+            system.push_str(&format!(
+                " Brand voice for {}: tone {}; audience: {}; rules: {}; never use: {}.",
+                brand.name,
+                brand.voice.tone_adjectives.join(", "),
+                brand.voice.audience_persona,
+                brand.voice.writing_rules.join(" "),
+                brand.voice.prohibited_words.join(", ")
+            ));
+        }
+        let text = self
+            .lm_gateway
+            .quick_complete(profile_id, &system, brief.trim(), 400, Duration::from_secs(60))
+            .await?;
+        let cleaned = text.trim().trim_matches('"').trim().to_string();
+        if cleaned.is_empty() {
+            return Err(OpenAccountsError::LMGateway("The model returned an empty caption".into()));
+        }
+        Ok(if cleaned.chars().count() > limit {
+            format!("{}…", cleaned.chars().take(limit.saturating_sub(1)).collect::<String>().trim_end())
+        } else {
+            cleaned
+        })
+    }
+
     pub async fn create_campaign_brief(&self, brief: CampaignBrief) -> String {
         let id = brief.campaign_id.clone();
         self.campaigns.write().await.insert(id.clone(), brief);
@@ -327,7 +423,9 @@ impl ContentStrategyEngine {
         let mut calendar = self.calendar.write().await;
         calendar.retain(|s| s.slot_id != id);
         calendar.push(slot);
+        drop(calendar);
         info!("Scheduled post slot: {}", id);
+        self.persist(&id).await;
         id
     }
 
@@ -336,6 +434,8 @@ impl ContentStrategyEngine {
         match calendar.iter_mut().find(|s| s.slot_id == slot_id) {
             Some(slot) => {
                 slot.status = status.to_string();
+                drop(calendar);
+                self.persist(slot_id).await;
                 true
             }
             None => false,
@@ -347,6 +447,8 @@ impl ContentStrategyEngine {
         match calendar.iter_mut().find(|s| s.slot_id == slot_id) {
             Some(slot) => {
                 slot.is_approved = true;
+                drop(calendar);
+                self.persist(slot_id).await;
                 true
             }
             None => false,

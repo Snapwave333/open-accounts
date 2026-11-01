@@ -116,6 +116,12 @@ CREATE TABLE IF NOT EXISTS inbox_messages (
     payload TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS calendar_slots (
+    id TEXT PRIMARY KEY,
+    scheduled_time TEXT NOT NULL,
+    payload TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS app_settings (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL,

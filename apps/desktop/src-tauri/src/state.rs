@@ -215,7 +215,15 @@ impl AppState {
         let connectors = Arc::new(ConnectorRegistry::new(tokens));
 
         let brand_manager = Arc::new(BrandManager::new());
-        let content_strategy = Arc::new(ContentStrategyEngine::new(brand_manager.clone(), lm_gateway.clone()));
+        let content_strategy = Arc::new(
+            ContentStrategyEngine::new(brand_manager.clone(), lm_gateway.clone())
+                .with_store(Arc::new(crate::stores::SqliteCalendarStore::new(db.clone()))),
+        );
+        match content_strategy.restore().await {
+            Ok(n) if n > 0 => info!("Restored {} calendar slots", n),
+            Ok(_) => {}
+            Err(e) => warn!("Could not restore calendar: {}", e),
+        }
         let creative_pipeline = Arc::new(CreativePipeline::new());
         creative_pipeline.discover_tools().await;
 
@@ -470,6 +478,25 @@ mod tests {
                 .unwrap();
             state.engagement_agent.archive_message(&msg.message_id).await.unwrap();
             persisted_message = msg.message_id;
+
+            state
+                .content_strategy
+                .schedule_post_slot(openaccounts_content_strategy::CalendarPostSlot {
+                    slot_id: "persisted-slot".into(),
+                    campaign_id: None,
+                    brand_id: "brand".into(),
+                    target_platform: "instagram".into(),
+                    scheduled_time: Utc::now() + chrono::Duration::days(1),
+                    content_type: "Text_Post".into(),
+                    caption: "Tomorrow's post".into(),
+                    hashtags: vec![],
+                    asset_ids: vec![],
+                    is_approved: false,
+                    status: "Scheduled".into(),
+                    account_id: None,
+                })
+                .await;
+            assert!(state.content_strategy.approve_slot("persisted-slot").await);
         }
 
         let state = AppState::init_at(root.clone()).await.expect("second boot");
@@ -481,6 +508,8 @@ mod tests {
         assert!(!state.social_media_manager.is_loop_running());
         let restored_msg = state.engagement_agent.get_message(&persisted_message).await.expect("inbox restored");
         assert_eq!(restored_msg.status, "Archived");
+        let slot = state.content_strategy.get_slot("persisted-slot").await.expect("calendar restored");
+        assert!(slot.is_approved);
         let restored = state.lm_gateway.list_profiles().await;
         let claude = restored.iter().find(|p| p.id == "persisted-claude").expect("profile restored after restart");
         assert_eq!(claude.max_tokens, Some(700));

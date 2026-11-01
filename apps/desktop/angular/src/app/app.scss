@@ -1694,3 +1694,52 @@
     color: #fca5a5;
   }
 }
+
+.compose-panel {
+  margin-bottom: 16px;
+}
+
+.compose-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+
+  .compose-brief {
+    flex: 1;
+    min-width: 240px;
+  }
+}
+
+.compose-count {
+  font-size: 11px;
+  color: var(--text-muted);
+
+  &.over {
+    color: #f87171;
+  }
+}
+
+.compose-approve {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.flow-tag {
+  margin-left: 6px;
+  padding: 1px 6px;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  border-radius: 4px;
+  border: 1px solid var(--accent-border);
+  color: var(--accent);
+  vertical-align: middle;
+
+  &.warn {
+    border-color: rgba(245, 158, 11, 0.45);
+    color: #fbbf24;
+  }
+}

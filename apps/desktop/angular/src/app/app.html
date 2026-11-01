@@ -308,6 +308,32 @@
           </div>
         </div>
 
+        <div class="panel compose-panel">
+          <div class="compose-row">
+            <select [ngModel]="composeAccount()" (ngModelChange)="composeAccount.set($event)">
+              <option value="">Post as…</option>
+              <option *ngFor="let acc of publishableAccounts(); trackBy: trackById" [value]="acc.id">{{ acc.username }} ({{ acc.platform }})</option>
+            </select>
+            <input type="text" class="compose-brief" placeholder="What should the post be about?" [ngModel]="composeBrief()" (ngModelChange)="composeBrief.set($event)" />
+            <button class="btn btn-secondary" [disabled]="!composeAccount() || tauri.isBusy('draft-caption')" (click)="draftCaption()">
+              {{ tauri.isBusy('draft-caption') ? 'Drafting…' : 'Draft with AI' }}
+            </button>
+          </div>
+          <textarea class="reply-editor" rows="3" placeholder="Caption" [ngModel]="composeCaption()" (ngModelChange)="composeCaption.set($event)"></textarea>
+          <div class="compose-row">
+            <span class="mono compose-count" [class.over]="composeCaption().length > composeLimit()">{{ composeCaption().length }}/{{ composeLimit() }}</span>
+            <input type="datetime-local" [ngModel]="composeWhen()" (ngModelChange)="composeWhen.set($event)" />
+            <label class="compose-approve">
+              <input type="checkbox" [ngModel]="composeApprove()" (ngModelChange)="composeApprove.set($event)" /> Approve for autopilot
+            </label>
+            <button
+              class="btn btn-primary"
+              [disabled]="!composeAccount() || !composeCaption().trim() || composeCaption().length > composeLimit() || tauri.isBusy('schedule')"
+              (click)="schedulePost()"
+            >Schedule post</button>
+          </div>
+        </div>
+
         <div class="flow-board">
 
           <div class="flow-column">
@@ -332,7 +358,7 @@
                   </div>
                   <span class="mono flow-time">{{ item.time_label }}</span>
                 </div>
-                <div class="flow-card-title">{{ item.title }}</div>
+                <div class="flow-card-title">{{ item.title }} <span class="flow-tag" [class.warn]="item.tag === 'NEEDS APPROVAL' || item.tag === 'NEEDS REVIEW' || item.tag === 'FAILED'">{{ item.tag }}</span></div>
                 <p class="flow-card-detail">{{ item.detail }}</p>
               </div>
             </div>
@@ -360,7 +386,7 @@
                   </div>
                   <span class="eta-pill live" *ngIf="item.eta">{{ item.eta }}</span>
                 </div>
-                <div class="flow-card-title">{{ item.title }}</div>
+                <div class="flow-card-title">{{ item.title }} <span class="flow-tag" [class.warn]="item.tag === 'NEEDS APPROVAL' || item.tag === 'NEEDS REVIEW' || item.tag === 'FAILED'">{{ item.tag }}</span></div>
                 <p class="flow-card-detail">{{ item.detail }}</p>
                 <div class="live-progress-wrap" *ngIf="item.progress !== undefined && item.progress !== null">
                   <div class="live-progress-track">
@@ -394,12 +420,14 @@
                   </div>
                   <div class="next-actions-right">
                     <span class="eta-pill" *ngIf="item.eta">{{ item.eta }}</span>
+                    <button class="run-now-btn" *ngIf="item.kind === 'slot' && item.tag === 'NEEDS APPROVAL'" (click)="tauri.approveSlot(item.ref_id!)">Approve</button>
+                    <button class="run-now-btn" *ngIf="item.kind === 'slot'" (click)="tauri.deleteSlot(item.ref_id!)">Delete</button>
                     <button class="run-now-btn" *ngIf="item.can_run_now" (click)="tauri.runFlowItem(item)" title="Start this task immediately">
                       Run
                     </button>
                   </div>
                 </div>
-                <div class="flow-card-title">{{ item.title }}</div>
+                <div class="flow-card-title">{{ item.title }} <span class="flow-tag" [class.warn]="item.tag === 'NEEDS APPROVAL' || item.tag === 'NEEDS REVIEW' || item.tag === 'FAILED'">{{ item.tag }}</span></div>
                 <p class="flow-card-detail">{{ item.detail }}</p>
               </div>
             </div>

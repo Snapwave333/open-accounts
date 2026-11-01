@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
+use openaccounts_content_strategy::{CalendarPostSlot, CalendarStore};
 use openaccounts_core::{OpenAccountsError, Result};
 use openaccounts_database::Database;
 use openaccounts_engagement_agent::{EngagementActionResult, EngagementStore, UnifiedInboxMessage};
@@ -74,6 +75,53 @@ impl EngagementStore for SqliteEngagementStore {
         .execute(self.db.pool())
         .await
         .map_err(db_err)?;
+        Ok(())
+    }
+}
+
+pub struct SqliteCalendarStore {
+    db: Arc<Database>,
+}
+
+impl SqliteCalendarStore {
+    pub fn new(db: Arc<Database>) -> Self {
+        Self { db }
+    }
+}
+
+#[async_trait]
+impl CalendarStore for SqliteCalendarStore {
+    async fn load_slots(&self) -> Result<Vec<CalendarPostSlot>> {
+        let rows = sqlx::query("SELECT payload FROM calendar_slots ORDER BY scheduled_time")
+            .fetch_all(self.db.pool())
+            .await
+            .map_err(db_err)?;
+        Ok(rows
+            .into_iter()
+            .filter_map(|r| serde_json::from_str(&r.get::<String, _>("payload")).ok())
+            .collect())
+    }
+
+    async fn save_slot(&self, slot: &CalendarPostSlot) -> Result<()> {
+        sqlx::query(
+            "INSERT INTO calendar_slots (id, scheduled_time, payload) VALUES (?, ?, ?) \
+             ON CONFLICT(id) DO UPDATE SET scheduled_time = excluded.scheduled_time, payload = excluded.payload",
+        )
+        .bind(&slot.slot_id)
+        .bind(slot.scheduled_time.to_rfc3339())
+        .bind(serde_json::to_string(slot)?)
+        .execute(self.db.pool())
+        .await
+        .map_err(db_err)?;
+        Ok(())
+    }
+
+    async fn delete_slot(&self, slot_id: &str) -> Result<()> {
+        sqlx::query("DELETE FROM calendar_slots WHERE id = ?")
+            .bind(slot_id)
+            .execute(self.db.pool())
+            .await
+            .map_err(db_err)?;
         Ok(())
     }
 }

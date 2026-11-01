@@ -43,6 +43,19 @@ export class App {
   modelEndpoint = signal<string>('');
   modelKeyEnv = signal<string>('');
 
+  composeAccount = signal<string>('');
+  composeBrief = signal<string>('');
+  composeCaption = signal<string>('');
+  composeWhen = signal<string>('');
+  composeApprove = signal<boolean>(false);
+
+  publishableAccounts = computed(() => this.tauri.accounts().filter((a) => API_PLATFORMS.has(a.platform)));
+  composeLimit = computed(() => {
+    const acc = this.tauri.accounts().find((a) => a.id === this.composeAccount());
+    const limits: Record<string, number> = { x: 280, instagram: 2200, youtube: 5000, reddit: 40000 };
+    return acc ? limits[acc.platform] ?? 2000 : 2000;
+  });
+
   replyDrafts = signal<Record<string, string>>({});
   signupPlatform = signal<string>('reddit');
   signupCategory = signal<string>('brand');
@@ -140,6 +153,26 @@ export class App {
       this.modelEndpoint.set('');
       this.modelKeyEnv.set('');
       this.showModelForm.set(false);
+    }
+  }
+
+  async draftCaption() {
+    const account = this.composeAccount();
+    if (!account) return;
+    const text = await this.tauri.draftCaption(account, this.composeBrief() || this.composeCaption());
+    if (text !== null) this.composeCaption.set(text);
+  }
+
+  async schedulePost() {
+    const account = this.composeAccount();
+    const caption = this.composeCaption().trim();
+    if (!account || !caption || caption.length > this.composeLimit()) return;
+    const when = this.composeWhen() ? new Date(this.composeWhen()).toISOString() : null;
+    if (await this.tauri.schedulePost(account, caption, when, this.composeApprove())) {
+      this.composeBrief.set('');
+      this.composeCaption.set('');
+      this.composeWhen.set('');
+      this.composeApprove.set(false);
     }
   }
 

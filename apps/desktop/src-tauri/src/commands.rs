@@ -566,6 +566,99 @@ pub async fn list_calendar_posts(state: State<'_, AppState>) -> CmdResult<Vec<Ca
     Ok(state.content_strategy.list_calendar().await)
 }
 
+async fn account_for(state: &AppState, account_id: &str) -> CmdResult<AccountRecord> {
+    let id = AccountId(parse_uuid(account_id, "account")?);
+    state
+        .account_registry
+        .get_account(&id)
+        .await
+        .map_err(err)?
+        .ok_or_else(|| format!("Account {account_id} not found"))
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub async fn schedule_post(
+    state: State<'_, AppState>,
+    account_id: String,
+    caption: String,
+    scheduled_at: Option<String>,
+    media: Option<Vec<String>>,
+    approve: Option<bool>,
+) -> CmdResult<CalendarPostSlot> {
+    let account = account_for(&state, &account_id).await?;
+    let caption = caption.trim().to_string();
+    if caption.is_empty() {
+        return Err("Caption is required".into());
+    }
+    let platform = account.platform.to_string();
+    let limit = openaccounts_content_strategy::caption_char_limit(&platform);
+    if caption.chars().count() > limit {
+        return Err(format!("Caption is {} characters; {platform} allows {limit}", caption.chars().count()));
+    }
+    let scheduled_time = match scheduled_at.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+        Some(ts) => chrono::DateTime::parse_from_rfc3339(ts)
+            .map(|d| d.with_timezone(&chrono::Utc))
+            .map_err(|_| format!("'{ts}' is not a valid RFC 3339 time"))?,
+        None => chrono::Utc::now(),
+    };
+    let hashtags: Vec<String> = caption
+        .split_whitespace()
+        .filter(|w| w.starts_with('#') && w.len() > 1)
+        .map(|w| w.trim_end_matches(|c: char| !c.is_alphanumeric()).to_string())
+        .collect();
+    let media = media.unwrap_or_default().into_iter().filter(|m| !m.trim().is_empty()).collect::<Vec<_>>();
+    let slot = CalendarPostSlot {
+        slot_id: format!("slot-{}", uuid::Uuid::new_v4().simple()),
+        campaign_id: None,
+        brand_id: state.brand_manager.list_brands().await.first().map(|b| b.brand_id.clone()).unwrap_or_default(),
+        target_platform: platform,
+        scheduled_time,
+        content_type: if media.is_empty() { "Text_Post".into() } else { "Media_Post".into() },
+        caption,
+        hashtags,
+        asset_ids: media,
+        is_approved: approve.unwrap_or(false),
+        status: "Scheduled".into(),
+        account_id: Some(account.id.0.to_string()),
+    };
+    state.content_strategy.schedule_post_slot(slot.clone()).await;
+    Ok(slot)
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub async fn approve_calendar_slot(state: State<'_, AppState>, slot_id: String) -> CmdResult<()> {
+    if state.content_strategy.approve_slot(&slot_id).await {
+        Ok(())
+    } else {
+        Err(format!("Slot {slot_id} not found"))
+    }
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub async fn delete_calendar_slot(state: State<'_, AppState>, slot_id: String) -> CmdResult<()> {
+    match state.content_strategy.remove_slot(&slot_id).await.map_err(err)? {
+        true => Ok(()),
+        false => Err(format!("Slot {slot_id} not found")),
+    }
+}
+
+#[tauri::command(rename_all = "snake_case")]
+pub async fn draft_post_caption(state: State<'_, AppState>, account_id: String, brief: String) -> CmdResult<String> {
+    let account = account_for(&state, &account_id).await?;
+    let profile = state
+        .db
+        .get_setting(agent::CHAT_PROFILE_SETTING)
+        .await
+        .ok()
+        .flatten()
+        .unwrap_or_else(|| openaccounts_lm_gateway::DEFAULT_PROFILE_ID.to_string());
+    state
+        .content_strategy
+        .draft_caption(&account.platform.to_string(), &account.username, &brief, &profile)
+        .await
+        .map_err(err)
+}
+
 #[tauri::command(rename_all = "snake_case")]
 pub async fn research_trends(state: State<'_, AppState>, platform: String) -> CmdResult<Vec<TrendTopic>> {
     state.content_strategy.research_trends(&platform).await.map_err(err)

@@ -123,6 +123,28 @@ const check = (cond, message) => {
     await page.waitForTimeout(600);
     check((await banner()) === null, `running a job raised: ${await banner()}`);
 
+    const accountSelect = page.locator('.compose-panel select');
+    const firstAccount = await accountSelect.locator('option').nth(1).getAttribute('value');
+    await accountSelect.selectOption(firstAccount);
+    await page.getByPlaceholder('Caption').fill("Behind the scenes of today's episode #animation");
+    await page.getByRole('button', { name: 'Schedule post' }).click();
+    const slotCard = page.locator('.flow-card', { hasText: 'Behind the scenes' });
+    await slotCard.waitFor();
+    check(
+      (await slotCard.textContent()).includes('NEEDS APPROVAL'),
+      'new post should await approval',
+    );
+    await slotCard.getByRole('button', { name: 'Approve' }).click();
+    await page
+      .locator('.flow-card', { hasText: 'Behind the scenes' })
+      .filter({ hasText: 'APPROVED' })
+      .waitFor();
+    await page
+      .locator('.flow-card', { hasText: 'Behind the scenes' })
+      .getByRole('button', { name: 'Delete' })
+      .click();
+    await slotCard.waitFor({ state: 'detached' });
+
     await page.getByRole('button', { name: 'Resume' }).click();
     await page.locator('.status-label', { hasText: 'AUTOPILOT' }).waitFor();
     await page.getByRole('button', { name: 'Kill Switch' }).click();
@@ -196,6 +218,24 @@ const check = (cond, message) => {
       check(
         await reply.getByRole('button', { name: '✓ Pause autopilot' }).isDisabled(),
         'executed action can be clicked again',
+      );
+
+      await tab('Activity Flow');
+      await page.locator('.compose-panel select').selectOption(firstAccount);
+      await page
+        .getByPlaceholder('What should the post be about?')
+        .fill("Tease tomorrow's episode");
+      await page.getByRole('button', { name: 'Draft with AI' }).click();
+      await page.waitForFunction(
+        () => document.querySelector('.compose-panel textarea')?.value.length > 0,
+        null,
+        { timeout: 15000 },
+      );
+      check(
+        (await page.locator('.compose-panel textarea').inputValue()).includes(
+          'You have 7 accounts',
+        ),
+        'AI caption not inserted',
       );
     } else {
       check(false, 'no scripted LLM url supplied');

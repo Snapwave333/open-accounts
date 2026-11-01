@@ -210,6 +210,30 @@ fn ui_payloads_round_trip_through_real_ipc() {
     assert!(h.err("run_garbage_collection", json!({ "apply": true })).contains("not found"));
     assert_eq!(h.ok("verify_audit_chain", json!({}))["is_intact"], true);
 
+    let x_id = h.ok("create_account", json!({ "platform": "x", "username": "@e2e_x", "email": null }));
+    let x_id = x_id.as_str().unwrap();
+    let long = "a".repeat(281);
+    assert!(h.err("schedule_post", json!({ "account_id": x_id, "caption": long })).contains("allows 280"));
+    assert!(h.err("schedule_post", json!({ "account_id": x_id, "caption": "hi", "scheduled_at": "tomorrow" })).contains("RFC 3339"));
+    let slot = h.ok(
+        "schedule_post",
+        json!({ "account_id": x_id, "caption": "Launch day! #rust #tauri", "scheduled_at": "2030-01-01T09:00:00Z", "media": [], "approve": false }),
+    );
+    assert_eq!(slot["hashtags"], json!(["#rust", "#tauri"]));
+    assert_eq!(slot["target_platform"], "x");
+    let slot_id = slot["slot_id"].as_str().unwrap();
+    let flow = h.ok("get_activity_flow", json!({}));
+    let card = flow["up_next"].as_array().unwrap().iter().find(|i| i["ref_id"] == slot_id).unwrap().clone();
+    assert_eq!(card["tag"], "NEEDS APPROVAL");
+    assert_eq!(card["account_handle"], "@e2e_x");
+    h.ok("approve_calendar_slot", json!({ "slot_id": slot_id }));
+    let calendar = h.ok("list_calendar_posts", json!({}));
+    assert_eq!(calendar.as_array().unwrap().iter().find(|s| s["slot_id"] == slot_id).unwrap()["is_approved"], true);
+    assert!(h.err("draft_post_caption", json!({ "account_id": x_id, "brief": "" })).contains("Describe"));
+    h.ok("delete_calendar_slot", json!({ "slot_id": slot_id }));
+    assert!(h.err("delete_calendar_slot", json!({ "slot_id": slot_id })).contains("not found"));
+    h.ok("delete_account", json!({ "account_id": x_id }));
+
     assert_eq!(h.ok("delete_account", json!({ "account_id": id })), true);
     assert_eq!(h.ok("get_system_stats", json!({}))["total_accounts"].as_u64().unwrap(), seeded);
 

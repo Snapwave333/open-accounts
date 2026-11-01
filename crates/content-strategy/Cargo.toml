@@ -6,6 +6,7 @@ authors.workspace = true
 license.workspace = true
 
 [dependencies]
+async-trait.workspace = true
 openaccounts-core = { path = "../core" }
 openaccounts-brand-manager = { path = "../brand-manager" }
 openaccounts-lm-gateway = { path = "../lm-gateway" }

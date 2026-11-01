@@ -492,6 +492,33 @@ export class TauriService {
     return this.act('cancel_account_registration', { account_id: accountId });
   }
 
+  async draftCaption(accountId: string, brief: string): Promise<string | null> {
+    return this.withBusy('draft-caption', async () => {
+      try {
+        const text = await this.invoke<string>('draft_post_caption', { account_id: accountId, brief });
+        this.clearError();
+        return text;
+      } catch (err) {
+        this.reportError(errorMessage(err));
+        return null;
+      }
+    });
+  }
+
+  schedulePost(accountId: string, caption: string, scheduledAt: string | null, approve: boolean) {
+    return this.withBusy('schedule', () =>
+      this.act('schedule_post', { account_id: accountId, caption, scheduled_at: scheduledAt, media: [], approve })
+    );
+  }
+
+  approveSlot(slotId: string) {
+    return this.act('approve_calendar_slot', { slot_id: slotId });
+  }
+
+  deleteSlot(slotId: string) {
+    return this.act('delete_calendar_slot', { slot_id: slotId });
+  }
+
   resolveTask(id: string) {
     return this.act('resolve_human_task', { task_id: id });
   }
