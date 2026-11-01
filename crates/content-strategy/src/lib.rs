@@ -48,7 +48,7 @@ pub struct CampaignBrief {
     pub status: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct CalendarPostSlot {
     pub slot_id: String,
     pub campaign_id: Option<String>,
@@ -63,6 +63,8 @@ pub struct CalendarPostSlot {
     pub status: String,
     #[serde(default)]
     pub account_id: Option<String>,
+    #[serde(default)]
+    pub published_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -434,6 +436,20 @@ Plain text, up to 5 relevant hashtags at the end, no surrounding quotes, no comm
         match calendar.iter_mut().find(|s| s.slot_id == slot_id) {
             Some(slot) => {
                 slot.status = status.to_string();
+                drop(calendar);
+                self.persist(slot_id).await;
+                true
+            }
+            None => false,
+        }
+    }
+
+    pub async fn mark_published(&self, slot_id: &str, status: &str) -> bool {
+        let mut calendar = self.calendar.write().await;
+        match calendar.iter_mut().find(|s| s.slot_id == slot_id) {
+            Some(slot) => {
+                slot.status = status.to_string();
+                slot.published_at = Some(Utc::now());
                 drop(calendar);
                 self.persist(slot_id).await;
                 true

@@ -116,6 +116,7 @@ fn slot(id: &str, approved: bool, account: Option<String>, when: DateTime<Utc>) 
         is_approved: approved,
         status: "Scheduled".into(),
         account_id: account,
+        published_at: None,
     }
 }
 
@@ -241,4 +242,35 @@ async fn background_loop_runs_cycles_only_while_enabled() {
     tokio::time::sleep(Duration::from_millis(1300)).await;
     assert_eq!(s.x.published.load(Ordering::SeqCst), 1);
     handle.abort();
+}
+
+#[tokio::test]
+async fn daily_post_cap_defers_extra_posts_per_account() {
+    let stack = setup_full_stack();
+    let acc = account();
+    let other = account();
+    let due = Utc::now() - chrono::Duration::minutes(1);
+    stack.manager.set_daily_post_cap(acc.as_deref().unwrap(), 1).await;
+    for (id, a) in [("cap-1", acc.clone()), ("cap-2", acc.clone()), ("cap-3", other.clone())] {
+        stack.strategy.schedule_post_slot(slot(id, true, a, due)).await;
+    }
+
+    let first = stack.manager.execute_autonomous_cycle().await.unwrap();
+    assert_eq!(first.processed_slots_count, 2, "one post for the capped account and one for the other");
+    assert_eq!(first.deferred_slots_count, 1);
+    assert_eq!(stack.x.published.load(Ordering::SeqCst), 2);
+
+    let published: Vec<_> = stack
+        .strategy
+        .list_calendar()
+        .await
+        .into_iter()
+        .filter(|s| s.published_at.is_some())
+        .collect();
+    assert_eq!(published.len(), 2);
+
+    let second = stack.manager.execute_autonomous_cycle().await.unwrap();
+    assert_eq!(second.processed_slots_count, 0, "cap still applies within the 24h window");
+    assert_eq!(second.deferred_slots_count, 1);
+    assert_eq!(stack.manager.daily_post_cap("unknown").await, openaccounts_social_media_manager::DEFAULT_DAILY_POST_CAP);
 }

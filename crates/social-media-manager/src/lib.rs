@@ -27,6 +27,7 @@ use tracing::{info, warn};
 pub const SLOT_STATUS_PUBLISHED: &str = "Published";
 pub const SLOT_STATUS_FAILED: &str = "Failed";
 pub const SLOT_STATUS_NEEDS_ACCOUNT: &str = "NeedsAccount";
+pub const DEFAULT_DAILY_POST_CAP: u32 = 5;
 pub const VISION_PROFILE_ID: &str = "nim-vision-cascade";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -87,6 +88,7 @@ fn parse_account_id(raw: &str) -> Option<AccountId> {
 }
 
 pub struct SocialMediaManagerAgent {
+    post_caps: Arc<RwLock<std::collections::HashMap<String, u32>>>,
     pub brand_manager: Arc<BrandManager>,
     pub content_strategy: Arc<ContentStrategyEngine>,
     pub creative_pipeline: Arc<CreativePipeline>,
@@ -119,9 +121,18 @@ impl SocialMediaManagerAgent {
             stick_bridge: Arc::new(StickExplainersBridge::new()),
             is_autonomous_loop_running: Arc::new(AtomicBool::new(false)),
             lm_gateway: None,
+            post_caps: Arc::new(RwLock::new(std::collections::HashMap::new())),
             ledger: Arc::new(RwLock::new(IdempotencyLedger::default())),
             last_checkpoint: Arc::new(RwLock::new(None)),
         }
+    }
+
+    pub async fn set_daily_post_cap(&self, account_id: &str, cap: u32) {
+        self.post_caps.write().await.insert(account_id.to_string(), cap);
+    }
+
+    pub async fn daily_post_cap(&self, account_id: &str) -> u32 {
+        self.post_caps.read().await.get(account_id).copied().unwrap_or(DEFAULT_DAILY_POST_CAP)
     }
 
     pub fn with_lm_gateway(mut self, lm_gateway: Arc<LMGateway>) -> Self {
@@ -184,6 +195,13 @@ impl SocialMediaManagerAgent {
         let mut failed = 0;
         let mut skipped = 0;
         let mut deferred = 0;
+        let window_start = now - chrono::Duration::hours(24);
+        let mut posted_today: std::collections::HashMap<String, u32> = std::collections::HashMap::new();
+        for s in slots.iter().filter(|s| s.published_at.is_some_and(|t| t > window_start)) {
+            if let Some(acc) = &s.account_id {
+                *posted_today.entry(acc.clone()).or_default() += 1;
+            }
+        }
 
         for slot in &slots {
             let key = slot_idempotency_key(slot);
@@ -206,6 +224,13 @@ impl SocialMediaManagerAgent {
                     .await;
                 continue;
             };
+            let account_key = slot.account_id.clone().unwrap_or_default();
+            let cap = self.daily_post_cap(&account_key).await;
+            if posted_today.get(&account_key).copied().unwrap_or(0) >= cap {
+                deferred += 1;
+                info!("Slot {} deferred: account reached its {} posts/24h cap", slot.slot_id, cap);
+                continue;
+            }
             if !self.reserve(&key).await {
                 continue;
             }
@@ -229,8 +254,9 @@ impl SocialMediaManagerAgent {
                 Ok(_) => {
                     self.release(&key, true).await;
                     self.content_strategy
-                        .update_slot_status(&slot.slot_id, SLOT_STATUS_PUBLISHED)
+                        .mark_published(&slot.slot_id, SLOT_STATUS_PUBLISHED)
                         .await;
+                    *posted_today.entry(account_key.clone()).or_default() += 1;
                     published_count += 1;
                 }
                 Err(e) => {

@@ -258,6 +258,17 @@ impl AppState {
             )
             .with_lm_gateway(lm_gateway.clone()),
         );
+        for acc in account_registry.list_accounts().await.unwrap_or_default() {
+            let caps = acc.profile_metadata.get("daily_caps");
+            if let Some(cap) = ["feed_posts", "posts", "uploads"]
+                .iter()
+                .find_map(|k| caps.and_then(|c| c.get(*k)).and_then(|v| v.as_u64()))
+            {
+                social_media_manager
+                    .set_daily_post_cap(&acc.id.0.to_string(), cap.min(u32::MAX as u64) as u32)
+                    .await;
+            }
+        }
         if db.get_setting(AUTOPILOT_SETTING).await.ok().flatten().as_deref() == Some("true") {
             social_media_manager.start_autonomous_loop();
         }
@@ -494,6 +505,7 @@ mod tests {
                     is_approved: false,
                     status: "Scheduled".into(),
                     account_id: None,
+                    published_at: None,
                 })
                 .await;
             assert!(state.content_strategy.approve_slot("persisted-slot").await);
@@ -506,6 +518,15 @@ mod tests {
         state.vault.unlock("end-to-end-master").await.unwrap();
         assert_eq!(state.vault.list_metadata().await.len(), 1);
         assert!(!state.social_media_manager.is_loop_running());
+        let instagram = state
+            .account_registry
+            .list_accounts()
+            .await
+            .unwrap()
+            .into_iter()
+            .find(|a| a.username == "@snapwave")
+            .unwrap();
+        assert_eq!(state.social_media_manager.daily_post_cap(&instagram.id.0.to_string()).await, 2);
         let restored_msg = state.engagement_agent.get_message(&persisted_message).await.expect("inbox restored");
         assert_eq!(restored_msg.status, "Archived");
         let slot = state.content_strategy.get_slot("persisted-slot").await.expect("calendar restored");

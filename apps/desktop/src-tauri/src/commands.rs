@@ -620,6 +620,7 @@ pub async fn schedule_post(
         is_approved: approve.unwrap_or(false),
         status: "Scheduled".into(),
         account_id: Some(account.id.0.to_string()),
+        published_at: None,
     };
     state.content_strategy.schedule_post_slot(slot.clone()).await;
     Ok(slot)
