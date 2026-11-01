@@ -752,12 +752,27 @@ export class TauriService {
     },
   ]);
 
+  nimCascadeModels = signal<string[]>([
+    'nvidia/nemotron-3.5-super-vl-120b-a12b',
+    'meta/llama-3.2-90b-vision-instruct',
+    'meta/muse-glimmer-30b',
+    'nvidia/nemotron-3.5-lightning-30b-a3b',
+    'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning',
+    'openai/gpt-oss-20b',
+    'minimaxai/minimax-m3.1-flash',
+    'poolside/laguna-xs-2.1',
+    'stepfun-ai/step-5-preview',
+    'nvidia/nemotron-3-ultra-550b-a55b',
+    'mistralai/mistral-large-4-1t-a52b',
+    'nvidia/nemotron-3.5-bolt-e4b',
+  ]);
+
   collaboratingAgents = signal<SubAgentAssignment[]>([
-    { role: 'ContentStrategist', title: 'Head of Marketing Strategy', current_task: 'Synthesizing cross-platform audience briefs', assigned_model_profile: 'Claude 3.5 Sonnet', is_active: true },
-    { role: 'TrendResearcher', title: 'Live Trend Intelligence Agent', current_task: 'Scanning viral hashtag velocity on TikTok and X', assigned_model_profile: 'Gemini 1.5 Flash', is_active: true },
-    { role: 'GraphicDesigner', title: 'Vector & Photo Production Specialist', current_task: 'Driving Vector Craft CLI & Photo Craft CLI', assigned_model_profile: 'Local Tool Router', is_active: true },
-    { role: 'VideoDirector', title: 'Short-Form Video & Reel Director', current_task: 'Assembling 9:16 vertical reels with FFmpeg & Effect Craft', assigned_model_profile: 'GPT-4o', is_active: true },
-    { role: 'CommunityManager', title: 'Community Moderation & Engagement', current_task: 'Classifying incoming audience comments and inquiries', assigned_model_profile: 'Ollama Llama-3.1', is_active: true },
+    { role: 'ContentStrategist', title: 'Head of Marketing Strategy', current_task: 'Synthesizing cross-platform audience briefs', assigned_model_profile: 'NIM: nvidia/nemotron-3.5-super-vl-120b-a12b', is_active: true },
+    { role: 'TrendResearcher', title: 'Live Trend Intelligence Agent', current_task: 'Scanning viral hashtag velocity on TikTok and X', assigned_model_profile: 'NIM: nvidia/nemotron-3-nano-omni-30b-a3b-reasoning', is_active: true },
+    { role: 'GraphicDesigner', title: 'Vector & Photo Production Specialist', current_task: 'Driving Vector Craft CLI & Photo Craft CLI', assigned_model_profile: 'NIM Vision: meta/llama-3.2-90b-vision-instruct', is_active: true },
+    { role: 'VideoDirector', title: 'Short-Form Video & Reel Director', current_task: 'Assembling 9:16 vertical reels with FFmpeg & Effect Craft', assigned_model_profile: 'NIM: meta/muse-glimmer-30b', is_active: true },
+    { role: 'CommunityManager', title: 'Community Moderation & Engagement', current_task: 'Classifying incoming audience comments and inquiries', assigned_model_profile: 'NIM: nvidia/nemotron-3.5-lightning-30b-a3b', is_active: true },
     { role: 'ComplianceAgent', title: 'Policy & Rate Limit Gatekeeper', current_task: 'Enforcing official Graph and X API compliance limits', assigned_model_profile: 'Deterministic Policy Engine', is_active: true },
   ]);
 
