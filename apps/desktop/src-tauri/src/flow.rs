@@ -218,11 +218,14 @@ pub async fn build(state: &AppState) -> ActivityFlow {
             id: format!("slot-{}", slot.slot_id),
             kind: "slot".into(),
             ref_id: Some(slot.slot_id.clone()),
-            title: format!("{} post", humanize(&slot.content_type)),
+            title: {
+                let kind = humanize(&slot.content_type);
+                if kind.to_lowercase().ends_with("post") { kind } else { format!("{kind} post") }
+            },
             detail: truncate(&slot.caption, 140),
             tag: if slot.is_approved { "APPROVED".into() } else { "NEEDS APPROVAL".into() },
             time_label: slot.status.clone(),
-            eta: Some(relative(slot.scheduled_time, now)),
+            eta: Some(if slot.scheduled_time <= now { "due now".into() } else { relative(slot.scheduled_time, now) }),
             progress: None,
             platform,
             account_handle: handle,
@@ -272,5 +275,6 @@ mod tests {
         assert_eq!(relative(now + chrono::Duration::hours(2), now), "in 2h");
         assert_eq!(humanize("\"like_post\""), "Like post");
         assert_eq!(humanize("PolicyVerification"), "Policy Verification");
+        assert_eq!(humanize("Text_Post"), "Text Post");
     }
 }

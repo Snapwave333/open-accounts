@@ -1630,7 +1630,6 @@
 
   strong {
     display: block;
-    text-transform: capitalize;
   }
 
   .connection-detail {
@@ -1741,5 +1740,49 @@
   &.warn {
     border-color: rgba(245, 158, 11, 0.45);
     color: #fbbf24;
+  }
+}
+
+.inline-form,
+.compose-row,
+.model-form,
+.panel-header > div[style*="display: flex"] {
+  input:not([type="checkbox"]),
+  select {
+    width: auto;
+    flex: 0 1 auto;
+  }
+}
+
+.inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+
+  select {
+    min-width: 150px;
+  }
+}
+
+.compose-row {
+  .compose-brief {
+    flex: 1 1 260px;
+  }
+
+  select {
+    min-width: 220px;
+  }
+
+  input[type="datetime-local"] {
+    min-width: 220px;
+  }
+}
+
+.compose-approve {
+  white-space: nowrap;
+
+  input[type="checkbox"] {
+    width: auto;
   }
 }

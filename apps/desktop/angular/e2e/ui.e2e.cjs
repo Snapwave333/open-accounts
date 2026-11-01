@@ -2,6 +2,10 @@ const { chromium } = require('playwright');
 
 const base = process.argv[2];
 const llmUrl = process.argv[3];
+const shotsDir = process.env.OA_SHOTS;
+const shot = async (page, name) => {
+  if (shotsDir) await page.screenshot({ path: `${shotsDir}/${name}.png`, fullPage: true });
+};
 if (!base) {
   console.error('usage: node ui.e2e.cjs <bridge-url>');
   process.exit(2);
@@ -74,6 +78,7 @@ const check = (cond, message) => {
 
     const chips = page.locator('.connection-chip');
     await chips.first().waitFor();
+    await shot(page, 'accounts');
     check((await chips.count()) >= 5, 'connection statuses missing');
     check(
       (await page.locator('.connection-chip.ok').count()) === 0,
@@ -104,6 +109,7 @@ const check = (cond, message) => {
     await page.getByPlaceholder('Secret value').fill('super-secret-value');
     await page.getByRole('button', { name: 'Store' }).click();
     await page.locator('td', { hasText: 'e2e:note' }).waitFor();
+    await shot(page, 'vault');
     await page.getByRole('button', { name: 'Lock Vault' }).click();
     await page.getByPlaceholder('Master password…').fill('not-the-password');
     await page.getByRole('button', { name: 'Unlock Vault' }).click();
@@ -130,6 +136,7 @@ const check = (cond, message) => {
     await page.getByRole('button', { name: 'Schedule post' }).click();
     const slotCard = page.locator('.flow-card', { hasText: 'Behind the scenes' });
     await slotCard.waitFor();
+    await shot(page, 'flow');
     check(
       (await slotCard.textContent()).includes('NEEDS APPROVAL'),
       'new post should await approval',
@@ -212,6 +219,7 @@ const check = (cond, message) => {
         (await reply.textContent()).includes('e2e-scripted-llm'),
         'reply is not attributed to the model that answered',
       );
+      await shot(page, 'chat');
       await reply.getByRole('button', { name: 'Pause autopilot' }).click();
       await page.locator('.chat-bubble-row', { hasText: 'Autopilot paused.' }).waitFor();
       await page.locator('.status-label', { hasText: 'PAUSED' }).waitFor();
