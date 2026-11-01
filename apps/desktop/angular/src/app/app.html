@@ -207,6 +207,42 @@
 
       <!-- TAB 2: 3-PANEL ACTIVITY FLOW (JUST DID / ACTIVELY DOING / PLAN TO DO NEXT) -->
       <section *ngIf="activeTab() === 'flow'" class="workspace-view">
+        <!-- Compact 1-Line Live Telemetry Bar -->
+        <div class="flow-telemetry-strip">
+          <div class="telemetry-item">
+            <div class="mini-logo-stack">
+              <ng-container *ngTemplateOutlet="brandLogo; context: { brand: 'instagram', size: 20 }"></ng-container>
+              <ng-container *ngTemplateOutlet="brandLogo; context: { brand: 'tiktok', size: 20 }"></ng-container>
+              <ng-container *ngTemplateOutlet="brandLogo; context: { brand: 'youtube', size: 20 }"></ng-container>
+              <ng-container *ngTemplateOutlet="brandLogo; context: { brand: 'shopify', size: 20 }"></ng-container>
+              <ng-container *ngTemplateOutlet="brandLogo; context: { brand: 'paypal', size: 20 }"></ng-container>
+              <ng-container *ngTemplateOutlet="brandLogo; context: { brand: 'gmail', size: 20 }"></ng-container>
+            </div>
+            <span class="telemetry-val">{{ tauri.accounts().length }} Accounts Active</span>
+          </div>
+
+          <div class="telemetry-divider"></div>
+
+          <div class="telemetry-item">
+            <span class="telemetry-label">QUOTAS</span>
+            <span class="mono telemetry-val">IG 8/12 likes · 3/3 follows · YT 3/5 likes</span>
+          </div>
+
+          <div class="telemetry-divider"></div>
+
+          <div class="telemetry-item">
+            <span class="telemetry-label">BRIDGE</span>
+            <span class="telemetry-val accent-text">39 Studio Agents Synced</span>
+          </div>
+
+          <div class="telemetry-divider"></div>
+
+          <div class="telemetry-item">
+            <span class="telemetry-label">DISK GC</span>
+            <span class="mono telemetry-val">{{ tauri.gcReport().free_gb }} GB free ({{ tauri.gcReport().freed_total_gb }} GB saved)</span>
+          </div>
+        </div>
+
         <div class="flow-board">
 
           <!-- PANEL 1: JUST DID -->
@@ -226,7 +262,7 @@
               <div *ngFor="let item of tauri.justDidItems()" class="flow-card">
                 <div class="flow-card-top">
                   <div class="account-chip-inline">
-                    <ng-container *ngTemplateOutlet="brandLogo; context: { brand: item.platform, size: 22 }"></ng-container>
+                    <ng-container *ngTemplateOutlet="brandLogo; context: { brand: item.platform, size: 20 }"></ng-container>
                     <span class="account-chip-handle">{{ item.account_handle }}</span>
                   </div>
                   <span class="mono flow-time">{{ item.time_label }}</span>
@@ -237,7 +273,7 @@
             </div>
           </div>
 
-          <!-- PANEL 2: ACTIVELY DOING (WITH REAL LOGOS + EXPLICIT ETA) -->
+          <!-- PANEL 2: ACTIVELY DOING (WITH REAL LOGOS + EXPLICIT ETA + LIVE PROGRESS BAR) -->
           <div class="flow-column active-column">
             <div class="flow-column-header">
               <div>
@@ -254,18 +290,24 @@
               <div *ngFor="let item of tauri.activelyDoingItems()" class="flow-card live-card">
                 <div class="flow-card-top">
                   <div class="account-chip-inline">
-                    <ng-container *ngTemplateOutlet="brandLogo; context: { brand: item.platform, size: 22 }"></ng-container>
+                    <ng-container *ngTemplateOutlet="brandLogo; context: { brand: item.platform, size: 20 }"></ng-container>
                     <span class="account-chip-handle">{{ item.account_handle }}</span>
                   </div>
                   <span class="eta-pill live">{{ item.eta }}</span>
                 </div>
                 <div class="flow-card-title">{{ item.title }}</div>
                 <p class="flow-card-detail">{{ item.detail }}</p>
+                <div class="live-progress-wrap" *ngIf="item.progress !== undefined">
+                  <div class="live-progress-track">
+                    <div class="live-progress-fill" [style.width.%]="item.progress"></div>
+                  </div>
+                  <span class="mono live-progress-pct">{{ item.progress }}%</span>
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- PANEL 3: PLAN TO DO NEXT (WITH REAL LOGOS + EXPLICIT ETA) -->
+          <!-- PANEL 3: PLAN TO DO NEXT (WITH REAL LOGOS + EXPLICIT ETA + 1-CLICK RUN NOW) -->
           <div class="flow-column">
             <div class="flow-column-header">
               <div>
@@ -282,10 +324,15 @@
               <div *ngFor="let item of tauri.planToDoNextItems()" class="flow-card">
                 <div class="flow-card-top">
                   <div class="account-chip-inline">
-                    <ng-container *ngTemplateOutlet="brandLogo; context: { brand: item.platform, size: 22 }"></ng-container>
+                    <ng-container *ngTemplateOutlet="brandLogo; context: { brand: item.platform, size: 20 }"></ng-container>
                     <span class="account-chip-handle">{{ item.account_handle }}</span>
                   </div>
-                  <span class="eta-pill">{{ item.eta }}</span>
+                  <div class="next-actions-right">
+                    <span class="eta-pill">{{ item.eta }}</span>
+                    <button class="run-now-btn" (click)="tauri.runQueuedTaskNow(item.id)" title="Start this task immediately">
+                      Run
+                    </button>
+                  </div>
                 </div>
                 <div class="flow-card-title">{{ item.title }}</div>
                 <p class="flow-card-detail">{{ item.detail }}</p>
@@ -305,29 +352,55 @@
           (dragleave)="onChatDragLeave($event)"
           (drop)="onChatDrop($event)"
         >
-          <!-- Chat Top Header -->
+          <!-- Chat Top Header with 1-Click Account/Agent Scope Pills -->
           <div class="chat-header">
             <div class="chat-agent-identity">
               <span class="agent-online-dot"></span>
               <div>
                 <h3>OpenAccounts LM Agent</h3>
-                <span class="chat-subtitle">Direct bridge to your 7 accounts &amp; 39 StickExplainers studio agents · Drop files anywhere to attach</span>
+                <span class="chat-subtitle">Direct bridge to your 7 accounts &amp; 39 StickExplainers studio agents · Drop or paste files to attach</span>
               </div>
             </div>
 
-            <div class="chat-scope-wrap">
-              <span class="scope-label">ROUTE TO</span>
-              <select
-                class="scope-select"
-                [ngModel]="chatTargetScope()"
-                (ngModelChange)="chatTargetScope.set($event)"
+            <div class="scope-pills-bar">
+              <button
+                class="scope-pill"
+                [class.active]="chatTargetScope() === 'All Accounts & Studio Agents'"
+                (click)="chatTargetScope.set('All Accounts & Studio Agents')"
               >
-                <option value="All Accounts & Studio Agents">All Accounts &amp; Studio Agents</option>
-                <option value="C. Coral & E. Emerald (Social & Engagement)">Social &amp; Engagement (C. Coral / E. Emerald)</option>
-                <option value="V. Sterling & J. Jade (CEO & Editorial)">CEO &amp; Editorial (V. Sterling / J. Jade)</option>
-                <option value="R. Ruby & F. Fuchsia (YouTube / TikTok / Reels)">Publishing (R. Ruby / F. Fuchsia)</option>
-                <option value="G. Graphite (Garbage Collector)">Garbage Collector (G. Graphite)</option>
-              </select>
+                All Agents
+              </button>
+              <button
+                class="scope-pill"
+                [class.active]="chatTargetScope() === '@snapwave (Instagram)'"
+                (click)="chatTargetScope.set('@snapwave (Instagram)')"
+              >
+                <ng-container *ngTemplateOutlet="brandLogo; context: { brand: 'instagram', size: 16 }"></ng-container>
+                <span>@snapwave</span>
+              </button>
+              <button
+                class="scope-pill"
+                [class.active]="chatTargetScope() === '@clearlydrawnlessons (TikTok)'"
+                (click)="chatTargetScope.set('@clearlydrawnlessons (TikTok)')"
+              >
+                <ng-container *ngTemplateOutlet="brandLogo; context: { brand: 'tiktok', size: 16 }"></ng-container>
+                <span>@clearlydrawnlessons</span>
+              </button>
+              <button
+                class="scope-pill"
+                [class.active]="chatTargetScope() === '@ClearlyDrawnLessons (YouTube)'"
+                (click)="chatTargetScope.set('@ClearlyDrawnLessons (YouTube)')"
+              >
+                <ng-container *ngTemplateOutlet="brandLogo; context: { brand: 'youtube', size: 16 }"></ng-container>
+                <span>YouTube</span>
+              </button>
+              <button
+                class="scope-pill"
+                [class.active]="chatTargetScope() === 'V. Sterling & Studio Agents'"
+                (click)="chatTargetScope.set('V. Sterling & Studio Agents')"
+              >
+                Studio CEO
+              </button>
             </div>
           </div>
 
@@ -412,9 +485,10 @@
               <input
                 type="text"
                 class="chat-text-input"
-                placeholder="Message the in-app LM agent or drop files to attach..."
+                placeholder="Message the in-app LM agent, drop files, or paste an image..."
                 [ngModel]="chatInput()"
                 (ngModelChange)="chatInput.set($event)"
+                (paste)="onChatPaste($event)"
                 (keyup.enter)="sendChatMessage()"
               />
 

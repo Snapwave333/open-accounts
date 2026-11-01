@@ -294,6 +294,7 @@ export interface FlowCardItem {
   tag: string;
   time_label: string;
   eta?: string;
+  progress?: number;
   platform: 'instagram' | 'tiktok' | 'youtube' | 'shopify' | 'paypal' | 'gmail' | 'outlook';
   account_handle: string;
 }
@@ -1013,6 +1014,7 @@ export class TauriService {
       tag: 'RUNNING NOW',
       time_label: 'Live Cycle',
       eta: 'ETA ~4m left',
+      progress: 72,
       platform: 'instagram',
       account_handle: '@snapwave',
     },
@@ -1023,6 +1025,7 @@ export class TauriService {
       tag: 'WATCHING',
       time_label: 'Continuous',
       eta: 'ETA ~45s / scan',
+      progress: 88,
       platform: 'youtube',
       account_handle: '@ClearlyDrawnLessons',
     },
@@ -1033,6 +1036,7 @@ export class TauriService {
       tag: 'BRIDGE',
       time_label: 'Connected',
       eta: 'ETA ~15s sync',
+      progress: 94,
       platform: 'tiktok',
       account_handle: '@clearlydrawnlessons',
     },
@@ -1340,5 +1344,19 @@ export class TauriService {
       attachments: [],
     };
     this.agentChatMessages.update((prev) => [...prev, replyMsg]);
+  }
+
+  runQueuedTaskNow(id: string) {
+    const queued = this.planToDoNextItems().find((i) => i.id === id);
+    if (!queued) return;
+    this.planToDoNextItems.update((list) => list.filter((i) => i.id !== id));
+    const promoted: FlowCardItem = {
+      ...queued,
+      tag: 'RUNNING NOW',
+      time_label: 'Started now',
+      eta: 'ETA ~2m left',
+      progress: 18,
+    };
+    this.activelyDoingItems.update((list) => [promoted, ...list]);
   }
 }

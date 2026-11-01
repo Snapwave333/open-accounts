@@ -165,6 +165,12 @@ export class App implements OnInit {
     }
   }
 
+  onChatPaste(event: ClipboardEvent) {
+    if (event.clipboardData?.files && event.clipboardData.files.length > 0) {
+      this.processFiles(Array.from(event.clipboardData.files));
+    }
+  }
+
   private processFiles(files: File[]) {
     for (const file of files) {
       const kb = file.size / 1024;
@@ -232,6 +238,15 @@ export class App implements OnInit {
 
   @HostListener('window:keydown', ['$event'])
   handleGlobalShortcuts(event: KeyboardEvent) {
+    const tag = (event.target as HTMLElement)?.tagName?.toLowerCase();
+    const isInput = tag === 'input' || tag === 'textarea' || tag === 'select';
+    if (!isInput && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      if (event.key === '1') this.setTab('home');
+      else if (event.key === '2') this.setTab('flow');
+      else if (event.key === '3') this.setTab('chat');
+      else if (event.key === '4') this.setTab('accounts');
+      else if (event.key === '5') this.setTab('vault');
+    }
     // Ctrl+K or Cmd+K toggles command palette
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
       event.preventDefault();
