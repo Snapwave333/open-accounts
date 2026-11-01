@@ -12,6 +12,7 @@ import {
 
 export type NavTab =
   | 'home'
+  | 'flow'
   | 'accounts'
   | 'create'
   | 'social'
@@ -37,7 +38,7 @@ export class App implements OnInit {
   tauri = inject(TauriService);
 
   // Active navigation tab
-  activeTab = signal<NavTab>('home');
+  activeTab = signal<NavTab>('flow');
   socialSubTab = signal<SocialSubTab>('campaigns');
 
   // UI Modes & Overlays

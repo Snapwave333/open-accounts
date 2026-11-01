@@ -23,7 +23,7 @@
       </div>
     </div>
 
-    <!-- Simple 3-Tab Switcher right in the Top Bar -->
+    <!-- Clean 4-Tab Switcher right in the Top Bar -->
     <div class="topbar-center">
       <div style="display: flex; gap: 6px; background: #121622; padding: 4px; border-radius: 8px; border: 1px solid #23293a;">
         <button
@@ -33,6 +33,14 @@
           style="border: none; padding: 6px 14px; border-radius: 6px; font-weight: 600; font-size: 13px; cursor: pointer;"
         >
           Needs You ({{ tauri.humanTasks().length }})
+        </button>
+        <button
+          (click)="setTab('flow')"
+          [style.background]="activeTab() === 'flow' ? '#d946ef' : 'transparent'"
+          [style.color]="activeTab() === 'flow' ? '#fff' : '#94a3b8'"
+          style="border: none; padding: 6px 14px; border-radius: 6px; font-weight: 600; font-size: 13px; cursor: pointer;"
+        >
+          Activity Flow
         </button>
         <button
           (click)="setTab('accounts')"
@@ -81,7 +89,7 @@
 
   <!-- SINGLE CLEAN WORKSPACE (NO CLUTTER SIDEBAR) -->
   <div class="app-body" style="grid-template-columns: 1fr;">
-    <main class="main-canvas" style="max-width: 980px; margin: 0 auto; width: 100%; padding: 28px 24px;">
+    <main class="main-canvas" style="max-width: 1220px; margin: 0 auto; width: 100%; padding: 28px 24px;">
 
       <!-- TAB 1: NEEDS YOU & SILENT BACKGROUND PULSE -->
       <section *ngIf="activeTab() === 'home'" class="workspace-view">
@@ -144,26 +152,79 @@
             </div>
           </div>
         </div>
+      </section>
 
-        <!-- RECENT BACKGROUND ACTIVITY LOG (READ-ONLY, COMPACT) -->
-        <div class="panel">
-          <div class="panel-header">
-            <h3>Recent Background Activity</h3>
-            <span class="mono text-muted" style="font-size: 11px;">NVIDIA NIM Cascade + StickExplainers Bridge</span>
-          </div>
-          <div class="operations-list">
-            <div *ngFor="let msg of tauri.stickBridgeMessages().slice(0, 3)" class="operation-item" style="padding: 10px 12px;">
-              <div class="op-top-row">
-                <strong>{{ msg.subject }}</strong>
-                <span class="status-pill green">{{ msg.status | uppercase }}</span>
+      <!-- TAB 2: 3-PANEL ACTIVITY FLOW (JUST DID / ACTIVELY DOING / PLAN TO DO NEXT) -->
+      <section *ngIf="activeTab() === 'flow'" class="workspace-view">
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; align-items: start;">
+
+          <!-- PANEL 1: JUST DID -->
+          <div class="panel" style="border-top: 3px solid #10b981;">
+            <div class="panel-header">
+              <div>
+                <h3>Just Did</h3>
+                <span class="panel-header-subtitle">Completed automatically</span>
               </div>
-              <p class="op-desc" style="margin-top: 4px;">{{ msg.body }}</p>
+              <span class="status-pill green">{{ tauri.justDidItems().length }} DONE</span>
+            </div>
+            <div class="operations-list" style="margin-top: 12px;">
+              <div *ngFor="let item of tauri.justDidItems()" class="operation-item" style="padding: 12px;">
+                <div class="op-top-row" style="margin-bottom: 6px;">
+                  <span class="badge green">{{ item.tag }}</span>
+                  <span class="mono text-muted" style="font-size: 11px;">{{ item.time_label }}</span>
+                </div>
+                <div style="font-weight: 600; color: #f8fafc; font-size: 14px;">{{ item.title }}</div>
+                <p class="op-desc" style="margin-top: 4px; font-size: 12.5px;">{{ item.detail }}</p>
+              </div>
             </div>
           </div>
+
+          <!-- PANEL 2: ACTIVELY DOING -->
+          <div class="panel" style="border-top: 3px solid #d946ef;">
+            <div class="panel-header">
+              <div>
+                <h3>Actively Doing</h3>
+                <span class="panel-header-subtitle">Running right now</span>
+              </div>
+              <span class="badge fuchsia">{{ tauri.activelyDoingItems().length }} LIVE</span>
+            </div>
+            <div class="operations-list" style="margin-top: 12px;">
+              <div *ngFor="let item of tauri.activelyDoingItems()" class="operation-item" style="padding: 12px; border-color: rgba(217, 70, 239, 0.35);">
+                <div class="op-top-row" style="margin-bottom: 6px;">
+                  <span class="badge fuchsia">{{ item.tag }}</span>
+                  <span class="mono text-muted" style="font-size: 11px;">{{ item.time_label }}</span>
+                </div>
+                <div style="font-weight: 600; color: #f8fafc; font-size: 14px;">{{ item.title }}</div>
+                <p class="op-desc" style="margin-top: 4px; font-size: 12.5px;">{{ item.detail }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- PANEL 3: PLAN TO DO NEXT -->
+          <div class="panel" style="border-top: 3px solid #38bdf8;">
+            <div class="panel-header">
+              <div>
+                <h3>Plan To Do Next</h3>
+                <span class="panel-header-subtitle">Up next in queue</span>
+              </div>
+              <span class="badge blue">{{ tauri.planToDoNextItems().length }} QUEUED</span>
+            </div>
+            <div class="operations-list" style="margin-top: 12px;">
+              <div *ngFor="let item of tauri.planToDoNextItems()" class="operation-item" style="padding: 12px;">
+                <div class="op-top-row" style="margin-bottom: 6px;">
+                  <span class="badge blue">{{ item.tag }}</span>
+                  <span class="mono text-muted" style="font-size: 11px;">{{ item.time_label }}</span>
+                </div>
+                <div style="font-weight: 600; color: #f8fafc; font-size: 14px;">{{ item.title }}</div>
+                <p class="op-desc" style="margin-top: 4px; font-size: 12.5px;">{{ item.detail }}</p>
+              </div>
+            </div>
+          </div>
+
         </div>
       </section>
 
-      <!-- TAB 2: ACCOUNTS (SIMPLE LIST + ADD) -->
+      <!-- TAB 3: ACCOUNTS (SIMPLE LIST + ADD) -->
       <section *ngIf="activeTab() === 'accounts'" class="workspace-view">
         <div class="panel table-panel">
           <div class="panel-header">
@@ -212,7 +273,7 @@
         </div>
       </section>
 
-      <!-- TAB 3: VAULT (SIMPLE UNLOCK / LOCK) -->
+      <!-- TAB 4: VAULT (SIMPLE UNLOCK / LOCK) -->
       <section *ngIf="activeTab() === 'vault'" class="workspace-view">
         <div class="panel" *ngIf="!tauri.vaultUnlocked()">
           <h3>Encrypted Credential Vault</h3>

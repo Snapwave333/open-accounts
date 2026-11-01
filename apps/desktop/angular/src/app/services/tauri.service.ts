@@ -287,6 +287,14 @@ export interface GarbageCollectionReport {
   openaccounts_buffers_scrubbed: number;
 }
 
+export interface FlowCardItem {
+  id: string;
+  title: string;
+  detail: string;
+  tag: string;
+  time_label: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -935,6 +943,92 @@ export class TauriService {
     disk_pressure: false,
     openaccounts_buffers_scrubbed: 4,
   });
+
+  justDidItems = signal<FlowCardItem[]>([
+    {
+      id: 'jd-1',
+      title: 'Posted Cartoon Kitchen Card on @snapwave',
+      detail: 'Shared Howl’s Bacon & Eggs (Calcifer) card with recipe creator credit & Chef Elena caption.',
+      tag: 'INSTAGRAM',
+      time_label: '18:19 Local',
+    },
+    {
+      id: 'jd-2',
+      title: 'Checked Comments Across YouTube, TikTok & IG',
+      detail: 'Scanned @ClearlyDrawnLessons, @clearlydrawnlessons, and @snapwave (0 new, 5 drafts queued).',
+      tag: 'COMMENTS',
+      time_label: 'Just now',
+    },
+    {
+      id: 'jd-3',
+      title: 'Completed Daily Outbound Engagement Batch',
+      detail: 'Logged 8 IG likes, 3 IG follows, 3 YouTube likes, 1 YouTube subscription, and 1 YT comment reply.',
+      tag: 'ENGAGE',
+      time_label: 'Today',
+    },
+    {
+      id: 'jd-4',
+      title: 'Garbage Collection Sweep (G. Graphite)',
+      detail: 'Verified 80.2 GB free disk space (26.37 GB total reclaimed), 0 orphaned render workers.',
+      tag: 'CLEANUP',
+      time_label: '22:30 Local',
+    },
+  ]);
+
+  activelyDoingItems = signal<FlowCardItem[]>([
+    {
+      id: 'ad-1',
+      title: 'Engaging Niche Anime & Cartoon Posts',
+      detail: 'Liking & following #animefood and #studioghibli videos on @clearlydrawnlessons & @snapwave with 25–90s human pacing.',
+      tag: 'RUNNING NOW',
+      time_label: 'Live Cycle',
+    },
+    {
+      id: 'ad-2',
+      title: 'Monitoring Incoming Comments & Merch Questions',
+      detail: 'Auto-drafting Marcus & Chef Elena replies via free NVIDIA NIM cascade and matching Shopify store links.',
+      tag: 'WATCHING',
+      time_label: 'Continuous',
+    },
+    {
+      id: 'ad-3',
+      title: 'Bridging with StickExplainers 39-Agent Studio',
+      detail: 'Syncing episode status and directives with V. Sterling (CEO), C. Coral, E. Emerald, and Q. Quartz.',
+      tag: 'BRIDGE',
+      time_label: 'Connected',
+    },
+  ]);
+
+  planToDoNextItems = signal<FlowCardItem[]>([
+    {
+      id: 'pn-1',
+      title: 'Post News Card: Coyote vs. Acme Enters Oscar Race',
+      detail: 'Queued next 4:5 branded news card for @snapwave once the 4-hour feed spacing window clears.',
+      tag: 'NEXT IG CARD',
+      time_label: 'After 4h gap',
+    },
+    {
+      id: 'pn-2',
+      title: 'Post Audience A/B/C/D Question Card',
+      detail: 'Scheduled bi-daily engagement poll card for @snapwave community discussion.',
+      tag: 'POLL CARD',
+      time_label: '2026-11-01',
+    },
+    {
+      id: 'pn-3',
+      title: 'Publish Daily Episode + 3x 9:16 Vertical Shorts',
+      detail: 'Release next verified Clearly Drawn News episode on YouTube (@ClearlyDrawnLessons), TikTok, and IG Reels.',
+      tag: 'PUBLISH',
+      time_label: '15:00 UTC',
+    },
+    {
+      id: 'pn-4',
+      title: 'Next Autonomous GC & Log Rotation Check',
+      detail: 'Prune temporary OpenToonz frames once YouTube & TikTok confirm processing.',
+      tag: 'MAINTENANCE',
+      time_label: 'In 30 mins',
+    },
+  ]);
 
   isAutonomousLoopRunning = signal<boolean>(true);
   vaultUnlocked = signal<boolean>(false);
