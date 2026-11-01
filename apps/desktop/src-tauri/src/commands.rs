@@ -19,7 +19,10 @@ use openaccounts_policy_monitor::PolicyMonitorAlert;
 use openaccounts_policy_versioning::PolicyVersionRecord;
 use openaccounts_publishing_engine::SocialPostPayload;
 use openaccounts_social_analytics::VerifiedPlatformMetric;
-use openaccounts_social_media_manager::SubAgentAssignment;
+use openaccounts_social_media_manager::{
+    bridge::{StickBridgeMessage, StickBridgeState},
+    SubAgentAssignment,
+};
 use std::sync::Arc;
 use tauri::State;
 
@@ -427,4 +430,34 @@ pub async fn list_collaborating_agents(
     state: State<'_, AppState>,
 ) -> Result<Vec<SubAgentAssignment>, String> {
     Ok(state.social_media_manager.list_collaborating_agents())
+}
+
+#[tauri::command]
+pub async fn get_stick_bridge_state(
+    state: State<'_, AppState>,
+) -> Result<StickBridgeState, String> {
+    Ok(state.social_media_manager.get_stick_bridge_state())
+}
+
+#[tauri::command]
+pub async fn send_stick_bridge_message(
+    state: State<'_, AppState>,
+    from_agent: String,
+    to_agent: String,
+    channel: String,
+    subject: String,
+    body: String,
+    create_ceo_directive: bool,
+) -> Result<StickBridgeMessage, String> {
+    state
+        .social_media_manager
+        .send_stick_bridge_message(
+            &from_agent,
+            &to_agent,
+            &channel,
+            &subject,
+            &body,
+            create_ceo_directive,
+        )
+        .map_err(|e| e.to_string())
 }

@@ -15,7 +15,7 @@ pub struct VisualIdentity {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BrandVoice {
-    pub tone_adjectives: Vec<String>, // e.g. ["Professional", "Innovative", "Empathetic"]
+    pub tone_adjectives: Vec<String>,
     pub audience_persona: String,
     pub writing_rules: Vec<String>,
     pub prohibited_words: Vec<String>,
@@ -41,32 +41,57 @@ pub struct BrandManager {
 impl BrandManager {
     pub fn new() -> Self {
         let mut map = HashMap::new();
-        let default_brand = BrandProfile {
-            brand_id: "brand_default".into(),
-            name: "OpenAccounts Global".into(),
-            tagline: "Autonomous Agentic Account Infrastructure".into(),
+        let cdn_brand = BrandProfile {
+            brand_id: "brand_cdn".into(),
+            name: "Clearly Drawn News (StickExplainers)".into(),
+            tagline: "Daily Animation News + Cartoon Kitchen with Marcus & Chef Elena".into(),
             visual_identity: VisualIdentity {
-                primary_hex: "#2563eb".into(),
-                secondary_hex: "#0f172a".into(),
-                accent_hex: "#10b981".into(),
+                primary_hex: "#141722".into(),
+                secondary_hex: "#0b0d12".into(),
+                accent_hex: "#d946ef".into(),
                 font_family: "Inter, sans-serif".into(),
-                logo_asset_path: None,
+                logo_asset_path: Some(r"C:\Users\chrom\Desktop\StickExplainers\assets\cdn_logo.png".into()),
             },
             voice: BrandVoice {
-                tone_adjectives: vec!["Authoritative".into(), "Security-first".into(), "Helpful".into()],
-                audience_persona: "Developers, founders, and social media automation managers.".into(),
-                writing_rules: vec![
-                    "Be concise, transparent, and direct.".into(),
-                    "Highlight local-first privacy and deterministic compliance.".into(),
+                tone_adjectives: vec![
+                    "Upbeat".into(),
+                    "Warm".into(),
+                    "Family-Friendly".into(),
+                    "Fact-Checked".into(),
                 ],
-                prohibited_words: vec!["guaranteed riches".into(), "growth-hack-bot".into()],
-                escalation_triggers: vec!["lawsuit".into(), "vulnerability".into(), "refund".into()],
+                audience_persona: "Anime, cartoon, and animation fans of all ages + food lovers watching Cartoon Kitchen.".into(),
+                writing_rules: vec![
+                    "Write in character as anchor Marcus or Chef Elena.".into(),
+                    "Credit every news outlet and recipe creator explicitly.".into(),
+                    "Max 5 hashtags per feed post; at most 2 feed posts/day, 4+ hours apart.".into(),
+                    "Never post links in comments except our Shopify merch store on YouTube.".into(),
+                ],
+                prohibited_words: vec![
+                    "nsfw".into(),
+                    "follow for follow".into(),
+                    "f4f".into(),
+                    "crypto".into(),
+                    "giveaway".into(),
+                ],
+                escalation_triggers: vec![
+                    "personal info".into(),
+                    "kids".into(),
+                    "action blocked".into(),
+                    "sponsor".into(),
+                    "copyright".into(),
+                ],
             },
-            linked_account_ids: vec!["acc-1".into(), "acc-5".into()],
+            linked_account_ids: vec![
+                "cdn-ig-snapwave".into(),
+                "cdn-tt-clearlydrawnlessons".into(),
+                "cdn-yt-clearlydrawnnews".into(),
+                "cdn-shopify-store".into(),
+                "cdn-paypal-snapwave333".into(),
+            ],
             created_at: Utc::now(),
             updated_at: Utc::now(),
         };
-        map.insert(default_brand.brand_id.clone(), default_brand);
+        map.insert(cdn_brand.brand_id.clone(), cdn_brand);
 
         Self {
             brands: Arc::new(RwLock::new(map)),

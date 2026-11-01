@@ -241,6 +241,38 @@ export interface SubAgentAssignment {
   is_active: boolean;
 }
 
+export interface StickAgentPairing {
+  openaccounts_agent: string;
+  openaccounts_title: string;
+  stick_agents: string[];
+  stick_roles: string[];
+  channel: string;
+}
+
+export interface StickBridgeMessage {
+  id: string;
+  timestamp: string;
+  direction: string;
+  from_agent: string;
+  to_agent: string;
+  channel: string;
+  subject: string;
+  body: string;
+  status: string;
+}
+
+export interface StickEpisodeSummary {
+  slug: string;
+  title: string;
+  has_long_mp4: boolean;
+  shorts_count: number;
+  youtube_published: boolean;
+  tiktok_posted: boolean;
+  instagram_posted: boolean;
+  kitchen_dish?: string;
+  kitchen_show?: string;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -388,83 +420,73 @@ export class TauriService {
 
   accounts = signal<AccountRecord[]>([
     {
-      id: 'acc-1',
+      id: 'cdn-ig-snapwave',
       platform: 'instagram',
-      username: 'growth_brand_ai',
-      email: 'instagram_01@openaccounts.local',
+      username: '@snapwave',
+      email: 'elikenny333@gmail.com',
       status: 'active',
-      health_score: 98,
-      created_at: '2026-10-15T10:00:00Z',
-      last_active: '2 mins ago',
-    },
-    {
-      id: 'acc-2',
-      platform: 'reddit',
-      username: 'u/AutoDevDesk',
-      email: 'reddit_dev@openaccounts.local',
-      status: 'active',
-      health_score: 95,
-      created_at: '2026-10-18T14:30:00Z',
-      last_active: '5 mins ago',
-    },
-    {
-      id: 'acc-3',
-      platform: 'youtube',
-      username: 'StudioContentSync',
-      email: 'yt_sync@openaccounts.local',
-      status: 'active',
-      health_score: 100,
-      created_at: '2026-10-20T08:00:00Z',
-      last_active: '1 hour ago',
-    },
-    {
-      id: 'acc-4',
-      platform: 'tiktok',
-      username: '@DevOpsShorts',
-      email: 'tiktok_ops@openaccounts.local',
-      status: 'active',
-      health_score: 92,
-      created_at: '2026-10-22T19:00:00Z',
-      last_active: '15 mins ago',
-    },
-    {
-      id: 'acc-5',
-      platform: 'x',
-      username: '@OpenAccountsCore',
-      email: 'x_brand@openaccounts.local',
-      status: 'active',
-      health_score: 94,
-      created_at: '2026-10-25T11:20:00Z',
+      health_score: 99,
+      created_at: '2026-10-28T10:00:00Z',
       last_active: 'Just now',
     },
     {
-      id: 'acc-6',
-      platform: 'linkedin',
-      username: 'openaccounts-platform',
-      email: 'li_corp@openaccounts.local',
+      id: 'cdn-tt-clearlydrawnlessons',
+      platform: 'tiktok',
+      username: '@clearlydrawnlessons',
+      email: 'elikenny333@gmail.com',
       status: 'active',
-      health_score: 97,
-      created_at: '2026-10-26T09:40:00Z',
-      last_active: '3 hours ago',
+      health_score: 98,
+      created_at: '2026-10-26T14:30:00Z',
+      last_active: '2 mins ago',
     },
     {
-      id: 'acc-7',
-      platform: 'github',
-      username: 'openaccounts-robot',
-      email: 'gh_bot@openaccounts.local',
+      id: 'cdn-yt-clearlydrawnnews',
+      platform: 'youtube',
+      username: '@ClearlyDrawnLessons (UC16fbSsDJcc6RVvNsH3Cbfg)',
+      email: 'elikenny333@gmail.com',
       status: 'active',
       health_score: 100,
-      created_at: '2026-10-12T16:10:00Z',
-      last_active: '20 mins ago',
+      created_at: '2026-10-20T08:00:00Z',
+      last_active: '5 mins ago',
     },
     {
-      id: 'acc-8',
-      platform: 'discord',
-      username: 'OpenAccountsNotify#4412',
-      email: 'dc_notify@openaccounts.local',
+      id: 'cdn-shopify-store',
+      platform: 'shopify',
+      username: 'zs56hs-fj.myshopify.com',
+      email: 'elikenny333@gmail.com',
       status: 'active',
-      health_score: 96,
-      created_at: '2026-10-28T13:00:00Z',
+      health_score: 100,
+      created_at: '2026-10-22T19:00:00Z',
+      last_active: '12 mins ago',
+    },
+    {
+      id: 'cdn-paypal-snapwave333',
+      platform: 'paypal',
+      username: 'paypal.me/snapwave333',
+      email: 'elikenny333@gmail.com',
+      status: 'active',
+      health_score: 100,
+      created_at: '2026-10-25T11:20:00Z',
+      last_active: '30 mins ago',
+    },
+    {
+      id: 'cdn-email-gmail',
+      platform: 'email',
+      username: 'elikenny333@gmail.com',
+      email: 'elikenny333@gmail.com',
+      status: 'active',
+      health_score: 100,
+      created_at: '2026-10-15T09:40:00Z',
+      last_active: '1 min ago',
+    },
+    {
+      id: 'cdn-email-outlook',
+      platform: 'email',
+      username: 'focogaming@outlook.com',
+      email: 'focogaming@outlook.com',
+      status: 'active',
+      health_score: 97,
+      created_at: '2026-10-18T16:10:00Z',
       last_active: '10 mins ago',
     },
   ]);
@@ -472,21 +494,21 @@ export class TauriService {
   humanTasks = signal<HumanTask[]>([
     {
       id: 'task-101',
-      account_id: 'acc-1',
-      challenge_type: 'Captcha',
-      title: 'Cloudflare Turnstile Challenge',
-      instructions: 'Please verify the CAPTCHA in the live browser preview to finalize registration.',
-      page_url: 'https://instagram.com/accounts/emailsignup/',
+      account_id: 'cdn-yt-clearlydrawnnews',
+      challenge_type: '24hReviewGate',
+      title: '24-Hour Review Window Check (Q. Quartz Gate)',
+      instructions: 'Verify episode news-2026-10-31 Cartoon Kitchen recipe citation before public YouTube release.',
+      page_url: 'https://studio.youtube.com/channel/UC16fbSsDJcc6RVvNsH3Cbfg/videos',
       status: 'Pending',
       created_at: '2026-10-31T18:30:00Z',
     },
     {
       id: 'task-102',
-      account_id: 'acc-2',
-      challenge_type: 'LegalConsent',
-      title: 'Updated Terms of Service Acceptance',
-      instructions: 'Reddit requires manual acceptance of new API & Privacy Terms for automation actors.',
-      page_url: 'https://reddit.com/policies/user-agreement',
+      account_id: 'cdn-ig-snapwave',
+      challenge_type: 'SponsorApproval',
+      title: 'Sponsor Inquiry Approval (S. Sapphire & G. Gold)',
+      instructions: 'Approve outbound rate card reply from elikenny333@gmail.com.',
+      page_url: 'https://instagram.com/snapwave',
       status: 'Pending',
       created_at: '2026-10-31T19:10:00Z',
     },
@@ -494,135 +516,139 @@ export class TauriService {
 
   emailIdentities = signal<EmailIdentity[]>([
     {
-      identity_id: 'eid-01',
-      email_address: 'instagram_brand_01@openaccounts.io',
-      provider_type: 'custom_domain_api',
-      platform: 'instagram',
+      identity_id: 'eid-cdn-gmail',
+      email_address: 'elikenny333@gmail.com',
+      provider_type: 'gmail_api',
+      assigned_account_id: 'cdn-yt-clearlydrawnnews',
+      platform: 'youtube / instagram / tiktok / shopify',
       is_primary: true,
-      created_at: '2026-10-28T09:00:00Z',
+      created_at: '2026-10-15T09:00:00Z',
     },
     {
-      identity_id: 'eid-02',
-      email_address: 'reddit_eng_02@openaccounts.io',
-      provider_type: 'custom_domain_api',
-      platform: 'reddit',
-      is_primary: true,
-      created_at: '2026-10-29T11:30:00Z',
-    },
-    {
-      identity_id: 'eid-03',
-      email_address: 'discord_lead_bot@openaccounts.io',
+      identity_id: 'eid-cdn-outlook',
+      email_address: 'focogaming@outlook.com',
       provider_type: 'microsoft_graph',
-      platform: 'discord',
-      is_primary: true,
-      created_at: '2026-10-30T14:15:00Z',
+      assigned_account_id: 'cdn-email-outlook',
+      platform: 'outlook_watch',
+      is_primary: false,
+      created_at: '2026-10-18T11:30:00Z',
     },
   ]);
 
   policyAlerts = signal<PolicyAlert[]>([
     {
       alert_id: 'palert-01',
-      platform_id: 'reddit',
+      platform_id: 'youtube',
       severity: 'Info',
-      message: 'Reddit API v2 Data Policy verified current. No action required.',
+      message: 'YouTube Data API v3 quota healthy (max 9 uploads/day, 20 comment replies/day enforced).',
       created_at: '2026-10-31 20:10:00',
     },
     {
       alert_id: 'palert-02',
-      platform_id: 'x',
-      severity: 'Warning',
-      message: 'X developer tier endpoint rate limit update detected. Auto-throttling active.',
+      platform_id: 'instagram',
+      severity: 'Info',
+      message: '@snapwave Creator Relay limits synced: max 12 likes, 3 follows, 2 comments, 15 replies/day.',
       created_at: '2026-10-31 19:40:00',
     },
   ]);
 
   brands = signal<BrandProfile[]>([
     {
-      brand_id: 'brand-01',
-      name: 'OpenAccounts AI',
-      tagline: 'Autonomous Account Infrastructure',
+      brand_id: 'brand_cdn',
+      name: 'Clearly Drawn News (StickExplainers)',
+      tagline: 'Animated Cartoon & Anime News + The Cartoon Kitchen with Marcus & Chef Elena',
       visual_identity: {
-        primary_hex: '#141722',
-        secondary_hex: '#0b0d12',
-        accent_hex: '#d946ef',
+        primary_hex: '#0f172a',
+        secondary_hex: '#1e293b',
+        accent_hex: '#f59e0b',
         font_family: 'Inter, sans-serif',
       },
       voice: {
-        tone_adjectives: ['Authoritative', 'Innovative', 'Pragmatic'],
-        audience_persona: 'Engineers, marketers, and technical founders requiring automated scale.',
-        writing_rules: ['Direct statements', 'Highlight offline cryptography', 'Never over-promise'],
-        prohibited_words: ['quick cash', 'spam bot', 'guaranteed clicks'],
-        escalation_triggers: ['legal', 'vulnerability', 'chargeback', 'abuse'],
+        tone_adjectives: ['Warm', 'Witty', 'Factual', 'Nostalgic', 'All-Ages'],
+        audience_persona: 'Animation, anime, cartoon, and pop-culture food fans across YouTube, TikTok, and Instagram.',
+        writing_rules: [
+          'Sound like Marcus (dry-wit news anchor) or Chef Elena (warm Cartoon Kitchen host)',
+          'Credit real recipe creators by name and link in every description',
+          'Keep captions concise (1-2 sentences) with max 5 relevant hashtags',
+        ],
+        prohibited_words: ['clickbait', 'guaranteed viral', 'sub4sub'],
+        escalation_triggers: ['sponsor', 'legal', 'copyright', 'refund'],
       },
-      linked_account_ids: ['acc-1', 'acc-3', 'acc-5'],
+      linked_account_ids: [
+        'cdn-ig-snapwave',
+        'cdn-tt-clearlydrawnlessons',
+        'cdn-yt-clearlydrawnnews',
+        'cdn-shopify-store',
+        'cdn-paypal-snapwave333',
+      ],
     },
   ]);
 
   campaigns = signal<CampaignBrief[]>([
     {
-      campaign_id: 'camp-01',
-      brand_id: 'brand-01',
-      title: 'Q4 Product Launch — Autonomous Account Workforce',
-      objective: 'Brand Awareness & Technical Adoption',
-      target_platforms: ['Instagram', 'YouTube', 'TikTok', 'X'],
-      target_audience: 'Technical creators and operations teams',
-      content_formats: ['Reels (9:16)', 'Shorts (9:16)', 'X Threads'],
-      hashtags: ['#OpenAccounts', '#DevTools', '#AIAutomation', '#TechReels'],
-      start_date: '2026-11-01',
-      end_date: '2026-11-30',
+      campaign_id: 'camp-cdn-01',
+      brand_id: 'brand_cdn',
+      title: 'Clearly Drawn News — Daily Episode & 3x 9:16 Shorts Pipeline',
+      objective: 'Cross-Platform Subscriber & Watch-Time Growth',
+      target_platforms: ['YouTube (@ClearlyDrawnLessons)', 'TikTok (@clearlydrawnlessons)', 'Instagram (@snapwave)'],
+      target_audience: 'Anime, cartoon, and animated food enthusiasts',
+      content_formats: ['Long-Form Episode (16:9)', '3x Vertical Shorts (9:16)', 'Cartoon Kitchen Segment'],
+      hashtags: ['#ClearlyDrawnNews', '#AnimationNews', '#CartoonKitchen', '#AnimeNews', '#Shorts'],
+      start_date: '2026-10-25',
+      end_date: '2026-12-31',
       status: 'Active',
     },
     {
-      campaign_id: 'camp-02',
-      brand_id: 'brand-01',
-      title: 'Developer Security & Offline Vault Showcase',
-      objective: 'Educate security community on Argon2id buffer isolation',
-      target_platforms: ['Reddit', 'YouTube', 'LinkedIn', 'GitHub'],
-      target_audience: 'DevSecOps engineers and cybersecurity architects',
-      content_formats: ['Deep-dive Video', 'Reddit Case Study', 'GitHub Guide'],
-      hashtags: ['#Argon2id', '#CyberSecurity', '#RustLang', '#PrivacyFirst'],
-      start_date: '2026-11-05',
+      campaign_id: 'camp-cdn-02',
+      brand_id: 'brand_cdn',
+      title: 'Cartoon Kitchen Merch Drop (zs56hs-fj.myshopify.com)',
+      objective: 'Drive Printful & Shopify Store Conversions from Engaged Viewers',
+      target_platforms: ['Instagram (@snapwave)', 'YouTube (@ClearlyDrawnLessons)', 'Shopify'],
+      target_audience: 'Fans of Marcus & Chef Elena episodes',
+      content_formats: ['Reel Showcase', 'Pinned Comment Links', 'Community Polls'],
+      hashtags: ['#CartoonKitchen', '#StickExplainers', '#AnimeFood', '#CreatorMerch'],
+      start_date: '2026-10-28',
       end_date: '2026-12-15',
-      status: 'Planned',
+      status: 'Active',
     },
   ]);
 
   calendarPosts = signal<CalendarPostSlot[]>([
     {
-      slot_id: 'slot-101',
-      campaign_id: 'camp-01',
-      brand_id: 'brand-01',
-      target_platform: 'Instagram',
-      scheduled_time: 'Tomorrow, 10:00 AM',
-      content_type: 'Reel (9:16 Vertical)',
-      caption: 'Meet your new autonomous social media department. Built-in Vector Craft, Photo Craft, and FFmpeg integration. 🚀',
-      hashtags: ['#OpenAccounts', '#AIAutomation', '#Reels'],
+      slot_id: 'slot-cdn-101',
+      campaign_id: 'camp-cdn-01',
+      brand_id: 'brand_cdn',
+      target_platform: 'YouTube (@ClearlyDrawnLessons)',
+      scheduled_time: 'Today, 15:00 UTC',
+      content_type: 'Full Episode + 3 Shorts',
+      caption: 'Marcus breaks down today’s biggest animation headlines, then Chef Elena recreates Studio Ghibli ramen in the Cartoon Kitchen!',
+      hashtags: ['#ClearlyDrawnNews', '#AnimationNews', '#CartoonKitchen', '#Shorts'],
       is_approved: true,
       status: 'Scheduled',
     },
     {
-      slot_id: 'slot-102',
-      campaign_id: 'camp-01',
-      brand_id: 'brand-01',
-      target_platform: 'TikTok',
-      scheduled_time: 'Tomorrow, 2:30 PM',
+      slot_id: 'slot-cdn-102',
+      campaign_id: 'camp-cdn-01',
+      brand_id: 'brand_cdn',
+      target_platform: 'Instagram (@snapwave)',
+      scheduled_time: 'Today, 17:00 UTC',
+      content_type: 'Reel (9:16 Vertical)',
+      caption: 'Would you try Chef Elena’s Cartoon Kitchen recipe? Vote in the comments! 🍜✨',
+      hashtags: ['#ClearlyDrawnNews', '#CartoonKitchen', '#AnimeFood', '#Reels'],
+      is_approved: true,
+      status: 'Scheduled',
+    },
+    {
+      slot_id: 'slot-cdn-103',
+      campaign_id: 'camp-cdn-01',
+      brand_id: 'brand_cdn',
+      target_platform: 'TikTok (@clearlydrawnlessons)',
+      scheduled_time: 'Today, 19:30 UTC',
       content_type: 'Short Video (9:16)',
-      caption: 'Why manual account operations are dead in 2026. Watch full explainer.',
-      hashtags: ['#TechTok', '#CodingLife', '#Automation'],
+      caption: 'Wait for Marcus’s reaction to the 90s Saturday morning cartoon trivia! 📺',
+      hashtags: ['#ClearlyDrawnLessons', '#CartoonNews', '#90sCartoons', '#Animation'],
       is_approved: false,
       status: 'AwaitingApproval',
-    },
-    {
-      slot_id: 'slot-103',
-      campaign_id: 'camp-01',
-      brand_id: 'brand-01',
-      target_platform: 'YouTube',
-      scheduled_time: 'Nov 3, 9:00 AM',
-      content_type: 'Shorts (9:16)',
-      caption: 'Offline encrypted vault + multi-account isolation in action.',
-      hashtags: ['#YouTubeShorts', '#CyberSecurity'],
-      is_approved: true,
-      status: 'Scheduled',
     },
   ]);
 
@@ -674,14 +700,14 @@ export class TauriService {
   inboxMessages = signal<UnifiedInboxMessage[]>([
     {
       message_id: 'inb-101',
-      account_id: { 0: 'acc-1' },
-      platform: 'instagram',
-      author_handle: '@creator_studio',
+      account_id: { 0: 'cdn-yt-clearlydrawnnews' },
+      platform: 'youtube',
+      author_handle: '@anime_foodie_99',
       interaction_type: 'comment',
-      content_text: 'Does OpenAccounts support scheduling 9:16 Instagram Reels automatically?',
+      content_text: 'Chef Elena’s ramen broth looked incredible! Where can I get the Cartoon Kitchen mug?',
       category: 'sales_lead',
-      sentiment_score: 0.85,
-      drafted_reply: 'Yes! OpenAccounts includes full 9:16 Reel rendering, audio normalization, and automated publishing via official Graph API.',
+      sentiment_score: 0.94,
+      drafted_reply: 'So glad you loved Elena’s ramen segment! You can grab the official Cartoon Kitchen mug right at our shop: https://zs56hs-fj.myshopify.com 🍜',
       is_auto_reply_eligible: true,
       requires_human_approval: false,
       status: 'New',
@@ -689,14 +715,14 @@ export class TauriService {
     },
     {
       message_id: 'inb-102',
-      account_id: { 0: 'acc-5' },
-      platform: 'x',
-      author_handle: '@enterprise_buyer',
+      account_id: { 0: 'cdn-ig-snapwave' },
+      platform: 'instagram',
+      author_handle: '@studio_sponsor_media',
       interaction_type: 'direct_message',
-      content_text: 'We want to purchase an enterprise license and require custom legal terms for our multi-account setup.',
+      content_text: 'We would love to sponsor a 3-episode Cartoon Kitchen block on Clearly Drawn News. Can you send your rate card?',
       category: 'security_or_legal_escalation',
-      sentiment_score: 0.5,
-      drafted_reply: 'Thank you for reaching out. A human account executive has been notified to provide custom licensing terms.',
+      sentiment_score: 0.88,
+      drafted_reply: 'Thanks for reaching out! S. Sapphire & G. Gold have queued our media kit and rate card from elikenny333@gmail.com for review.',
       is_auto_reply_eligible: false,
       requires_human_approval: true,
       status: 'PendingApproval',
@@ -707,23 +733,8 @@ export class TauriService {
   verifiedMetrics = signal<VerifiedPlatformMetric[]>([
     {
       metric_id: 'm-01',
-      platform: 'instagram',
-      account_id: 'growth_brand_ai',
-      impressions: 48200,
-      reach: 39500,
-      views: 28400,
-      engagement_rate: 6.8,
-      comments: 312,
-      shares: 124,
-      saves: 840,
-      conversions: 45,
-      is_verified_by_api: true,
-      captured_at: '2026-10-31 20:00:00',
-    },
-    {
-      metric_id: 'm-02',
       platform: 'youtube',
-      account_id: 'StudioContentSync',
+      account_id: '@ClearlyDrawnLessons',
       impressions: 112000,
       reach: 89000,
       views: 74200,
@@ -736,9 +747,24 @@ export class TauriService {
       captured_at: '2026-10-31 20:00:00',
     },
     {
+      metric_id: 'm-02',
+      platform: 'instagram',
+      account_id: '@snapwave',
+      impressions: 48200,
+      reach: 39500,
+      views: 28400,
+      engagement_rate: 6.8,
+      comments: 312,
+      shares: 124,
+      saves: 840,
+      conversions: 45,
+      is_verified_by_api: true,
+      captured_at: '2026-10-31 20:00:00',
+    },
+    {
       metric_id: 'm-03',
       platform: 'tiktok',
-      account_id: '@DevOpsShorts',
+      account_id: '@clearlydrawnlessons',
       impressions: 86500,
       reach: 71000,
       views: 59300,
@@ -768,12 +794,118 @@ export class TauriService {
   ]);
 
   collaboratingAgents = signal<SubAgentAssignment[]>([
-    { role: 'ContentStrategist', title: 'Head of Marketing Strategy', current_task: 'Synthesizing cross-platform audience briefs', assigned_model_profile: 'NIM: nvidia/nemotron-3.5-super-vl-120b-a12b', is_active: true },
-    { role: 'TrendResearcher', title: 'Live Trend Intelligence Agent', current_task: 'Scanning viral hashtag velocity on TikTok and X', assigned_model_profile: 'NIM: nvidia/nemotron-3-nano-omni-30b-a3b-reasoning', is_active: true },
-    { role: 'GraphicDesigner', title: 'Vector & Photo Production Specialist', current_task: 'Driving Vector Craft CLI & Photo Craft CLI', assigned_model_profile: 'NIM Vision: meta/llama-3.2-90b-vision-instruct', is_active: true },
-    { role: 'VideoDirector', title: 'Short-Form Video & Reel Director', current_task: 'Assembling 9:16 vertical reels with FFmpeg & Effect Craft', assigned_model_profile: 'NIM: meta/muse-glimmer-30b', is_active: true },
-    { role: 'CommunityManager', title: 'Community Moderation & Engagement', current_task: 'Classifying incoming audience comments and inquiries', assigned_model_profile: 'NIM: nvidia/nemotron-3.5-lightning-30b-a3b', is_active: true },
-    { role: 'ComplianceAgent', title: 'Policy & Rate Limit Gatekeeper', current_task: 'Enforcing official Graph and X API compliance limits', assigned_model_profile: 'Deterministic Policy Engine', is_active: true },
+    { role: 'ContentStrategist', title: 'Head of Marketing Strategy', current_task: 'Coordinating with V. Sterling (CEO) & J. Jade (News Scout)', assigned_model_profile: 'NIM: nvidia/nemotron-3.5-super-vl-120b-a12b', is_active: true },
+    { role: 'TrendResearcher', title: 'Live Trend Intelligence Agent', current_task: 'Syncing retention data with C. Copper, A. Amber & I. Indigo', assigned_model_profile: 'NIM: nvidia/nemotron-3-nano-omni-30b-a3b-reasoning', is_active: true },
+    { role: 'GraphicDesigner', title: 'Vector & Photo Production Specialist', current_task: 'Coordinating thumbnails & dish art with T. Tangerine & D. Sienna', assigned_model_profile: 'NIM Vision: meta/llama-3.2-90b-vision-instruct', is_active: true },
+    { role: 'VideoDirector', title: 'Short-Form Video & Reel Director', current_task: 'Receiving 9:16 Shorts from C. Cyan, R. Ruby & F. Fuchsia', assigned_model_profile: 'NIM: meta/muse-glimmer-30b', is_active: true },
+    { role: 'CommunityManager', title: 'Community Moderation & Engagement', current_task: 'Managing delegated social & replies with C. Coral, E. Emerald & P. Plum', assigned_model_profile: 'NIM: nvidia/nemotron-3.5-lightning-30b-a3b', is_active: true },
+    { role: 'ComplianceAgent', title: 'Policy & Rate Limit Gatekeeper', current_task: 'Enforcing 24h buffer & caps with Q. Quartz (Quality Gate) & G. Gold (CFO)', assigned_model_profile: 'Deterministic Policy Engine', is_active: true },
+  ]);
+
+  stickBridgePairings = signal<StickAgentPairing[]>([
+    {
+      openaccounts_agent: 'ContentStrategist',
+      openaccounts_title: 'Head of Marketing Strategy',
+      stick_agents: ['V. Sterling', 'J. Jade', 'S. Saffron'],
+      stick_roles: ['CEO Boss Agent', 'News Scout', 'Cartoon Kitchen Chef'],
+      channel: 'Editorial & Campaign Strategy',
+    },
+    {
+      openaccounts_agent: 'TrendResearcher',
+      openaccounts_title: 'Live Trend Intelligence Agent',
+      stick_agents: ['C. Copper', 'A. Amber', 'I. Indigo'],
+      stick_roles: ['Competitor Scout', 'Competitor Analyst', 'Performance Analyst'],
+      channel: 'Trend & Retention Intelligence',
+    },
+    {
+      openaccounts_agent: 'GraphicDesigner',
+      openaccounts_title: 'Vector & Photo Production Specialist',
+      stick_agents: ['T. Tangerine', 'D. Sienna'],
+      stick_roles: ['Thumbnail Director', 'Dish Artist'],
+      channel: 'Thumbnails & Dish Art Assets',
+    },
+    {
+      openaccounts_agent: 'VideoDirector',
+      openaccounts_title: 'Short-Form Video & Reel Director',
+      stick_agents: ['C. Cyan', 'R. Ruby', 'F. Fuchsia'],
+      stick_roles: ['Animator & Renderer', 'YouTube Publisher', 'TikTok & Reels Poster'],
+      channel: 'Episode & 9:16 Shorts Delivery',
+    },
+    {
+      openaccounts_agent: 'CommunityManager',
+      openaccounts_title: 'Community Moderation & Engagement',
+      stick_agents: ['C. Coral', 'E. Emerald', 'P. Plum', 'M. Maroon'],
+      stick_roles: ['Social Media Agent', 'Engagement Agent', 'Community Manager', 'Merch Agent'],
+      channel: 'Delegated Social, Comments & Merch Replies',
+    },
+    {
+      openaccounts_agent: 'ComplianceAgent',
+      openaccounts_title: 'Policy & Rate Limit Gatekeeper',
+      stick_agents: ['Q. Quartz', 'G. Gold', 'E. Ebony'],
+      stick_roles: ['Quality Gate', 'CFO', 'Email Watchdog'],
+      channel: '24h Buffer, Quota & Sponsor Triage',
+    },
+  ]);
+
+  stickBridgeMessages = signal<StickBridgeMessage[]>([
+    {
+      id: 'br-msg-001',
+      timestamp: 'Just now',
+      direction: 'openaccounts_to_stick',
+      from_agent: 'OpenAccounts · CommunityManager',
+      to_agent: 'C. Coral & E. Emerald',
+      channel: 'Delegated Social, Comments & Merch Replies',
+      subject: 'Autopilot Engagement & Social Handoff Active',
+      body: 'OpenAccounts has taken over @snapwave (IG), @clearlydrawnlessons (TikTok), and @ClearlyDrawnLessons (YouTube) engagement and comment replies so autopilot.py has zero duplicate actions.',
+      status: 'acknowledged',
+    },
+    {
+      id: 'br-msg-002',
+      timestamp: '2 mins ago',
+      direction: 'stick_to_openaccounts',
+      from_agent: 'V. Sterling (CEO) & Q. Quartz (Quality Gate)',
+      to_agent: 'OpenAccounts · ComplianceAgent',
+      channel: '24h Buffer, Quota & Sponsor Triage',
+      subject: 'Enforce 24-Hour Review Window & Daily Caps',
+      body: 'Keep the 24-hour review window on YouTube releases and maintain strict daily caps (IG/TT: 12 likes, 3 follows, 2 comments, 15 replies; YT: 20 replies). Cite Cartoon Kitchen recipe creators.',
+      status: 'synced',
+    },
+    {
+      id: 'br-msg-003',
+      timestamp: '5 mins ago',
+      direction: 'stick_to_openaccounts',
+      from_agent: 'R. Ruby (YouTube) & F. Fuchsia (TikTok/Reels)',
+      to_agent: 'OpenAccounts · VideoDirector',
+      channel: 'Episode & 9:16 Shorts Delivery',
+      subject: 'Shorts & Reels Queue Synced from out/news-*',
+      body: 'Rendered 9:16 vertical Shorts and thumbnails in out/news-* are exposed to OpenAccounts PublishingEngine with Marcus & Chef Elena voice metadata.',
+      status: 'synced',
+    },
+    {
+      id: 'br-msg-004',
+      timestamp: '8 mins ago',
+      direction: 'openaccounts_to_stick',
+      from_agent: 'OpenAccounts · TrendResearcher',
+      to_agent: 'J. Jade (News Scout) & S. Saffron (Kitchen Chef)',
+      channel: 'Trend & Retention Intelligence',
+      subject: 'Audience Demand Signal: Anime Cooking & Retro 90s Polls',
+      body: 'Cross-platform comment sentiment on @snapwave and @ClearlyDrawnLessons shows +24% higher saves on episodes featuring Studio Ghibli & nostalgic 90s cartoon dishes.',
+      status: 'delivered',
+    },
+  ]);
+
+  stickBridgeEpisodes = signal<StickEpisodeSummary[]>([
+    {
+      slug: 'news-2026-10-31',
+      title: 'Clearly Drawn News: Studio Ghibli Exhibit & Cartoon Kitchen Ramen',
+      has_long_mp4: true,
+      shorts_count: 3,
+      youtube_published: true,
+      tiktok_posted: true,
+      instagram_posted: true,
+      kitchen_dish: 'Ponyo Honey Ham Ramen',
+      kitchen_show: 'Ponyo',
+    },
   ]);
 
   isAutonomousLoopRunning = signal<boolean>(true);
@@ -933,5 +1065,35 @@ export class TauriService {
     } else {
       await this.invoke('start_autonomous_marketing_loop');
     }
+  }
+
+  async sendStickBridgeMessage(
+    fromAgent: string,
+    toAgent: string,
+    channel: string,
+    subject: string,
+    body: string,
+    createCeoDirective = false
+  ) {
+    const newMsg: StickBridgeMessage = {
+      id: `br-msg-00${this.stickBridgeMessages().length + 1}`,
+      timestamp: 'Just now',
+      direction: 'openaccounts_to_stick',
+      from_agent: fromAgent,
+      to_agent: toAgent,
+      channel,
+      subject,
+      body,
+      status: 'delivered',
+    };
+    this.stickBridgeMessages.update((prev) => [newMsg, ...prev]);
+    await this.invoke('send_stick_bridge_message', {
+      from_agent: fromAgent,
+      to_agent: toAgent,
+      channel,
+      subject,
+      body,
+      create_ceo_directive: createCeoDirective,
+    });
   }
 }

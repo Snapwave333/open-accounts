@@ -1145,7 +1145,66 @@
 
             <div class="agent-footer">
               <span class="status-indicator online"></span>
-              <span class="status-text">Active & Idle</span>
+              <span class="status-text">Bridged with StickExplainers</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- STICKEXPLAINERS <-> OPENACCOUNTS COORDINATION BRIDGE -->
+        <div class="panel-grid-two" style="margin-top: 20px;">
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h3>StickExplainers Studio Coordination Bridge</h3>
+                <span class="mono text-muted" style="font-size: 11px;">Connected to C:\Users\chrom\Desktop\StickExplainers (39 Color Agents + Obsidian Vault)</span>
+              </div>
+              <span class="status-pill green">BRIDGE ONLINE</span>
+            </div>
+
+            <div class="operations-list" style="margin-top: 12px;">
+              <div *ngFor="let pair of tauri.stickBridgePairings()" class="operation-item" style="padding: 10px 12px;">
+                <div class="op-top-row">
+                  <strong>{{ pair.openaccounts_agent }} ({{ pair.openaccounts_title }})</strong>
+                  <span class="badge blue">{{ pair.channel }}</span>
+                </div>
+                <p class="mono text-muted" style="font-size: 12px; margin-top: 4px;">
+                  ↔ StickExplainers: {{ pair.stick_agents.join(', ') }} ({{ pair.stick_roles.join(' · ') }})
+                </p>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 16px;">
+              <label>Dispatch Coordination Directive to StickExplainers Agents</label>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+                <input type="text" placeholder="From OpenAccounts Agent" [ngModel]="bridgeFromAgent()" (ngModelChange)="bridgeFromAgent.set($event)" />
+                <input type="text" placeholder="To StickExplainers Agent (e.g. V. Sterling)" [ngModel]="bridgeToAgent()" (ngModelChange)="bridgeToAgent.set($event)" />
+              </div>
+              <input type="text" placeholder="Subject" style="margin-bottom: 8px;" [ngModel]="bridgeSubject()" (ngModelChange)="bridgeSubject.set($event)" />
+              <textarea rows="2" placeholder="Coordination message / directive..." [ngModel]="bridgeBody()" (ngModelChange)="bridgeBody.set($event)"></textarea>
+              <button class="btn btn-primary full-width" style="margin-top: 8px;" (click)="dispatchBridgeMessage()">
+                <span>Send to StickExplainers Bridge & Obsidian Vault</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <h3>Live Cross-Studio Agent Feed</h3>
+              <span class="badge">{{ tauri.stickBridgeMessages().length }} Synced</span>
+            </div>
+
+            <div class="operations-list" style="margin-top: 12px;">
+              <div *ngFor="let msg of tauri.stickBridgeMessages()" class="operation-item" style="padding: 10px 12px;">
+                <div class="op-top-row">
+                  <span class="mono" style="font-size: 12px; font-weight: 600;">{{ msg.from_agent }} → {{ msg.to_agent }}</span>
+                  <span class="status-pill green">{{ msg.status | uppercase }}</span>
+                </div>
+                <div style="font-weight: 600; margin-top: 4px;">{{ msg.subject }}</div>
+                <p class="op-desc" style="margin-top: 4px;">{{ msg.body }}</p>
+                <div class="mono text-muted" style="font-size: 11px; margin-top: 6px;">
+                  Channel: {{ msg.channel }} • {{ msg.timestamp }}
+                </div>
+              </div>
             </div>
           </div>
         </div>

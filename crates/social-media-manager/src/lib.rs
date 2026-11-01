@@ -1,3 +1,6 @@
+pub mod bridge;
+
+use crate::bridge::{StickBridgeMessage, StickBridgeState, StickExplainersBridge};
 use chrono::{DateTime, Utc};
 use openaccounts_brand_manager::BrandManager;
 use openaccounts_content_strategy::ContentStrategyEngine;
@@ -61,6 +64,7 @@ pub struct SocialMediaManagerAgent {
     pub publishing_engine: Arc<PublishingEngine>,
     pub engagement_agent: Arc<EngagementAgent>,
     pub social_analytics: Arc<SocialAnalyticsEngine>,
+    pub stick_bridge: Arc<StickExplainersBridge>,
     pub is_autonomous_loop_running: Arc<AtomicBool>,
     published_idempotency_keys: Arc<RwLock<HashSet<String>>>,
     last_checkpoint: Arc<RwLock<Option<AutonomousStateCheckpoint>>>,
@@ -82,6 +86,7 @@ impl SocialMediaManagerAgent {
             publishing_engine,
             engagement_agent,
             social_analytics,
+            stick_bridge: Arc::new(StickExplainersBridge::new()),
             is_autonomous_loop_running: Arc::new(AtomicBool::new(false)),
             published_idempotency_keys: Arc::new(RwLock::new(HashSet::new())),
             last_checkpoint: Arc::new(RwLock::new(None)),
@@ -191,6 +196,30 @@ impl SocialMediaManagerAgent {
 
     pub async fn get_last_checkpoint(&self) -> Option<AutonomousStateCheckpoint> {
         self.last_checkpoint.read().await.clone()
+    }
+
+    pub fn get_stick_bridge_state(&self) -> StickBridgeState {
+        self.stick_bridge.load_state()
+    }
+
+    pub fn send_stick_bridge_message(
+        &self,
+        from_agent: &str,
+        to_agent: &str,
+        channel: &str,
+        subject: &str,
+        body: &str,
+        create_ceo_directive: bool,
+    ) -> Result<StickBridgeMessage> {
+        self.stick_bridge.send_message(
+            from_agent,
+            to_agent,
+            channel,
+            subject,
+            body,
+            "openaccounts_to_stick",
+            create_ceo_directive,
+        )
     }
 
     pub fn list_collaborating_agents(&self) -> Vec<SubAgentAssignment> {

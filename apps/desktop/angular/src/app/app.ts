@@ -103,8 +103,16 @@ export class App implements OnInit {
   highContrastFocus = signal<boolean>(false);
 
   // Browser Relay Simulation State
-  activeBrowserUrl = signal<string>('https://instagram.com/explore');
+  activeBrowserUrl = signal<string>('https://instagram.com/snapwave');
   browserStatusText = signal<string>('Active tab lease granted. Origin fenced: *.instagram.com');
+
+  // StickExplainers Bridge Composer State
+  bridgeFromAgent = signal<string>('OpenAccounts · CommunityManager');
+  bridgeToAgent = signal<string>('C. Coral & E. Emerald');
+  bridgeChannel = signal<string>('Delegated Social, Comments & Merch Replies');
+  bridgeSubject = signal<string>('Sync Episode Shorts & Comment Replies');
+  bridgeBody = signal<string>('Ready to publish today’s 3x 9:16 Shorts and reply to top Cartoon Kitchen comments.');
+  bridgeCreateDirective = signal<boolean>(true);
 
   constructor() {
     this.loadPlatformProfiles();
@@ -576,6 +584,20 @@ export class App implements OnInit {
 
   async toggleMarketingLoop() {
     await this.tauri.toggleMarketingLoop();
+  }
+
+  async dispatchBridgeMessage() {
+    if (!this.bridgeSubject() || !this.bridgeBody()) return;
+    await this.tauri.sendStickBridgeMessage(
+      this.bridgeFromAgent(),
+      this.bridgeToAgent(),
+      this.bridgeChannel(),
+      this.bridgeSubject(),
+      this.bridgeBody(),
+      this.bridgeCreateDirective()
+    );
+    this.bridgeSubject.set('');
+    this.bridgeBody.set('');
   }
 
   // Quick Command Palette Navigation
