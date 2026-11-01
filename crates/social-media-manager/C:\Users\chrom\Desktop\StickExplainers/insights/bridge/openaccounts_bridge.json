@@ -1,0 +1,120 @@
+{
+  "bridge_version": "1.0.0",
+  "status": "CONNECTED",
+  "stick_studio_root": "C:\\Users\\chrom\\Desktop\\StickExplainers",
+  "control_room_url": "http://127.0.0.1:4840",
+  "delegation": {
+    "comments_delegated_to_openaccounts": true,
+    "engage_delegated_to_openaccounts": true,
+    "social_agent_delegated_to_openaccounts": true
+  },
+  "pairings": [
+    {
+      "openaccounts_agent": "ContentStrategist",
+      "openaccounts_title": "Head of Marketing Strategy",
+      "stick_agents": [
+        "V. Sterling",
+        "J. Jade",
+        "S. Saffron"
+      ],
+      "stick_roles": [
+        "CEO Boss Agent",
+        "News Scout",
+        "Cartoon Kitchen Chef"
+      ],
+      "channel": "Editorial & Campaign Strategy"
+    },
+    {
+      "openaccounts_agent": "TrendResearcher",
+      "openaccounts_title": "Live Trend Intelligence Agent",
+      "stick_agents": [
+        "C. Copper",
+        "A. Amber",
+        "I. Indigo"
+      ],
+      "stick_roles": [
+        "Competitor Scout",
+        "Competitor Analyst",
+        "Performance Analyst"
+      ],
+      "channel": "Trend & Retention Intelligence"
+    },
+    {
+      "openaccounts_agent": "GraphicDesigner",
+      "openaccounts_title": "Vector & Photo Production Specialist",
+      "stick_agents": [
+        "T. Tangerine",
+        "D. Sienna"
+      ],
+      "stick_roles": [
+        "Thumbnail Director",
+        "Dish Artist"
+      ],
+      "channel": "Thumbnails & Dish Art Assets"
+    },
+    {
+      "openaccounts_agent": "VideoDirector",
+      "openaccounts_title": "Short-Form Video & Reel Director",
+      "stick_agents": [
+        "C. Cyan",
+        "R. Ruby",
+        "F. Fuchsia"
+      ],
+      "stick_roles": [
+        "Animator & Renderer",
+        "YouTube Publisher",
+        "TikTok & Reels Poster"
+      ],
+      "channel": "Episode & 9:16 Shorts Delivery"
+    },
+    {
+      "openaccounts_agent": "CommunityManager",
+      "openaccounts_title": "Community Moderation & Engagement",
+      "stick_agents": [
+        "C. Coral",
+        "E. Emerald",
+        "P. Plum",
+        "M. Maroon"
+      ],
+      "stick_roles": [
+        "Social Media Agent",
+        "Engagement Agent",
+        "Community Manager",
+        "Merch Agent"
+      ],
+      "channel": "Delegated Social, Comments & Merch Replies"
+    },
+    {
+      "openaccounts_agent": "ComplianceAgent",
+      "openaccounts_title": "Policy, Quota & Garbage Collection Gatekeeper",
+      "stick_agents": [
+        "Q. Quartz",
+        "G. Gold",
+        "E. Ebony",
+        "G. Graphite"
+      ],
+      "stick_roles": [
+        "Quality Gate",
+        "CFO",
+        "Email Watchdog",
+        "Garbage Collector"
+      ],
+      "channel": "24h Buffer, Quota, GC & Sponsor Triage"
+    }
+  ],
+  "messages": [
+    {
+      "id": "br-msg-001",
+      "timestamp": "2026-11-01T06:52:06.888002066+00:00",
+      "direction": "openaccounts_to_stick",
+      "from_agent": "OpenAccounts · CommunityManager",
+      "to_agent": "C. Coral & E. Emerald",
+      "channel": "Delegated Social, Comments & Merch Replies",
+      "subject": "Bridge Test Sync",
+      "body": "Verified bidirectional coordination between OpenAccounts and StickExplainers.",
+      "status": "delivered"
+    }
+  ],
+  "latest_episodes": [],
+  "last_synced_at": "2026-11-01T06:52:06.888002066+00:00"
+}

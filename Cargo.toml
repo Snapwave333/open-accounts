@@ -36,6 +36,7 @@ members = [
     "crates/engagement-agent",
     "crates/social-analytics",
     "crates/social-media-manager",
+    "crates/platform-connectors",
     "apps/desktop/src-tauri",
 ]
 
@@ -70,3 +71,7 @@ tauri-build = { version = "2", features = [] }
 tauri-plugin-opener = "2"
 tauri-plugin-stronghold = "2"
 regex = "1.10"
+base64 = "0.22"
+sha2 = "0.10"
+tokio-tungstenite = "0.24"
+sysinfo = "0.33"

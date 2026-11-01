@@ -26,7 +26,7 @@ use openaccounts_social_media_manager::{
 use std::sync::Arc;
 use tauri::State;
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn get_system_stats(state: State<'_, AppState>) -> Result<SystemStats, String> {
     let accounts = state.account_registry.list_accounts().await.unwrap_or_default();
     let tasks = state.human_controller.list_pending_tasks().await;
@@ -45,7 +45,7 @@ pub async fn get_system_stats(state: State<'_, AppState>) -> Result<SystemStats,
     })
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn list_accounts(state: State<'_, AppState>) -> Result<Vec<AccountRecord>, String> {
     state
         .account_registry
@@ -54,7 +54,7 @@ pub async fn list_accounts(state: State<'_, AppState>) -> Result<Vec<AccountReco
         .map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn create_account(
     state: State<'_, AppState>,
     platform: String,
@@ -92,12 +92,12 @@ pub async fn create_account(
     Ok(id.0.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn list_human_tasks(state: State<'_, AppState>) -> Result<Vec<HumanTask>, String> {
     Ok(state.human_controller.list_pending_tasks().await)
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn resolve_human_task(
     state: State<'_, AppState>,
     task_id: String,
@@ -110,12 +110,12 @@ pub async fn resolve_human_task(
         .map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn is_vault_unlocked(state: State<'_, AppState>) -> Result<bool, String> {
     Ok(state.vault.is_unlocked().await)
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn unlock_vault(
     state: State<'_, AppState>,
     password: String,
@@ -123,25 +123,25 @@ pub async fn unlock_vault(
     state.vault.unlock(&password).await.map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn lock_vault(state: State<'_, AppState>) -> Result<(), String> {
     state.vault.lock().await;
     Ok(())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn list_vault_secrets(
     state: State<'_, AppState>,
 ) -> Result<Vec<SecretMetadataView>, String> {
     Ok(state.vault.list_metadata().await)
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn list_lm_profiles(state: State<'_, AppState>) -> Result<Vec<ModelProfile>, String> {
     Ok(state.lm_gateway.list_profiles().await)
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn register_lm_profile(
     state: State<'_, AppState>,
     profile: ModelProfile,
@@ -150,33 +150,33 @@ pub async fn register_lm_profile(
     Ok(())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn trigger_kill_switch(state: State<'_, AppState>) -> Result<(), String> {
     state.automation_engine.trigger_kill_switch();
     Ok(())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn reset_kill_switch(state: State<'_, AppState>) -> Result<(), String> {
     state.automation_engine.reset_kill_switch();
     Ok(())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn is_kill_switch_active(state: State<'_, AppState>) -> Result<bool, String> {
     Ok(state.automation_engine.is_kill_switch_active())
 }
 
 // --- PLATFORM INTELLIGENCE & COMPLIANCE ---
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn list_platform_profiles(
     state: State<'_, AppState>,
 ) -> Result<Vec<PlatformKnowledgeProfile>, String> {
     Ok(state.platform_intelligence.list_profiles().await)
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn get_platform_profile(
     state: State<'_, AppState>,
     platform_id: String,
@@ -184,7 +184,7 @@ pub async fn get_platform_profile(
     Ok(state.platform_intelligence.get_profile(&platform_id).await)
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn check_multi_account_policy(
     state: State<'_, AppState>,
     platform_id: String,
@@ -198,14 +198,14 @@ pub async fn check_multi_account_policy(
         .map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn run_policy_monitor_cycle(
     state: State<'_, AppState>,
 ) -> Result<Vec<PolicyMonitorAlert>, String> {
     Ok(state.policy_monitor.run_policy_check_cycle().await)
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn simulate_policy_change(
     state: State<'_, AppState>,
     platform_id: String,
@@ -219,7 +219,7 @@ pub async fn simulate_policy_change(
     Ok(())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn get_policy_version_history(
     state: State<'_, AppState>,
     platform_id: String,
@@ -229,14 +229,14 @@ pub async fn get_policy_version_history(
 
 // --- EMAIL IDENTITY ---
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn list_email_identities(
     state: State<'_, AppState>,
 ) -> Result<Vec<EmailIdentity>, String> {
     Ok(state.email_manager.list_identities().await)
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn allocate_email_identity(
     state: State<'_, AppState>,
     prefix: String,
@@ -251,7 +251,7 @@ pub async fn allocate_email_identity(
 
 // --- MULTI-ACCOUNT REGISTRY ---
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn list_managed_multi_accounts(
     state: State<'_, AppState>,
 ) -> Result<Vec<ManagedAccountView>, String> {
@@ -264,7 +264,7 @@ pub async fn list_managed_multi_accounts(
 
 // --- 10-STEP MANDATORY ACCOUNT CREATION PREFLIGHT ---
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn execute_10_step_account_preflight(
     state: State<'_, AppState>,
     platform: String,
@@ -303,24 +303,24 @@ pub async fn execute_10_step_account_preflight(
 
 // --- SOCIAL MEDIA MARKETING & CREATIVE ENGINE COMMANDS ---
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn list_brands(state: State<'_, AppState>) -> Result<Vec<BrandProfile>, String> {
     Ok(state.brand_manager.list_brands().await)
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn list_campaigns(state: State<'_, AppState>) -> Result<Vec<CampaignBrief>, String> {
     Ok(state.content_strategy.list_campaigns().await)
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn list_calendar_posts(
     state: State<'_, AppState>,
 ) -> Result<Vec<CalendarPostSlot>, String> {
     Ok(state.content_strategy.list_calendar().await)
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn research_trends(
     state: State<'_, AppState>,
     platform: String,
@@ -328,14 +328,14 @@ pub async fn research_trends(
     Ok(state.content_strategy.research_trends(&platform).await)
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn list_creative_tools(
     state: State<'_, AppState>,
 ) -> Result<Vec<ToolCapability>, String> {
     Ok(state.creative_pipeline.list_tools().await)
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn create_creative_job(
     state: State<'_, AppState>,
     spec: CreativeAssetSpec,
@@ -347,7 +347,7 @@ pub async fn create_creative_job(
         .map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn get_creative_job_status(
     state: State<'_, AppState>,
     job_id: String,
@@ -355,14 +355,14 @@ pub async fn get_creative_job_status(
     Ok(state.creative_pipeline.get_job_status(&job_id).await)
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn list_publishing_posts(
     state: State<'_, AppState>,
 ) -> Result<Vec<SocialPostPayload>, String> {
     Ok(state.publishing_engine.list_posts().await)
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn approve_and_publish_post(
     state: State<'_, AppState>,
     post_id: String,
@@ -375,14 +375,14 @@ pub async fn approve_and_publish_post(
         .map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn list_unified_inbox(
     state: State<'_, AppState>,
 ) -> Result<Vec<UnifiedInboxMessage>, String> {
     Ok(state.engagement_agent.list_inbox().await)
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn approve_and_send_inbox_reply(
     state: State<'_, AppState>,
     message_id: String,
@@ -395,14 +395,14 @@ pub async fn approve_and_send_inbox_reply(
         .map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn list_social_analytics(
     state: State<'_, AppState>,
 ) -> Result<Vec<VerifiedPlatformMetric>, String> {
     Ok(state.social_analytics.list_metrics().await)
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn start_autonomous_marketing_loop(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
@@ -410,7 +410,7 @@ pub async fn start_autonomous_marketing_loop(
     Ok(())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn pause_autonomous_marketing_loop(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
@@ -418,28 +418,28 @@ pub async fn pause_autonomous_marketing_loop(
     Ok(())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn is_autonomous_marketing_loop_running(
     state: State<'_, AppState>,
 ) -> Result<bool, String> {
     Ok(state.social_media_manager.is_loop_running())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn list_collaborating_agents(
     state: State<'_, AppState>,
 ) -> Result<Vec<SubAgentAssignment>, String> {
     Ok(state.social_media_manager.list_collaborating_agents())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn get_stick_bridge_state(
     state: State<'_, AppState>,
 ) -> Result<StickBridgeState, String> {
     Ok(state.social_media_manager.get_stick_bridge_state())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn run_garbage_collection(
     state: State<'_, AppState>,
     apply: bool,
@@ -450,7 +450,7 @@ pub async fn run_garbage_collection(
         .map_err(|e| e.to_string())
 }
 
-#[tauri::command]
+#[tauri::command(rename_all = "snake_case")]
 pub async fn send_stick_bridge_message(
     state: State<'_, AppState>,
     from_agent: String,
