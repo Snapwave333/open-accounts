@@ -104,8 +104,9 @@ const check = (cond, message) => {
     await fanCard.waitFor();
     const legalCard = page.locator('.task-card', { hasText: '@lawfirm' });
     await legalCard.waitFor();
+    await shot(page, 'needs-you');
     check(
-      (await legalCard.textContent()).includes('SECURITY_OR_LEGAL_ESCALATION'),
+      (await legalCard.textContent()).includes('SECURITY OR LEGAL ESCALATION'),
       'legal comment was not escalated',
     );
     check(

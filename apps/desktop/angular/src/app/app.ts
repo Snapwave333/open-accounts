@@ -90,7 +90,7 @@ export class App {
 
   platformSummary = computed(() => {
     const names = Array.from(new Set(this.tauri.accounts().map((a) => a.platform)));
-    return names.length ? names.map((n) => n.charAt(0).toUpperCase() + n.slice(1)).join(' · ') : 'No accounts yet';
+    return names.length ? names.map((n) => this.platformLabel(n)).join(' · ') : 'No accounts yet';
   });
 
   brandKeys = computed(() => Array.from(new Set(this.tauri.accounts().map((a) => this.getAccountBrandKey(a)))).slice(0, 6));
@@ -114,6 +114,25 @@ export class App {
 
   supportsApi(acc: AccountRecord): boolean {
     return API_PLATFORMS.has(acc.platform);
+  }
+
+  platformLabel(p: string): string {
+    const labels: Record<string, string> = {
+      x: 'X',
+      youtube: 'YouTube',
+      tiktok: 'TikTok',
+      instagram: 'Instagram',
+      reddit: 'Reddit',
+      paypal: 'PayPal',
+      shopify: 'Shopify',
+      email: 'Email',
+      discord: 'Discord',
+    };
+    return labels[p] ?? p.charAt(0).toUpperCase() + p.slice(1);
+  }
+
+  labelize(value: string): string {
+    return value.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2');
   }
 
   compact(n?: number | null): string {

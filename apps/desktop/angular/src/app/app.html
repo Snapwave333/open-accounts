@@ -203,10 +203,14 @@
             </div>
           </div>
 
+          <p class="below-hint" *ngIf="tauri.humanTasks().length === 0 && needsYouCount() > 0">
+            No CAPTCHAs or consent screens right now. {{ needsYouCount() }} item(s) below need your review.
+          </p>
+
           <div class="tasks-list" *ngIf="tauri.humanTasks().length > 0">
             <div *ngFor="let task of tauri.humanTasks(); trackBy: trackById" class="task-card">
               <div class="task-title-row">
-                <span class="badge accent">{{ task.challenge_type }}</span>
+                <span class="badge accent">{{ labelize(task.challenge_type) }}</span>
                 <strong>{{ task.title }}</strong>
               </div>
               <p class="task-instructions">{{ task.instructions }}</p>
@@ -238,7 +242,7 @@
               <div class="task-title-row">
                 <ng-container *ngTemplateOutlet="brandLogo; context: { brand: msg.platform, size: 22 }"></ng-container>
                 <strong>{{ msg.author_handle }}</strong>
-                <span class="badge" [class.accent]="!msg.requires_human_approval">{{ msg.category | uppercase }}</span>
+                <span class="badge" [class.accent]="!msg.requires_human_approval">{{ labelize(msg.category) | uppercase }}</span>
                 <span class="mono" style="color: var(--text-muted); font-size: 11px;">{{ formatTime(msg.received_at) }}</span>
               </div>
               <p class="task-instructions">{{ msg.content_text }}</p>
