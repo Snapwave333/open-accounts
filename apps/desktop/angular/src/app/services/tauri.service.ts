@@ -273,6 +273,20 @@ export interface StickEpisodeSummary {
   kitchen_show?: string;
 }
 
+export interface GarbageCollectionReport {
+  executed_at: string;
+  applied: boolean;
+  free_gb: number;
+  freed_this_run_gb: number;
+  freed_total_gb: number;
+  items_cleaned: number;
+  logs_rotated: number;
+  emulator_status: string;
+  orphans_status: string;
+  disk_pressure: boolean;
+  openaccounts_buffers_scrubbed: number;
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -908,6 +922,20 @@ export class TauriService {
     },
   ]);
 
+  gcReport = signal<GarbageCollectionReport>({
+    executed_at: 'Just now',
+    applied: true,
+    free_gb: 80.2,
+    freed_this_run_gb: 0.0,
+    freed_total_gb: 26.37,
+    items_cleaned: 0,
+    logs_rotated: 0,
+    emulator_status: 'emulator not running',
+    orphans_status: '0 orphaned render worker(s)',
+    disk_pressure: false,
+    openaccounts_buffers_scrubbed: 4,
+  });
+
   isAutonomousLoopRunning = signal<boolean>(true);
   vaultUnlocked = signal<boolean>(false);
   killSwitchActive = signal<boolean>(false);
@@ -1042,6 +1070,10 @@ export class TauriService {
         return undefined as unknown as T;
       case 'is_kill_switch_active':
         return this.killSwitchActive() as unknown as T;
+      case 'send_stick_bridge_message':
+        return this.stickBridgeMessages()[0] as unknown as T;
+      case 'run_garbage_collection':
+        return this.gcReport() as unknown as T;
       default:
         return {} as unknown as T;
     }
@@ -1095,5 +1127,19 @@ export class TauriService {
       body,
       create_ceo_directive: createCeoDirective,
     });
+  }
+
+  async triggerGarbageCollection() {
+    const res = await this.invoke<GarbageCollectionReport>('run_garbage_collection', { apply: true });
+    if (res && res.free_gb !== undefined) {
+      this.gcReport.set({ ...res, executed_at: 'Just now' });
+    }
+    this.sendStickBridgeMessage(
+      'OpenAccounts · GarbageCollector',
+      'G. Graphite (Garbage Collector)',
+      '24h Buffer, Quota, GC & Sponsor Triage',
+      'Autonomous Garbage Collection Sweep',
+      `Free disk: ${this.gcReport().free_gb} GB | Reclaimed total: ${this.gcReport().freed_total_gb} GB | Orphans: ${this.gcReport().orphans_status}`
+    );
   }
 }

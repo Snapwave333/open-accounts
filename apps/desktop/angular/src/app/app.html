@@ -1189,8 +1189,18 @@
 
           <div class="panel">
             <div class="panel-header">
-              <h3>Live Cross-Studio Agent Feed</h3>
-              <span class="badge">{{ tauri.stickBridgeMessages().length }} Synced</span>
+              <div>
+                <h3>Live Cross-Studio Agent Feed & Garbage Collector (G. Graphite)</h3>
+                <span class="mono text-muted" style="font-size: 11px;">
+                  Disk Free: {{ tauri.gcReport().free_gb }} GB • Total Reclaimed: {{ tauri.gcReport().freed_total_gb }} GB • {{ tauri.gcReport().orphans_status }}
+                </span>
+              </div>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <button class="btn-micro" (click)="tauri.triggerGarbageCollection()">
+                  <span>Run GC Sweep</span>
+                </button>
+                <span class="badge">{{ tauri.stickBridgeMessages().length }} Synced</span>
+              </div>
             </div>
 
             <div class="operations-list" style="margin-top: 12px;">

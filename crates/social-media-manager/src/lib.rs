@@ -1,6 +1,8 @@
 pub mod bridge;
 
-use crate::bridge::{StickBridgeMessage, StickBridgeState, StickExplainersBridge};
+use crate::bridge::{
+    GarbageCollectionReport, StickBridgeMessage, StickBridgeState, StickExplainersBridge,
+};
 use chrono::{DateTime, Utc};
 use openaccounts_brand_manager::BrandManager;
 use openaccounts_content_strategy::ContentStrategyEngine;
@@ -200,6 +202,10 @@ impl SocialMediaManagerAgent {
 
     pub fn get_stick_bridge_state(&self) -> StickBridgeState {
         self.stick_bridge.load_state()
+    }
+
+    pub fn run_garbage_collection(&self, apply: bool) -> Result<GarbageCollectionReport> {
+        self.stick_bridge.run_garbage_collection(apply)
     }
 
     pub fn send_stick_bridge_message(

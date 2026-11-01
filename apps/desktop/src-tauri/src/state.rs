@@ -270,6 +270,16 @@ impl AppState {
             engagement_agent.clone(),
             social_analytics.clone(),
         ));
+        social_media_manager.start_autonomous_loop();
+        let _ = social_media_manager.execute_autonomous_cycle().await;
+        let _ = social_media_manager.send_stick_bridge_message(
+            "OpenAccounts · SocialMediaManager & EngagementAgent",
+            "V. Sterling, C. Coral & E. Emerald",
+            "Delegated Social, Comments & Merch Replies",
+            "Social Media & Engagement Agents Started",
+            "Autonomous loop active for @snapwave (IG), @clearlydrawnlessons (TikTok), and @ClearlyDrawnLessons (YouTube).",
+            false,
+        );
 
         Self {
             db,

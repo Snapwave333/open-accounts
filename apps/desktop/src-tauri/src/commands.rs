@@ -20,7 +20,7 @@ use openaccounts_policy_versioning::PolicyVersionRecord;
 use openaccounts_publishing_engine::SocialPostPayload;
 use openaccounts_social_analytics::VerifiedPlatformMetric;
 use openaccounts_social_media_manager::{
-    bridge::{StickBridgeMessage, StickBridgeState},
+    bridge::{GarbageCollectionReport, StickBridgeMessage, StickBridgeState},
     SubAgentAssignment,
 };
 use std::sync::Arc;
@@ -437,6 +437,17 @@ pub async fn get_stick_bridge_state(
     state: State<'_, AppState>,
 ) -> Result<StickBridgeState, String> {
     Ok(state.social_media_manager.get_stick_bridge_state())
+}
+
+#[tauri::command]
+pub async fn run_garbage_collection(
+    state: State<'_, AppState>,
+    apply: bool,
+) -> Result<GarbageCollectionReport, String> {
+    state
+        .social_media_manager
+        .run_garbage_collection(apply)
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]

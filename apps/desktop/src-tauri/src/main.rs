@@ -63,6 +63,7 @@ async fn main() {
             is_autonomous_marketing_loop_running,
             list_collaborating_agents,
             get_stick_bridge_state,
+            run_garbage_collection,
             send_stick_bridge_message,
         ])
         .run(tauri::generate_context!())
