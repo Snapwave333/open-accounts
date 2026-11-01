@@ -1,0 +1,737 @@
+<div class="app-layout">
+  <!-- Left Navigation Sidebar -->
+  <aside class="sidebar">
+    <div class="logo-area">
+      <div class="logo-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>
+          <path d="M2 12h20"/>
+        </svg>
+      </div>
+      <div class="logo-text">
+        <span class="brand-title">OpenAccounts</span>
+        <span class="brand-subtitle">LM-Agnostic Operations</span>
+      </div>
+    </div>
+
+    <nav class="nav-links">
+      <button class="nav-item" [class.active]="activeTab() === 'dashboard'" (click)="setTab('dashboard')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect width="7" height="9" x="3" y="3" rx="1"/>
+          <rect width="7" height="5" x="14" y="3" rx="1"/>
+          <rect width="7" height="9" x="14" y="12" rx="1"/>
+          <rect width="7" height="5" x="3" y="16" rx="1"/>
+        </svg>
+        <span>Dashboard</span>
+      </button>
+
+      <button class="nav-item" [class.active]="activeTab() === 'accounts'" (click)="setTab('accounts')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        <span>Accounts</span>
+        <span class="badge">{{ tauri.stats().total_accounts }}</span>
+      </button>
+
+      <button class="nav-item" [class.active]="activeTab() === 'creator'" (click)="setTab('creator')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <line x1="19" x2="19" y1="8" y2="14"/>
+          <line x1="22" x2="16" y1="11" y2="11"/>
+        </svg>
+        <span>Account Creator</span>
+      </button>
+
+      <button class="nav-item" [class.active]="activeTab() === 'automations'" (click)="setTab('automations')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z"/>
+          <path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/>
+          <path d="M12 2v2"/>
+          <path d="M12 20v2"/>
+          <path d="m4.93 4.93 1.41 1.41"/>
+          <path d="m17.66 17.66 1.41 1.41"/>
+          <path d="M2 12h2"/>
+          <path d="M20 12h2"/>
+          <path d="m6.34 17.66-1.41 1.41"/>
+          <path d="m19.07 4.93-1.41 1.41"/>
+        </svg>
+        <span>Automations</span>
+      </button>
+
+      <button class="nav-item" [class.active]="activeTab() === 'human-tasks'" (click)="setTab('human-tasks')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+          <path d="m9 12 2 2 4-4"/>
+        </svg>
+        <span>Human Tasks</span>
+        @if (tauri.stats().pending_human_tasks > 0) {
+          <span class="badge warning">{{ tauri.stats().pending_human_tasks }}</span>
+        }
+      </button>
+
+      <button class="nav-item" [class.active]="activeTab() === 'browser'" (click)="setTab('browser')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect width="20" height="16" x="2" y="4" rx="2"/>
+          <path d="M10 4v4"/>
+          <path d="M2 8h20"/>
+          <circle cx="6" cy="6" r=".5" fill="currentColor"/>
+        </svg>
+        <span>Chrome Relay</span>
+        <span class="status-dot green"></span>
+      </button>
+
+      <button class="nav-item" [class.active]="activeTab() === 'vault'" (click)="setTab('vault')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+        <span>Secure Vault</span>
+        <span class="vault-indicator" [class.unlocked]="tauri.vaultUnlocked()">
+          {{ tauri.vaultUnlocked() ? 'UNLOCKED' : 'LOCKED' }}
+        </span>
+      </button>
+
+      <button class="nav-item" [class.active]="activeTab() === 'providers'" (click)="setTab('providers')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2v4"/>
+          <path d="m4.93 4.93 2.83 2.83"/>
+          <path d="M2 12h4"/>
+          <path d="m4.93 19.07 2.83-2.83"/>
+          <path d="M12 22v-4"/>
+          <path d="m19.07 19.07-2.83-2.83"/>
+          <path d="M22 12h-4"/>
+          <path d="m19.07 4.93-2.83 2.83"/>
+        </svg>
+        <span>LM Gateway</span>
+      </button>
+
+      <button class="nav-item" [class.active]="activeTab() === 'activity'" (click)="setTab('activity')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 12h4l3 8 4-16 3 8h4"/>
+        </svg>
+        <span>Activity Log</span>
+      </button>
+    </nav>
+
+    <!-- Emergency Kill Switch Widget -->
+    <div class="sidebar-footer">
+      <div class="kill-switch-card" [class.halted]="tauri.killSwitchActive()">
+        <div class="ks-header">
+          <span class="ks-label">EMERGENCY KILL SWITCH</span>
+          <span class="ks-state">{{ tauri.killSwitchActive() ? 'HALTED' : 'ARMED' }}</span>
+        </div>
+        <p class="ks-desc">Instantly pauses all browser automation & task queues.</p>
+        <button class="ks-btn" (click)="toggleKillSwitch()">
+          {{ tauri.killSwitchActive() ? 'RESUME AUTOMATION' : 'GLOBAL STOP' }}
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main View Area -->
+  <main class="main-content">
+    <!-- Top Header Bar -->
+    <header class="top-bar">
+      <div class="top-left">
+        <span class="current-section-title">{{ activeTab() | uppercase }}</span>
+        <div class="system-pill" [class.danger]="tauri.killSwitchActive()">
+          <span class="indicator-dot"></span>
+          <span>{{ tauri.stats().system_status }}</span>
+        </div>
+      </div>
+      <div class="top-right">
+        <div class="mode-tag">Tauri 2 + Angular + Rust Core</div>
+        <button class="header-action-btn" (click)="showAddAccountModal.set(true)">
+          + New Account
+        </button>
+      </div>
+    </header>
+
+    <!-- CONTENT PANELS -->
+    <div class="content-scroll">
+      <!-- 1. DASHBOARD TAB -->
+      @if (activeTab() === 'dashboard') {
+        <div class="dashboard-grid">
+          <!-- Metrics Row -->
+          <div class="stats-row">
+            <div class="stat-card">
+              <span class="stat-num">{{ tauri.stats().total_accounts }}</span>
+              <span class="stat-title">Managed Accounts</span>
+              <span class="stat-detail">Across 5 integrated platforms</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-num">{{ tauri.stats().active_automations }}</span>
+              <span class="stat-title">Active Automations</span>
+              <span class="stat-detail">4 comments, 1 sync, 1 moderation</span>
+            </div>
+            <div class="stat-card warning">
+              <span class="stat-num">{{ tauri.stats().pending_human_tasks }}</span>
+              <span class="stat-title">Human Tasks</span>
+              <span class="stat-detail">Awaiting user challenge review</span>
+            </div>
+          </div>
+
+          <!-- Active Operations from PRD -->
+          <div class="section-card">
+            <div class="section-card-header">
+              <h3>Active Operations</h3>
+              <span class="subtext">Real-time orchestrated background workflows</span>
+            </div>
+            <div class="operations-list">
+              <div class="operation-item">
+                <div class="op-status running">
+                  <span class="dot"></span>
+                  <span>Running</span>
+                </div>
+                <div class="op-info">
+                  <h4>Instagram Comments</h4>
+                  <p>Monitoring incoming comments & generating polite brand replies via LM Gateway</p>
+                </div>
+                <div class="op-meta">
+                  <span class="mono">@growth_brand_ai</span>
+                  <span class="tag">Ollama Llama-3.1</span>
+                </div>
+              </div>
+
+              <div class="operation-item attention">
+                <div class="op-status paused">
+                  <span class="dot"></span>
+                  <span>Awaiting Human</span>
+                </div>
+                <div class="op-info">
+                  <h4>Account Registration</h4>
+                  <p class="highlight-warn">Legal acceptance & terms required before proceeding</p>
+                </div>
+                <div class="op-meta">
+                  <span class="mono">Reddit Creator</span>
+                  <button class="mini-btn warning" (click)="setTab('human-tasks')">Open Gate</button>
+                </div>
+              </div>
+
+              <div class="operation-item">
+                <div class="op-status running">
+                  <span class="dot"></span>
+                  <span>Running</span>
+                </div>
+                <div class="op-info">
+                  <h4>YouTube Monitoring</h4>
+                  <p>Tracking video mentions, engagement spikes & comment moderation</p>
+                </div>
+                <div class="op-meta">
+                  <span class="mono">StudioContentSync</span>
+                  <span class="tag">Gemini Flash</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- System Overview Architecture -->
+          <div class="section-card">
+            <div class="section-card-header">
+              <h3>Engine Architecture & Security Status</h3>
+              <span class="subtext">Core Subsystems Status</span>
+            </div>
+            <div class="subsystems-grid">
+              <div class="subsystem-box">
+                <div class="sub-icon">🔐</div>
+                <div class="sub-info">
+                  <strong>Argon2id + AES-256 Vault</strong>
+                  <span>{{ tauri.vaultUnlocked() ? 'Active Key Session' : 'Locked & Zeroized' }}</span>
+                </div>
+              </div>
+              <div class="subsystem-box">
+                <div class="sub-icon">🌐</div>
+                <div class="sub-info">
+                  <strong>Chrome Relay Host</strong>
+                  <span>Origin fenced: Tab Lease Active</span>
+                </div>
+              </div>
+              <div class="subsystem-box">
+                <div class="sub-icon">🧠</div>
+                <div class="sub-info">
+                  <strong>LM Gateway Router</strong>
+                  <span>Multi-provider routing active</span>
+                </div>
+              </div>
+              <div class="subsystem-box">
+                <div class="sub-icon">🛡️</div>
+                <div class="sub-info">
+                  <strong>Permission Engine</strong>
+                  <span>Strict policy enforcement</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- 2. ACCOUNTS TAB -->
+      @if (activeTab() === 'accounts') {
+        <div class="table-container">
+          <div class="table-toolbar">
+            <h3>Registered & Connected Accounts</h3>
+            <button class="primary-btn" (click)="showAddAccountModal.set(true)">+ Add Account</button>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Platform</th>
+                <th>Username</th>
+                <th>Authorized Email</th>
+                <th>Status</th>
+                <th>Last Active</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (acc of tauri.accounts(); track acc.id) {
+                <tr>
+                  <td>
+                    <span class="platform-badge" [attr.data-platform]="acc.platform">
+                      {{ acc.platform | uppercase }}
+                    </span>
+                  </td>
+                  <td><strong>{{ acc.username }}</strong></td>
+                  <td class="mono text-muted">{{ acc.email || '—' }}</td>
+                  <td>
+                    <span class="badge success">{{ acc.status }}</span>
+                  </td>
+                  <td class="text-muted">{{ acc.last_active || 'Just now' }}</td>
+                  <td>
+                    <div class="btn-group">
+                      <button class="mini-btn">Automations</button>
+                      <button class="mini-btn secondary">Vault</button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      <!-- 3. ACCOUNT CREATOR TAB -->
+      @if (activeTab() === 'creator') {
+        <div class="creator-container">
+          <div class="creator-header">
+            <h2>Account Creation & Onboarding Engine</h2>
+            <p>Guided & Autonomous account setup with strict human intervention checkpoints.</p>
+          </div>
+
+          <div class="mode-selector">
+            <button
+              class="mode-btn"
+              [class.active]="creatorMode() === 'guided'"
+              (click)="creatorMode.set('guided')">
+              <strong>Mode A: Guided Account Creation</strong>
+              <span>Browser fills forms, generates credentials, and pauses at challenges.</span>
+            </button>
+            <button
+              class="mode-btn"
+              [class.active]="creatorMode() === 'autonomous'"
+              (click)="creatorMode.set('autonomous')">
+              <strong>Mode B: Autonomous Account Creation</strong>
+              <span>Full execution with auto-verification code retrieval & checkpointing.</span>
+            </button>
+          </div>
+
+          <div class="creator-form-card">
+            <div class="form-row">
+              <div class="form-field">
+                <label>Target Platform</label>
+                <select [(ngModel)]="creatorPlatform">
+                  <option value="instagram">Instagram</option>
+                  <option value="reddit">Reddit</option>
+                  <option value="youtube">YouTube / Google</option>
+                  <option value="discord">Discord</option>
+                  <option value="x">X (formerly Twitter)</option>
+                </select>
+              </div>
+              <div class="form-field">
+                <label>Desired Handle / Username</label>
+                <input type="text" [(ngModel)]="creatorUsername" />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-field">
+                <label>User-Approved Verification Email</label>
+                <input type="email" [(ngModel)]="creatorEmail" />
+              </div>
+              <div class="form-field">
+                <label>Generated High-Entropy Password</label>
+                <div class="input-with-action">
+                  <input type="text" class="mono" [value]="generatedPassword()" readonly />
+                  <button class="mini-btn" (click)="generateNewPassword()">Regenerate</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="workflow-checkpoint-preview">
+              <div class="checkpoint-step active">1. Navigate Portal</div>
+              <div class="checkpoint-step active">2. Populate Fields</div>
+              <div class="checkpoint-step warning">3. Human Gate (CAPTCHA / TOS)</div>
+              <div class="checkpoint-step">4. Store in Vault</div>
+            </div>
+
+            <div class="form-actions">
+              <span class="status-msg mono">{{ creationProgress() }}</span>
+              <button class="primary-btn" [disabled]="isCreating()" (click)="runAccountCreation()">
+                {{ isCreating() ? 'Executing Flow...' : 'Launch Registration Flow' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- 4. AUTOMATIONS TAB -->
+      @if (activeTab() === 'automations') {
+        <div class="automations-container">
+          <div class="creator-header">
+            <h2>Account Automation Manager</h2>
+            <p>Define independent rules, response personalities, and risk guardrails per account.</p>
+          </div>
+
+          <div class="automation-editor-card">
+            <div class="editor-header">
+              <div class="editor-title">
+                <h3>Instagram Comment Automation</h3>
+                <span class="badge success">Active</span>
+              </div>
+              <div class="editor-target">Account: <strong class="mono">@growth_brand_ai</strong></div>
+            </div>
+
+            <div class="editor-body">
+              <div class="form-field">
+                <label>Response Personality & Guardrails (LM Prompt)</label>
+                <textarea rows="4" [(ngModel)]="personalityPrompt"></textarea>
+              </div>
+
+              <div class="form-row">
+                <div class="form-field">
+                  <label>Selected LM Model Adapter</label>
+                  <select>
+                    <option>Ollama (Llama-3.1-8B) — Local & Fast</option>
+                    <option>OpenAI GPT-4o-mini</option>
+                    <option>Anthropic Claude 3.5 Sonnet</option>
+                    <option>Google Gemini 1.5 Pro</option>
+                  </select>
+                </div>
+
+                <div class="form-field">
+                  <label>Confidence Threshold for Auto-Publishing ({{ autoReplyThreshold() }}%)</label>
+                  <input type="range" min="50" max="99" [(ngModel)]="autoReplyThreshold" />
+                </div>
+              </div>
+
+              <div class="permission-pills">
+                <span class="perm-pill allowed">✓ Read Comments: Allowed</span>
+                <span class="perm-pill allowed">✓ Draft Responses: Allowed</span>
+                <span class="perm-pill allowed">✓ Publish Responses: Allowed</span>
+                <span class="perm-pill approval">⚠ Delete Comment: Approval Required</span>
+                <span class="perm-pill denied">✕ Export Credentials: Denied</span>
+              </div>
+
+              <div class="editor-actions">
+                <button class="primary-btn">Save Automation Config</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- 5. HUMAN TASKS TAB -->
+      @if (activeTab() === 'human-tasks') {
+        <div class="human-tasks-container">
+          <div class="creator-header">
+            <h2>Human Intervention Controller</h2>
+            <p>Strict human-only gate. Automation pauses here for CAPTCHAs, legal agreements, and 2FA.</p>
+          </div>
+
+          @if (tauri.humanTasks().length === 0) {
+            <div class="empty-state">
+              <div class="check-icon">✓</div>
+              <h3>No Human Tasks Pending</h3>
+              <p>All automated tasks are operating smoothly within policy boundaries.</p>
+            </div>
+          } @else {
+            <div class="tasks-list">
+              @for (task of tauri.humanTasks(); track task.id) {
+                <div class="task-card">
+                  <div class="task-card-header">
+                    <div class="task-title-group">
+                      <span class="badge warning">{{ task.challenge_type }}</span>
+                      <h3>{{ task.title }}</h3>
+                    </div>
+                    <span class="mono text-muted">{{ task.created_at }}</span>
+                  </div>
+
+                  <p class="task-instructions">{{ task.instructions }}</p>
+
+                  <div class="task-meta-bar">
+                    <span class="mono">Target: {{ task.page_url }}</span>
+                  </div>
+
+                  <div class="task-actions">
+                    <button class="secondary-btn" (click)="setTab('browser')">
+                      Open Live Browser Takeover
+                    </button>
+                    <button class="primary-btn" (click)="tauri.resolveTask(task.id)">
+                      Confirm Action Completed & Resume
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+
+      <!-- 6. CHROME RELAY / BROWSER TAB -->
+      @if (activeTab() === 'browser') {
+        <div class="browser-container">
+          <div class="browser-toolbar">
+            <div class="browser-status">
+              <span class="status-dot green"></span>
+              <strong>OpenCode Chrome Relay: Connected</strong>
+              <span class="text-dim">| Tab Lease: tab_session_8819 | Origin Fence: instagram.com, reddit.com</span>
+            </div>
+            <div class="browser-controls">
+              <button class="mini-btn">Steer Session</button>
+              <button class="mini-btn warning">Pause Automation</button>
+              <button class="mini-btn secondary">Inspect DOM Tree</button>
+            </div>
+          </div>
+
+          <div class="live-browser-viewport">
+            <div class="browser-mock-header">
+              <div class="nav-buttons">
+                <span class="dot red"></span>
+                <span class="dot yellow"></span>
+                <span class="dot green"></span>
+              </div>
+              <div class="url-bar mono">https://www.instagram.com/accounts/emailsignup/</div>
+            </div>
+            <div class="browser-mock-content">
+              <div class="mock-web-page">
+                <h2>Instagram Account Registration</h2>
+                <p class="text-muted">Fields auto-filled by OpenAccounts Rust Engine</p>
+                <div class="mock-form">
+                  <input type="text" value="ops@brand.io" readonly />
+                  <input type="text" value="Brand Ambassador" readonly />
+                  <input type="text" value="growth_brand_ai" readonly />
+                  <input type="password" value="••••••••••••••••••••" readonly />
+                  <div class="captcha-box">
+                    <input type="checkbox" checked disabled />
+                    <span>Cloudflare Turnstile Verified by Human</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- 7. VAULT TAB -->
+      @if (activeTab() === 'vault') {
+        <div class="vault-container">
+          <div class="creator-header">
+            <h2>Encrypted Credential Vault</h2>
+            <p>Protected by Argon2id key derivation and AES-256-GCM. Decrypted only in memory.</p>
+          </div>
+
+          <div class="vault-status-card">
+            <div class="v-status-icon">
+              {{ tauri.vaultUnlocked() ? '🔓' : '🔒' }}
+            </div>
+            <div class="v-status-details">
+              <h3>Vault Status: {{ tauri.vaultUnlocked() ? 'UNLOCKED' : 'LOCKED' }}</h3>
+              <p>
+                {{ tauri.vaultUnlocked()
+                  ? 'Key derived in memory. Memory buffers zeroized upon lock.'
+                  : 'All credentials and tokens remain encrypted on local storage.' }}
+              </p>
+            </div>
+            <div class="v-status-action">
+              @if (tauri.vaultUnlocked()) {
+                <button class="secondary-btn" (click)="lockVault()">Lock Vault Now</button>
+              } @else {
+                <div class="unlock-group">
+                  <input
+                    type="password"
+                    placeholder="Enter Master Password"
+                    [(ngModel)]="vaultPasswordInput" />
+                  <button class="primary-btn" (click)="unlockVault()">Unlock</button>
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="vault-secrets-table">
+            <h3>Stored Secret Grants</h3>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Secret Type</th>
+                  <th>Identifier / Scope</th>
+                  <th>Storage Key</th>
+                  <th>Security Level</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="badge">Password</span></td>
+                  <td>Instagram Primary Credential</td>
+                  <td class="mono">sec_77a9_instagram_pw</td>
+                  <td>AES-256-GCM (Zeroized)</td>
+                </tr>
+                <tr>
+                  <td><span class="badge">SessionCookie</span></td>
+                  <td>Reddit Authenticated Session</td>
+                  <td class="mono">sec_88f2_reddit_session</td>
+                  <td>AES-256-GCM (Zeroized)</td>
+                </tr>
+                <tr>
+                  <td><span class="badge">ApiKey</span></td>
+                  <td>OpenAI / OpenRouter Gateway Key</td>
+                  <td class="mono">sec_110c_lm_gateway_key</td>
+                  <td>AES-256-GCM (Zeroized)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      }
+
+      <!-- 8. LM GATEWAY TAB -->
+      @if (activeTab() === 'providers') {
+        <div class="providers-container">
+          <div class="creator-header">
+            <h2>LM-Agnostic Intelligence Gateway</h2>
+            <p>Configure model adapters and map specific providers to automation tasks.</p>
+          </div>
+
+          <div class="providers-grid">
+            <div class="provider-card">
+              <div class="p-header">
+                <strong>Ollama (Local)</strong>
+                <span class="badge success">Connected</span>
+              </div>
+              <p class="mono text-muted">http://localhost:11434</p>
+              <div class="tag">Llama-3.1-8B-Instruct</div>
+              <div class="task-assignment">Assigned to: Comment Classification</div>
+            </div>
+
+            <div class="provider-card">
+              <div class="p-header">
+                <strong>Google Gemini</strong>
+                <span class="badge success">Active</span>
+              </div>
+              <p class="mono text-muted">gemini-1.5-flash</p>
+              <div class="tag">High Speed / 1M Context</div>
+              <div class="task-assignment">Assigned to: Content Monitoring</div>
+            </div>
+
+            <div class="provider-card">
+              <div class="p-header">
+                <strong>OpenAI Compatible</strong>
+                <span class="badge success">Active</span>
+              </div>
+              <p class="mono text-muted">gpt-4o-mini</p>
+              <div class="tag">Tool Calling Specialist</div>
+              <div class="task-assignment">Assigned to: Browser Recovery</div>
+            </div>
+
+            <div class="provider-card">
+              <div class="p-header">
+                <strong>Anthropic Claude</strong>
+                <span class="badge success">Active</span>
+              </div>
+              <p class="mono text-muted">claude-3-5-sonnet</p>
+              <div class="tag">Complex Reasoning</div>
+              <div class="task-assignment">Assigned to: Security & Ambiguity Check</div>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- 9. ACTIVITY & AUDIT TAB -->
+      @if (activeTab() === 'activity') {
+        <div class="activity-container">
+          <div class="creator-header">
+            <h2>Unified Activity & Tamper-Evident Audit Journal</h2>
+            <p>Every autonomous action carries an execution ID, timestamp, and verification hash.</p>
+          </div>
+
+          <div class="audit-timeline">
+            <div class="timeline-item">
+              <span class="time-stamp mono">2026-10-31 20:05:12</span>
+              <div class="timeline-dot green"></div>
+              <div class="timeline-content">
+                <strong>Automated Reply Published</strong>
+                <span class="mono text-muted">@growth_brand_ai on Instagram Post #99214</span>
+                <p>"Thank you for reaching out! We sent you a DM with details."</p>
+              </div>
+            </div>
+
+            <div class="timeline-item">
+              <span class="time-stamp mono">2026-10-31 19:42:00</span>
+              <div class="timeline-dot yellow"></div>
+              <div class="timeline-content">
+                <strong>Human Gate Escalation Triggered</strong>
+                <span class="mono text-muted">Reddit Terms of Service update detected</span>
+                <p>Automation safely paused. Human intervention request dispatched.</p>
+              </div>
+            </div>
+
+            <div class="timeline-item">
+              <span class="time-stamp mono">2026-10-31 18:20:44</span>
+              <div class="timeline-dot green"></div>
+              <div class="timeline-content">
+                <strong>YouTube Comment Moderation Check</strong>
+                <span class="mono text-muted">StudioContentSync processed 42 incoming comments</span>
+                <p>0 spam flags, 2 customer questions escalated to drafts.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </main>
+</div>
+
+<!-- Add Account Modal -->
+@if (showAddAccountModal()) {
+  <div class="modal-overlay" (click)="showAddAccountModal.set(false)">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <h3>Connect New Online Account</h3>
+      <div class="form-field">
+        <label>Platform</label>
+        <select [(ngModel)]="newAccPlatform">
+          <option value="instagram">Instagram</option>
+          <option value="reddit">Reddit</option>
+          <option value="youtube">YouTube</option>
+          <option value="discord">Discord</option>
+          <option value="x">X</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label>Username / Handle</label>
+        <input type="text" [(ngModel)]="newAccUsername" placeholder="e.g. brand_operations" />
+      </div>
+      <div class="form-field">
+        <label>Email Address</label>
+        <input type="email" [(ngModel)]="newAccEmail" placeholder="ops@domain.com" />
+      </div>
+      <div class="modal-actions">
+        <button class="secondary-btn" (click)="showAddAccountModal.set(false)">Cancel</button>
+        <button class="primary-btn" (click)="handleAddAccount()">Register Account</button>
+      </div>
+    </div>
+  </div>
+}

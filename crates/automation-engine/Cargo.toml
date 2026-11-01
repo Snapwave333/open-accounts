@@ -1,0 +1,21 @@
+[package]
+name = "openaccounts-automation-engine"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+openaccounts-core = { path = "../core" }
+openaccounts-permission-engine = { path = "../permission-engine" }
+openaccounts-audit-engine = { path = "../audit-engine" }
+openaccounts-human-intervention = { path = "../human-intervention" }
+openaccounts-lm-gateway = { path = "../lm-gateway" }
+openaccounts-browser-abstraction = { path = "../browser-abstraction" }
+openaccounts-database = { path = "../database" }
+serde.workspace = true
+serde_json.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+tokio.workspace = true
+tracing.workspace = true

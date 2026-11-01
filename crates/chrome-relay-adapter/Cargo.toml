@@ -1,0 +1,16 @@
+[package]
+name = "openaccounts-chrome-relay-adapter"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+openaccounts-core = { path = "../core" }
+openaccounts-browser-abstraction = { path = "../browser-abstraction" }
+async-trait.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+reqwest.workspace = true
+tracing.workspace = true

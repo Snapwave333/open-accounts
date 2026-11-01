@@ -1,0 +1,53 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/core",
+    "crates/database",
+    "crates/audit-engine",
+    "crates/event-bus",
+    "crates/permission-engine",
+    "crates/credential-vault",
+    "crates/lm-gateway",
+    "crates/browser-abstraction",
+    "crates/chrome-relay-adapter",
+    "crates/embedded-browser-adapter",
+    "crates/api-adapter",
+    "crates/human-intervention",
+    "crates/account-registry",
+    "crates/account-creator",
+    "crates/automation-engine",
+    "crates/workflow-runtime",
+    "crates/scheduler",
+    "apps/desktop/src-tauri",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["OpenAccounts Contributors"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/OpenAccounts/OpenAccounts"
+
+[workspace.dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.40", features = ["full"] }
+thiserror = "2.0"
+anyhow = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+uuid = { version = "1.10", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+async-trait = "0.1"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "sqlite", "macros", "chrono", "uuid"] }
+zeroize = { version = "1.8", features = ["derive"] }
+aes-gcm = "0.10"
+argon2 = "0.5"
+rand = "0.8"
+subtle = "2.6"
+futures = "0.3"
+tauri = { version = "2", features = [] }
+tauri-build = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+tauri-plugin-stronghold = "2"

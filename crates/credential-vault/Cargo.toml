@@ -1,0 +1,20 @@
+[package]
+name = "openaccounts-credential-vault"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+openaccounts-core = { path = "../core" }
+serde.workspace = true
+serde_json.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+zeroize.workspace = true
+aes-gcm.workspace = true
+argon2.workspace = true
+rand.workspace = true
+subtle.workspace = true
+tokio.workspace = true
+tracing.workspace = true

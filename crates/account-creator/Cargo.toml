@@ -1,0 +1,20 @@
+[package]
+name = "openaccounts-account-creator"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+openaccounts-core = { path = "../core" }
+openaccounts-browser-abstraction = { path = "../browser-abstraction" }
+openaccounts-credential-vault = { path = "../credential-vault" }
+openaccounts-human-intervention = { path = "../human-intervention" }
+openaccounts-account-registry = { path = "../account-registry" }
+serde.workspace = true
+serde_json.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+rand.workspace = true
+tokio.workspace = true
+tracing.workspace = true
