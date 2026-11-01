@@ -340,12 +340,17 @@ impl AppState {
         )
         .await;
 
-        let (agent, registry, engine) = (self.engagement_agent.clone(), self.account_registry.clone(), self.automation_engine.clone());
+        let (agent, registry, engine, manager) = (
+            self.engagement_agent.clone(),
+            self.account_registry.clone(),
+            self.automation_engine.clone(),
+            self.social_media_manager.clone(),
+        );
         register(
             "Inbox sync",
             "every 10m",
             handler(move || {
-                let (agent, registry, engine) = (agent.clone(), registry.clone(), engine.clone());
+                let (agent, registry, engine, manager) = (agent.clone(), registry.clone(), engine.clone(), manager.clone());
                 async move {
                     if engine.is_kill_switch_active() {
                         return Ok("skipped: kill switch active".into());
@@ -362,11 +367,17 @@ impl AppState {
                             Err(e) => errors.push(format!("{}: {}", acc.username, e)),
                         }
                     }
-                    Ok(if errors.is_empty() {
-                        format!("{synced} new interactions")
-                    } else {
-                        format!("{synced} new interactions · {}", errors.join("; "))
-                    })
+                    let mut auto_replied = 0usize;
+                    if manager.is_loop_running() && !engine.is_kill_switch_active() {
+                        for outcome in agent.auto_reply_pending().await {
+                            match outcome {
+                                Ok(_) => auto_replied += 1,
+                                Err(e) => errors.push(format!("auto-reply: {e}")),
+                            }
+                        }
+                    }
+                    let summary = format!("{synced} new interactions · {auto_replied} auto-replies");
+                    Ok(if errors.is_empty() { summary } else { format!("{summary} · {}", errors.join("; ")) })
                 }
             }),
         )

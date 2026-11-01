@@ -338,3 +338,32 @@ async fn caps_and_inbox_survive_a_restart() {
     assert_eq!(second.get_message(&msg_id).await.unwrap().status, "Archived");
     assert!(second.sync_inbox(account, "youtube").await.unwrap().is_empty(), "synced items must not be re-ingested");
 }
+
+#[tokio::test]
+async fn auto_reply_only_sends_safe_drafted_messages() {
+    let yt = RecordingConnector::with_inbox(
+        "youtube",
+        vec![
+            interaction("c-fan", "@fan", "Love this channel, amazing work!", InteractionKind::Comment),
+            interaction("c-angry", "@upset", "This is the worst, I want a refund", InteractionKind::Comment),
+            interaction("c-legal", "@firm", "Our lawyer is reviewing a copyright claim", InteractionKind::Comment),
+        ],
+    );
+    let agent = agent_with(vec![("youtube", yt.clone())]);
+    let account = AccountId::new();
+    agent.sync_inbox(account.clone(), "youtube").await.unwrap();
+
+    let outcomes = agent.auto_reply_pending().await;
+    assert_eq!(outcomes.len(), 1, "only the compliment is eligible for auto-reply");
+    assert!(outcomes[0].is_ok());
+    let calls = yt.calls();
+    assert_eq!(calls.len(), 1);
+    assert!(calls[0].starts_with("reply:c-fan|"));
+    assert!(agent.auto_reply_pending().await.is_empty(), "replied messages are not sent twice");
+
+    let inbox = agent.list_inbox().await;
+    for remote in ["c-angry", "c-legal"] {
+        let msg = inbox.iter().find(|m| m.remote_id.as_deref() == Some(remote)).unwrap();
+        assert_eq!(msg.status, STATUS_PENDING_APPROVAL, "{remote} must wait for a human");
+    }
+}
