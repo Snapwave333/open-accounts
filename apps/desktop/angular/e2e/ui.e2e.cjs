@@ -80,10 +80,44 @@ const check = (cond, message) => {
     await chips.first().waitFor();
     await shot(page, 'accounts');
     check((await chips.count()) >= 5, 'connection statuses missing');
+    await page.locator('.connection-chip.ok', { hasText: 'YouTube' }).waitFor();
     check(
-      (await page.locator('.connection-chip.ok').count()) === 0,
-      'a service claims to be connected without credentials',
+      (await page.locator('.connection-chip.ok').count()) === 1,
+      'only the connected YouTube account should show as connected',
     );
+
+    const ytRow = page.locator('tr', { hasText: '@ClearlyDrawnLessons' });
+    await ytRow.getByRole('button', { name: 'Sync inbox' }).click();
+    await page.waitForTimeout(800);
+    check((await banner()) === null, `inbox sync raised: ${await banner()}`);
+    await ytRow.getByRole('button', { name: 'Metrics' }).click();
+    await page.waitForTimeout(500);
+    check((await banner()) === null, `metrics refresh raised: ${await banner()}`);
+
+    await tab('Needs You');
+    const fanCard = page.locator('.task-card', { hasText: '@viewer' });
+    await fanCard.waitFor();
+    const legalCard = page.locator('.task-card', { hasText: '@lawfirm' });
+    await legalCard.waitFor();
+    check(
+      (await legalCard.textContent()).includes('SECURITY_OR_LEGAL_ESCALATION'),
+      'legal comment was not escalated',
+    );
+    check(
+      (await legalCard.locator('textarea').inputValue()) === '',
+      'escalations must not get an auto-drafted reply',
+    );
+    check(
+      (await fanCard.locator('textarea').inputValue()).length > 0,
+      'compliment should arrive with a drafted reply',
+    );
+    await fanCard.locator('textarea').fill('Thanks so much from the whole studio!');
+    await fanCard.getByRole('button', { name: 'Send Reply' }).click();
+    await fanCard.waitFor({ state: 'detached' });
+    check(await legalCard.isVisible(), 'escalated message should still wait for review');
+    await legalCard.getByRole('button', { name: 'Archive' }).click();
+    await legalCard.waitFor({ state: 'detached' });
+    await tab('Accounts');
 
     await page
       .locator('td', { hasText: '@e2e_browser' })

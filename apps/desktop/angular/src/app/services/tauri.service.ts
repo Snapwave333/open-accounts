@@ -132,6 +132,7 @@ export interface AgentChatMessage {
 }
 
 export interface ConnectionStatus {
+  id: string;
   service: string;
   kind: 'social' | 'email' | 'lm' | string;
   connected: boolean;
@@ -247,7 +248,7 @@ export class TauriService {
   inboxNeedingReview = computed(() =>
     this.inbox().filter((m) => (m.status === 'New' || m.status === 'PendingApproval') && (m.requires_human_approval || !!m.drafted_reply))
   );
-  connectedPlatforms = computed(() => new Set(this.connections().filter((c) => c.kind === 'social' && c.connected).map((c) => c.service)));
+  connectedPlatforms = computed(() => new Set(this.connections().filter((c) => c.kind === 'social' && c.connected).map((c) => c.id)));
   justDidItems = computed(() => this.flow().just_did);
   activelyDoingItems = computed(() => this.flow().actively_doing);
   planToDoNextItems = computed(() => this.flow().up_next);

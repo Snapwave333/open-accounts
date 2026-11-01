@@ -12,6 +12,7 @@ pub type ConnectionCache = Option<(Instant, Vec<ConnectionStatus>)>;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct ConnectionStatus {
+    pub id: String,
     pub service: String,
     pub kind: String,
     pub connected: bool,
@@ -42,6 +43,7 @@ pub fn service_label(platform: &str) -> String {
 
 async fn social(state: &AppState, platform: &str) -> ConnectionStatus {
     let status = |connected: bool, detail: String| ConnectionStatus {
+        id: platform.to_string(),
         service: service_label(platform),
         kind: "social".into(),
         connected,
@@ -74,7 +76,7 @@ async fn email(state: &AppState, provider_id: String) -> ConnectionStatus {
         },
         None => (false, "Not registered".into()),
     };
-    ConnectionStatus { service: service_label(&provider_id), kind: "email".into(), connected, detail }
+    ConnectionStatus { id: provider_id.clone(), service: service_label(&provider_id), kind: "email".into(), connected, detail }
 }
 
 async fn language_models(state: &AppState) -> Vec<ConnectionStatus> {
@@ -100,6 +102,7 @@ async fn language_models(state: &AppState) -> Vec<ConnectionStatus> {
             (true, None) => profile.model_id.clone(),
         };
         out.push(ConnectionStatus {
+            id: profile.id.clone(),
             service: if profile.id == openaccounts_lm_gateway::DEFAULT_PROFILE_ID {
                 "NVIDIA NIM cascade".into()
             } else {
@@ -126,6 +129,7 @@ pub async fn statuses(state: &AppState, force: bool) -> Vec<ConnectionStatus> {
     let mut out = socials.await;
     if providers.is_empty() {
         out.push(ConnectionStatus {
+            id: "email".into(),
             service: "Email".into(),
             kind: "email".into(),
             connected: false,

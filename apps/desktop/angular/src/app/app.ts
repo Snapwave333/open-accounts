@@ -110,7 +110,7 @@ export class App {
   trackById = (_: number, item: { id: string }) => item.id;
   trackByMessage = (_: number, item: InboxMessage) => item.message_id;
   trackByAccount = (_: number, item: { account_id: string }) => item.account_id;
-  trackByService = (_: number, item: { service: string; kind: string }) => `${item.kind}:${item.service}`;
+  trackByService = (_: number, item: { id: string; kind: string }) => `${item.kind}:${item.id}`;
 
   supportsApi(acc: AccountRecord): boolean {
     return API_PLATFORMS.has(acc.platform);

@@ -1,7 +1,16 @@
 use crate::{commands::*, state::AppState};
 use regex::Regex;
 use serde_json::{json, Value};
-use std::collections::BTreeSet;
+use async_trait::async_trait;
+use openaccounts_platform_connectors::{
+    InteractionKind, PlatformAuthInfo, PlatformConnector, PublishRequest, RemoteActionReceipt, RemoteInteraction,
+    RemoteMetrics,
+};
+use std::{
+    collections::BTreeSet,
+    sync::{Arc, Mutex},
+};
+use tauri::Manager;
 use tauri::{
     ipc::{CallbackFn, InvokeBody},
     test::{get_ipc_response, mock_builder, mock_context, noop_assets, INVOKE_KEY},
@@ -130,7 +139,11 @@ fn ui_payloads_round_trip_through_real_ipc() {
     assert_eq!(h.ok("reveal_vault_secret", json!({ "secret_id": secret_id })), "tok-ipc");
     assert_eq!(h.ok("list_vault_secrets", json!({})).as_array().unwrap().len(), 1);
     let connections = h.ok("get_connection_status", json!({ "force": false }));
-    assert!(connections.as_array().unwrap().iter().any(|c| c["kind"] == "social"));
+    assert!(connections
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|c| c["kind"] == "social" && c["id"] == "youtube" && c["service"] == "YouTube"));
     h.ok("delete_vault_secret", json!({ "secret_id": secret_id }));
     h.ok("lock_vault", json!({}));
     assert!(h.err("list_vault_secrets", json!({})).contains("locked"));
@@ -239,6 +252,78 @@ fn ui_payloads_round_trip_through_real_ipc() {
 
     drop(h);
     std::fs::remove_dir_all(&root).ok();
+}
+
+#[derive(Default)]
+struct StudioYouTube {
+    replies: Mutex<Vec<String>>,
+}
+
+#[async_trait]
+impl PlatformConnector for StudioYouTube {
+    fn platform(&self) -> &str {
+        "youtube"
+    }
+    async fn verify_auth(&self) -> openaccounts_core::Result<PlatformAuthInfo> {
+        Ok(PlatformAuthInfo {
+            platform: "youtube".into(),
+            account_handle: Some("@ClearlyDrawnLessons".into()),
+            account_remote_id: Some("UC-e2e".into()),
+            scopes: vec![],
+            is_authenticated: true,
+            error: None,
+        })
+    }
+    async fn like(&self, _: &str) -> openaccounts_core::Result<RemoteActionReceipt> {
+        Err(openaccounts_core::OpenAccountsError::Automation("not used".into()))
+    }
+    async fn follow(&self, _: &str) -> openaccounts_core::Result<RemoteActionReceipt> {
+        Err(openaccounts_core::OpenAccountsError::Automation("not used".into()))
+    }
+    async fn subscribe(&self, _: &str) -> openaccounts_core::Result<RemoteActionReceipt> {
+        Err(openaccounts_core::OpenAccountsError::Automation("not used".into()))
+    }
+    async fn reshare(&self, _: &str, _: Option<&str>) -> openaccounts_core::Result<RemoteActionReceipt> {
+        Err(openaccounts_core::OpenAccountsError::Automation("not used".into()))
+    }
+    async fn comment(&self, _: &str, _: &str) -> openaccounts_core::Result<RemoteActionReceipt> {
+        Err(openaccounts_core::OpenAccountsError::Automation("not used".into()))
+    }
+    async fn reply(&self, target: &str, text: &str) -> openaccounts_core::Result<RemoteActionReceipt> {
+        self.replies.lock().unwrap().push(format!("{target}|{text}"));
+        Ok(RemoteActionReceipt { remote_id: format!("r-{target}"), permalink: Some(format!("https://youtube.com/c/{target}")) })
+    }
+    async fn publish(&self, _: PublishRequest) -> openaccounts_core::Result<RemoteActionReceipt> {
+        Err(openaccounts_core::OpenAccountsError::Automation("not used".into()))
+    }
+    async fn fetch_inbox(
+        &self,
+        _since: Option<chrono::DateTime<chrono::Utc>>,
+        _limit: u32,
+    ) -> openaccounts_core::Result<Vec<RemoteInteraction>> {
+        let now = chrono::Utc::now();
+        Ok(vec![
+            RemoteInteraction {
+                remote_id: "c-viewer".into(),
+                author_handle: "@viewer".into(),
+                kind: InteractionKind::Comment,
+                text: "Love this episode, amazing animation!".into(),
+                permalink: Some("https://youtube.com/watch?v=e2e&lc=c-viewer".into()),
+                created_at: now,
+            },
+            RemoteInteraction {
+                remote_id: "c-legal".into(),
+                author_handle: "@lawfirm".into(),
+                kind: InteractionKind::Comment,
+                text: "Our attorney is reviewing a copyright claim on this video".into(),
+                permalink: None,
+                created_at: now,
+            },
+        ])
+    }
+    async fn fetch_metrics(&self) -> openaccounts_core::Result<RemoteMetrics> {
+        Ok(RemoteMetrics { followers: Some(1234), views: Some(98765), posts: Some(42), ..Default::default() })
+    }
 }
 
 fn content_type(path: &std::path::Path) -> &'static str {
@@ -372,6 +457,8 @@ fn ui_end_to_end_in_real_browser() {
     let script = manifest.join("../angular/e2e/ui.e2e.cjs");
     let root = std::env::temp_dir().join(format!("oa-ui-e2e-{}", uuid::Uuid::new_v4()));
     let (rt, h) = boot(&root);
+    let youtube = Arc::new(StudioYouTube::default());
+    h._app.state::<AppState>().connectors.set_connector("youtube", youtube.clone());
 
     let listener = rt.block_on(tokio::net::TcpListener::bind("127.0.0.1:0")).unwrap();
     let url = format!("http://{}/", listener.local_addr().unwrap());
@@ -395,8 +482,10 @@ fn ui_end_to_end_in_real_browser() {
         .expect("node is required for the UI end-to-end test");
     let stdout = String::from_utf8_lossy(&output.stdout);
     let stderr = String::from_utf8_lossy(&output.stderr);
+    let replies = youtube.replies.lock().unwrap().clone();
     drop(h);
     std::fs::remove_dir_all(&root).ok();
     println!("{stdout}");
+    assert_eq!(replies, vec!["c-viewer|Thanks so much from the whole studio!".to_string()], "{stdout}\n{stderr}");
     assert!(output.status.success(), "UI e2e failed\n{stdout}\n{stderr}");
 }
