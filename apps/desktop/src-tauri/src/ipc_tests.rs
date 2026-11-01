@@ -21,6 +21,10 @@ use tauri::{
 const MAIN_RS: &str = include_str!("main.rs");
 const UI_SERVICE: &str = include_str!("../../angular/src/app/services/tauri.service.ts");
 
+fn which_ffmpeg() -> bool {
+    std::process::Command::new("ffmpeg").arg("-version").output().map(|o| o.status.success()).unwrap_or(false)
+}
+
 fn registered_commands() -> BTreeSet<String> {
     let start = MAIN_RS.find("generate_handler![").expect("handler list");
     let end = MAIN_RS[start..].find(']').expect("handler end") + start;
@@ -244,6 +248,37 @@ fn ui_payloads_round_trip_through_real_ipc() {
     assert_eq!(calendar.as_array().unwrap().iter().find(|s| s["slot_id"] == slot_id).unwrap()["is_approved"], true);
     assert!(h.err("draft_post_caption", json!({ "account_id": x_id, "brief": "" })).contains("Describe"));
     h.ok("delete_calendar_slot", json!({ "slot_id": slot_id }));
+    assert!(h.err("render_post_video", json!({ "account_id": x_id, "title": "", "script": "  " })).contains("caption"));
+    let job_id = h.ok(
+        "render_post_video",
+        json!({ "account_id": x_id, "title": "Launch teaser", "script": "Shipping today", "duration_seconds": 1.5 }),
+    );
+    let job_id = job_id.as_str().unwrap().to_string();
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(90);
+    let job = loop {
+        let job = h.ok("get_creative_job_status", json!({ "job_id": job_id }));
+        if job["status"] == "Completed" || job["status"] == "Failed" || std::time::Instant::now() > deadline {
+            break job;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(250));
+    };
+    if which_ffmpeg() {
+        assert_eq!(job["status"], "Completed", "{job}");
+        let path = job["output_path"].as_str().unwrap().to_string();
+        assert!(std::path::Path::new(&path).is_file());
+        assert_eq!(job["validation"]["width"], 1920);
+        let media_slot = h.ok("schedule_post", json!({ "account_id": x_id, "caption": "With video", "media": [path] }));
+        assert_eq!(media_slot["content_type"], "Media_Post");
+        let flow = h.ok("get_activity_flow", json!({}));
+        assert!(flow["just_did"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|i| i["kind"] == "render" && i["title"] == "Render: Launch teaser" && i["platform"] == "x"));
+        h.ok("delete_calendar_slot", json!({ "slot_id": media_slot["slot_id"] }));
+    } else {
+        assert_eq!(job["status"], "Failed");
+    }
     assert!(h.err("delete_calendar_slot", json!({ "slot_id": slot_id })).contains("not found"));
     h.ok("delete_account", json!({ "account_id": x_id }));
 

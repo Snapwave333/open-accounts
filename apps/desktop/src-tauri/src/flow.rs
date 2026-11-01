@@ -137,11 +137,17 @@ pub async fn build(state: &AppState) -> ActivityFlow {
 
     for job in state.creative_pipeline.list_jobs().await {
         let updated = job.updated_at.unwrap_or(job.created_at);
+        let spec = state.creative_pipeline.get_job_spec(&job.job_id).await;
+        let render_platform = spec
+            .as_ref()
+            .and_then(|s| s.target_platforms.first().cloned())
+            .unwrap_or_else(|| "system".into());
+        let render_title = spec.as_ref().map(|s| s.title.clone()).unwrap_or_else(|| job.asset_id.clone());
         let item = FlowCardItem {
             id: format!("render-{}", job.job_id),
             kind: "render".into(),
             ref_id: Some(job.job_id.clone()),
-            title: format!("Render {}", job.asset_id),
+            title: format!("Render: {}", render_title),
             detail: match (&job.error_message, &job.output_path) {
                 (Some(err), _) => truncate(err, 140),
                 (None, Some(path)) => path.clone(),
@@ -151,7 +157,7 @@ pub async fn build(state: &AppState) -> ActivityFlow {
             time_label: relative(updated, now),
             eta: None,
             progress: Some(job.progress_percent),
-            platform: "youtube".into(),
+            platform: render_platform,
             account_handle: "Creative pipeline".into(),
             can_run_now: job.status == "Queued",
             sort_key: updated,

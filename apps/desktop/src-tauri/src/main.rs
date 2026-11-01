@@ -63,6 +63,7 @@ macro_rules! app_commands {
             list_creative_tools,
             rediscover_creative_tools,
             create_creative_job,
+            render_post_video,
             get_creative_job_status,
             list_creative_jobs,
             list_publishing_posts,

@@ -221,6 +221,28 @@ const check = (cond, message) => {
       .click();
     await slotCard.waitFor({ state: 'detached' });
 
+    await accountSelect.selectOption(firstAccount);
+    await page.getByPlaceholder('Caption').fill('New episode tonight #animation');
+    await page.getByRole('button', { name: 'Render video' }).click();
+    await page.locator('.media-chip', { hasText: 'Video ready' }).waitFor({ timeout: 90000 });
+    await page.getByRole('button', { name: 'Schedule post' }).click();
+    const mediaCard = page.locator('.flow-card', { hasText: 'New episode tonight' });
+    await mediaCard.waitFor();
+    check(
+      (await mediaCard.textContent()).includes('Media Post'),
+      'rendered video was not attached to the post',
+    );
+    check(
+      (await page.locator('.flow-card', { hasText: 'Render: ' }).count()) >= 1,
+      'render job missing from the activity flow',
+    );
+    check(
+      (await page.locator('.media-chip').count()) === 0,
+      'compose form should reset after scheduling',
+    );
+    await mediaCard.getByRole('button', { name: 'Delete' }).click();
+    await mediaCard.waitFor({ state: 'detached' });
+
     await page.getByRole('button', { name: 'Resume' }).click();
     await page.locator('.status-label', { hasText: 'AUTOPILOT' }).waitFor();
     await page.getByRole('button', { name: 'Kill Switch' }).click();

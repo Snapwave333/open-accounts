@@ -373,7 +373,21 @@
             <button class="btn btn-secondary" [disabled]="!composeAccount() || tauri.isBusy('draft-caption')" (click)="draftCaption()">
               {{ tauri.isBusy('draft-caption') ? 'Drafting…' : 'Draft with AI' }}
             </button>
+            <button
+              class="btn btn-secondary"
+              [disabled]="!composeAccount() || !(composeCaption().trim() || composeBrief().trim()) || tauri.isBusy('render')"
+              (click)="renderVideo()"
+            >
+              {{ tauri.isBusy('render') ? 'Rendering ' + (renderJob()?.progress_percent ?? 0) + '%' : 'Render video' }}
+            </button>
           </div>
+          <div class="media-chips" *ngIf="composeMedia().length > 0">
+            <span *ngFor="let path of composeMedia()" class="media-chip" [title]="path">
+              🎬 Video ready · {{ fileName(path) }}
+              <button class="staged-remove" (click)="composeMedia.set([])" aria-label="Remove video">×</button>
+            </span>
+          </div>
+          <p class="below-hint" *ngIf="renderJob() && tauri.isBusy('render')">{{ renderJob()!.current_stage }}</p>
           <textarea class="reply-editor" rows="3" placeholder="Caption" aria-label="Caption" [ngModel]="composeCaption()" (ngModelChange)="composeCaption.set($event)"></textarea>
           <div class="compose-row">
             <span class="mono compose-count" [class.over]="composeCaption().length > composeLimit()">{{ composeCaption().length }}/{{ composeLimit() }}</span>

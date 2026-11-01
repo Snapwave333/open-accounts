@@ -697,6 +697,42 @@ pub async fn create_creative_job(state: State<'_, AppState>, spec: CreativeAsset
 }
 
 #[tauri::command(rename_all = "snake_case")]
+pub async fn render_post_video(
+    state: State<'_, AppState>,
+    account_id: String,
+    title: String,
+    script: String,
+    duration_seconds: Option<f32>,
+) -> CmdResult<String> {
+    let account = account_for(&state, &account_id).await?;
+    let script = script.trim().to_string();
+    if script.is_empty() {
+        return Err("Write a caption or brief to render".into());
+    }
+    let platform = account.platform.to_string();
+    let target_ratio = match platform.as_str() {
+        "x" | "reddit" => openaccounts_creative_pipeline::MediaAspectRatio::Landscape16x9,
+        _ => openaccounts_creative_pipeline::MediaAspectRatio::Vertical9x16,
+    };
+    let brand = state.brand_manager.list_brands().await.into_iter().next();
+    let spec = CreativeAssetSpec {
+        asset_id: format!("video-{}", uuid::Uuid::new_v4().simple()),
+        title: if title.trim().is_empty() { account.username.clone() } else { title.trim().to_string() },
+        output_format: "mp4".into(),
+        target_ratio,
+        target_platforms: vec![platform],
+        script_or_prompt: script,
+        brand_id: brand.as_ref().map(|b| b.brand_id.clone()).unwrap_or_default(),
+        tools_required: vec!["ffmpeg".into()],
+        background_hex: brand.map(|b| b.visual_identity.primary_hex),
+        duration_seconds: Some(duration_seconds.unwrap_or(5.0).clamp(1.0, 60.0)),
+    };
+    let id = state.creative_pipeline.create_production_job(spec).await.map_err(err)?;
+    spawn_render(&state, id.clone());
+    Ok(id)
+}
+
+#[tauri::command(rename_all = "snake_case")]
 pub async fn get_creative_job_status(state: State<'_, AppState>, job_id: String) -> CmdResult<Option<CreativeJobStatus>> {
     Ok(state.creative_pipeline.get_job_status(&job_id).await)
 }

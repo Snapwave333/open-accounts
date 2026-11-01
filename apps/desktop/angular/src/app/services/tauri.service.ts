@@ -197,6 +197,17 @@ export interface AccountMetric {
   captured_at: string;
 }
 
+export interface CreativeJob {
+  job_id: string;
+  asset_id: string;
+  progress_percent: number;
+  current_stage: string;
+  output_path?: string | null;
+  status: string;
+  error_message?: string | null;
+  warnings?: string[];
+}
+
 export interface AgentChatReply {
   reply: string;
   model: string;
@@ -531,10 +542,36 @@ export class TauriService {
     });
   }
 
-  schedulePost(accountId: string, caption: string, scheduledAt: string | null, approve: boolean) {
+  schedulePost(accountId: string, caption: string, scheduledAt: string | null, approve: boolean, media: string[] = []) {
     return this.withBusy('schedule', () =>
-      this.act('schedule_post', { account_id: accountId, caption, scheduled_at: scheduledAt, media: [], approve })
+      this.act('schedule_post', { account_id: accountId, caption, scheduled_at: scheduledAt, media, approve })
     );
+  }
+
+  async renderPostVideo(accountId: string, title: string, script: string, onProgress: (job: CreativeJob) => void): Promise<CreativeJob | null> {
+    return this.withBusy('render', async () => {
+      try {
+        const jobId = await this.invoke<string>('render_post_video', { account_id: accountId, title, script, duration_seconds: 5 });
+        const deadline = Date.now() + 180_000;
+        while (Date.now() < deadline) {
+          const job = await this.invoke<CreativeJob | null>('get_creative_job_status', { job_id: jobId });
+          if (job) {
+            onProgress(job);
+            if (job.status === 'Completed' || job.status === 'Failed') {
+              if (job.status === 'Failed') this.reportError(job.error_message ?? 'Render failed');
+              await this.refreshLive();
+              return job;
+            }
+          }
+          await new Promise((r) => setTimeout(r, 500));
+        }
+        this.reportError('Render did not finish within 3 minutes');
+        return null;
+      } catch (err) {
+        this.reportError(errorMessage(err));
+        return null;
+      }
+    });
   }
 
   approveSlot(slotId: string) {

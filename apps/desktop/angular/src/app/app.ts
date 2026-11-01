@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, HostListener, computed, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { AccountRecord, ChatAttachment, EngagementQuota, InboxMessage, TauriService } from './services/tauri.service';
+import { AccountRecord, ChatAttachment, CreativeJob, EngagementQuota, InboxMessage, TauriService } from './services/tauri.service';
 
 export type NavTab = 'home' | 'flow' | 'chat' | 'accounts' | 'vault';
 
@@ -48,6 +48,8 @@ export class App {
   composeCaption = signal<string>('');
   composeWhen = signal<string>('');
   composeApprove = signal<boolean>(false);
+  composeMedia = signal<string[]>([]);
+  renderJob = signal<CreativeJob | null>(null);
 
   publishableAccounts = computed(() => this.tauri.accounts().filter((a) => API_PLATFORMS.has(a.platform)));
   composeLimit = computed(() => {
@@ -203,16 +205,32 @@ export class App {
     if (text !== null) this.composeCaption.set(text);
   }
 
+  async renderVideo() {
+    const account = this.composeAccount();
+    const script = (this.composeCaption() || this.composeBrief()).trim();
+    if (!account || !script) return;
+    const job = await this.tauri.renderPostVideo(account, this.composeBrief().trim(), script, (j) => this.renderJob.set(j));
+    if (job?.status === 'Completed' && job.output_path) {
+      this.composeMedia.set([job.output_path]);
+    }
+  }
+
+  fileName(path: string): string {
+    return path.split(/[\\/]/).pop() ?? path;
+  }
+
   async schedulePost() {
     const account = this.composeAccount();
     const caption = this.composeCaption().trim();
     if (!account || !caption || caption.length > this.composeLimit()) return;
     const when = this.composeWhen() ? new Date(this.composeWhen()).toISOString() : null;
-    if (await this.tauri.schedulePost(account, caption, when, this.composeApprove())) {
+    if (await this.tauri.schedulePost(account, caption, when, this.composeApprove(), this.composeMedia())) {
       this.composeBrief.set('');
       this.composeCaption.set('');
       this.composeWhen.set('');
       this.composeApprove.set(false);
+      this.composeMedia.set([]);
+      this.renderJob.set(null);
     }
   }
 
