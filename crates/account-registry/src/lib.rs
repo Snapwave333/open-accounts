@@ -113,6 +113,14 @@ impl AccountRegistry {
         Ok(self.list_accounts().await?.into_iter().find(|a| &a.id == id))
     }
 
+    pub async fn count_accounts(&self) -> Result<u64> {
+        let row = sqlx::query("SELECT COUNT(*) AS n FROM accounts")
+            .fetch_one(self.db.pool())
+            .await
+            .map_err(|e| OpenAccountsError::Database(e.to_string()))?;
+        Ok(row.get::<i64, _>("n").max(0) as u64)
+    }
+
     pub async fn count_for_platform(&self, platform: &str) -> Result<u32> {
         let row = sqlx::query("SELECT COUNT(*) AS n FROM accounts WHERE platform = ?")
             .bind(platform.to_lowercase())

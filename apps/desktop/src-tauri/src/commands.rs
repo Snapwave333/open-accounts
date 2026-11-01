@@ -47,14 +47,14 @@ fn parse_uuid(id: &str, what: &str) -> CmdResult<uuid::Uuid> {
 
 #[tauri::command(rename_all = "snake_case")]
 pub async fn get_system_stats(state: State<'_, AppState>) -> CmdResult<SystemStats> {
-    let accounts = state.account_registry.list_accounts().await.map_err(err)?;
+    let total_accounts = state.account_registry.count_accounts().await.map_err(err)?;
     let tasks = state.human_controller.list_pending_tasks().await;
     let halted = state.automation_engine.is_kill_switch_active();
     let active_jobs = state.scheduler.active_job_count().await as u64;
     let loop_running = state.social_media_manager.is_loop_running();
 
     Ok(SystemStats {
-        total_accounts: accounts.len() as u64,
+        total_accounts,
         active_automations: if halted { 0 } else { active_jobs + u64::from(loop_running) },
         pending_human_tasks: tasks.len() as u64,
         system_status: if halted {
