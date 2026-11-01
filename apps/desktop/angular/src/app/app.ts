@@ -75,6 +75,12 @@ export class App {
       this.postsAwaitingApproval().length
   );
 
+  showPasswordForm = signal<boolean>(false);
+  currentPassword = signal<string>('');
+  nextPassword = signal<string>('');
+  passwordMessage = signal<string>('');
+  passwordOk = signal<boolean>(false);
+
   chatInput = signal<string>('');
   chatTargetScope = signal<string>(ALL_SCOPE);
   stagedAttachments = signal<ChatAttachment[]>([]);
@@ -373,6 +379,16 @@ export class App {
 
   async lockVault() {
     await this.tauri.lockVault();
+  }
+
+  async changePassword() {
+    if (!this.currentPassword() || !this.nextPassword()) return;
+    const error = await this.tauri.changeVaultPassword(this.currentPassword(), this.nextPassword());
+    this.currentPassword.set('');
+    this.nextPassword.set('');
+    this.passwordMessage.set(error ?? 'Master password changed; every secret was re-encrypted.');
+    this.passwordOk.set(!error);
+    if (!error) this.showPasswordForm.set(false);
   }
 
   async addSecret() {

@@ -161,6 +161,22 @@ const check = (cond, message) => {
     await page.getByPlaceholder('Master password…').fill('browser-e2e-master');
     await page.getByRole('button', { name: 'Unlock Vault' }).click();
     await page.locator('td', { hasText: 'e2e:note' }).waitFor();
+    await page.getByRole('button', { name: 'Change Password' }).click();
+    await page.getByPlaceholder('Current master password').fill('wrong-current-pass');
+    await page.getByPlaceholder('New master password (8+ characters)').fill('rotated-e2e-master');
+    await page.getByRole('button', { name: 'Re-encrypt Vault' }).click();
+    await page.locator('.vault-error', { hasText: 'Incorrect' }).waitFor();
+    await page.getByPlaceholder('Current master password').fill('browser-e2e-master');
+    await page.getByPlaceholder('New master password (8+ characters)').fill('rotated-e2e-master');
+    await page.getByRole('button', { name: 'Re-encrypt Vault' }).click();
+    await page.locator('.vault-error.vault-ok').waitFor();
+    await page.getByRole('button', { name: 'Lock Vault' }).click();
+    await page.getByPlaceholder('Master password…').fill('browser-e2e-master');
+    await page.getByRole('button', { name: 'Unlock Vault' }).click();
+    await page.locator('.vault-error', { hasText: 'Incorrect' }).waitFor();
+    await page.getByPlaceholder('Master password…').fill('rotated-e2e-master');
+    await page.getByRole('button', { name: 'Unlock Vault' }).click();
+    await page.locator('td', { hasText: 'e2e:note' }).waitFor();
 
     await tab('Activity Flow');
     const jobCard = page.locator('.flow-card', { hasText: 'Autopilot marketing cycle' });

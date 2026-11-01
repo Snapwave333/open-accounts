@@ -830,8 +830,18 @@
                 {{ tauri.vaultSecrets().length }} encrypted entries{{ tauri.vaultStatus()?.persistent ? ' saved to local SQLite' : '' }}
               </span>
             </div>
-            <button class="btn btn-secondary" (click)="lockVault()">Lock Vault</button>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn-secondary" (click)="showPasswordForm.set(!showPasswordForm())">Change Password</button>
+              <button class="btn btn-secondary" (click)="lockVault()">Lock Vault</button>
+            </div>
           </div>
+
+          <div class="inline-form password-form" *ngIf="showPasswordForm()">
+            <input type="password" placeholder="Current master password" aria-label="Current master password" [ngModel]="currentPassword()" (ngModelChange)="currentPassword.set($event)" />
+            <input type="password" placeholder="New master password (8+ characters)" aria-label="New master password" [ngModel]="nextPassword()" (ngModelChange)="nextPassword.set($event)" (keyup.enter)="changePassword()" />
+            <button class="btn btn-primary" (click)="changePassword()">Re-encrypt Vault</button>
+          </div>
+          <p class="vault-error" [class.vault-ok]="passwordOk()" *ngIf="passwordMessage()">{{ passwordMessage() }}</p>
 
           <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;">
             <input type="text" placeholder="Label (e.g. x:access_token)" aria-label="Label (e.g. x:access_token)" style="width: 210px;" [ngModel]="newSecretLabel()" (ngModelChange)="newSecretLabel.set($event)" />

@@ -593,6 +593,16 @@ export class TauriService {
     return this.act('lock_vault', undefined, () => this.refreshVault());
   }
 
+  async changeVaultPassword(current: string, next: string): Promise<string | null> {
+    try {
+      await this.invoke('change_vault_password', { current, new_password: next });
+      await this.refreshVault();
+      return null;
+    } catch (err) {
+      return errorMessage(err);
+    }
+  }
+
   storeSecret(label: string, secretType: string, value: string, accountId: string | null) {
     return this.act(
       'store_vault_secret',
