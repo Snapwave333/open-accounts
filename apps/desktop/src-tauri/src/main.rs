@@ -93,6 +93,7 @@ mod commands;
 mod connections;
 mod escalation;
 mod flow;
+mod notifications;
 mod profiles;
 mod state;
 mod stores;
@@ -122,10 +123,14 @@ async fn main() {
         }
     };
 
+    let task_events = state.human_controller.subscribe();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_notification::init())
         .manage(state)
-        .setup(|app| {
+        .setup(move |app| {
+            notifications::spawn(app.handle().clone(), task_events);
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.show();
                 let _ = window.unminimize();

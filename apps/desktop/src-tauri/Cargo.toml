@@ -57,6 +57,7 @@ tracing.workspace = true
 tracing-subscriber.workspace = true
 tauri.workspace = true
 tauri-plugin-opener.workspace = true
+tauri-plugin-notification.workspace = true
 
 [dev-dependencies]
 tauri = { workspace = true, features = ["test"] }
