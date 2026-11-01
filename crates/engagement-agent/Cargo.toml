@@ -9,6 +9,7 @@ license.workspace = true
 openaccounts-core = { path = "../core" }
 openaccounts-policy-engine = { path = "../policy-engine" }
 openaccounts-lm-gateway = { path = "../lm-gateway" }
+openaccounts-platform-connectors = { path = "../platform-connectors" }
 serde.workspace = true
 serde_json.workspace = true
 chrono.workspace = true
@@ -17,4 +18,5 @@ tokio.workspace = true
 tracing.workspace = true
 
 [dev-dependencies]
+async-trait.workspace = true
 openaccounts-platform-intelligence = { path = "../platform-intelligence" }

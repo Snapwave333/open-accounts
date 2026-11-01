@@ -47,6 +47,7 @@ OpenAccounts is a desktop application designed to create, manage, secure, and au
 | **`openaccounts-audit-engine`** | `crates/audit-engine` | Tamper-evident execution journal logging execution IDs, timestamps, and outcomes. |
 | **`openaccounts-account-registry`** | `crates/account-registry` | Account CRUD, metadata store, and platform mapping. |
 | **`openaccounts-account-creator`** | `crates/account-creator` | Guided and Autonomous account registration workflows with credential generation. |
+| **`openaccounts-platform-connectors`** | `crates/platform-connectors` | Official API clients for X v2, YouTube Data v3, Reddit OAuth and Instagram Graph (likes, follows, replies, publishing, inbox, metrics). |
 | **`openaccounts-desktop`** | `apps/desktop/src-tauri` | Tauri 2 application providing native IPC command handlers for the Angular UI. |
 | **`angular-ui`** | `apps/desktop/angular` | Modern desktop console built with Angular 22 standalone components and responsive dark theme. |
 
@@ -66,7 +67,7 @@ OpenAccounts is a desktop application designed to create, manage, secure, and au
    cd apps/desktop/angular
    npm start
    ```
-   Open `http://localhost:4200` to interact with the full operations console with simulated Tauri IPC.
+   The browser-only dev server renders the UI shell but shows a "backend not running" banner: every screen reads live data from the Rust engine, so use native mode below for real data.
 
 2. **Native Desktop Mode (Tauri 2 + Angular + Rust Engine)**:
    ```bash
@@ -87,8 +88,29 @@ OpenAccounts is a desktop application designed to create, manage, secure, and au
 
 ---
 
+## 🔌 Connecting Real Services
+
+Nothing in OpenAccounts fakes success. When a service is not connected, the action fails with a clear "not connected" error instead of pretending to work. Provide credentials through environment variables (or the Windows user environment):
+
+| Service | Variables | Used for |
+| :--- | :--- | :--- |
+| NVIDIA NIM | `NVIDIA_API_KEY`, optional `OPENACCOUNTS_NIM_CASCADE` (path to a ranked `cascade.json`) | Default LM cascade for agent chat, triage and reply drafting |
+| Anthropic / OpenAI / Gemini / OpenRouter | `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `OPENROUTER_API_KEY` | Additional LM profiles |
+| X | `X_ACCESS_TOKEN` (OAuth 2.0 user token) | Likes, follows, reposts, replies, posts, mentions, metrics |
+| YouTube | `YOUTUBE_ACCESS_TOKEN`, optional `YOUTUBE_API_KEY` | Ratings, subscriptions, comment replies, uploads, channel stats, trending |
+| Reddit | `REDDIT_ACCESS_TOKEN`, `REDDIT_USER_AGENT`, optional `REDDIT_DEFAULT_SUBREDDIT` | Votes, comments, subscriptions, submissions, inbox |
+| Instagram | `INSTAGRAM_ACCESS_TOKEN`, `INSTAGRAM_USER_ID` | Comment replies, Reels/feed publishing (public media URLs), insights |
+| Gmail / Outlook | `GMAIL_ACCESS_TOKEN`, `OUTLOOK_ACCESS_TOKEN` | Plus-address identities and verification-email polling during sign-up |
+| Browser | `OPENACCOUNTS_CHROME_PATH` | Chromium/Chrome binary for the embedded DevTools-driven browser |
+| Storage | `OPENACCOUNTS_DATA_DIR`, `OPENACCOUNTS_ARTIFACTS_DIR` | SQLite database and rendered media locations |
+| StickExplainers bridge | `OPENACCOUNTS_STICK_ROOT` | Studio folder for the bridge and garbage collector |
+
+Creative rendering uses the `ffmpeg`/`ffprobe` binaries on your `PATH`; other creative tools are detected at startup and shown as unavailable when missing.
+
 ## 🔒 Security Principles
 - **Credential Isolation**: Models never receive raw master keys or unapproved passwords.
-- **Local-First**: Vault and audit journals reside in local SQLite storage.
+- **Local-First**: Vault, human tasks, policy snapshots and the audit journal reside in local SQLite storage.
+- **Tamper-Evident Audit Journal**: Every audit entry is SHA-256 hash-chained to the previous one; `verify_audit_chain` detects edits or deletions.
+- **Verified Master Password**: The vault stores an encrypted verifier, so a wrong password is rejected (with back-off) instead of silently deriving a different key.
 - **Argon2id + AES-256-GCM**: Military-grade key derivation and encryption with zeroized buffers upon lock.
 - **Emergency Kill Switch**: Instant global halt halts any active browser session and workflow task queue.

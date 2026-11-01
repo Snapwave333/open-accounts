@@ -5,7 +5,6 @@ pub fn get_preloaded_platforms() -> Vec<PlatformKnowledgeProfile> {
     let now = Utc::now();
 
     vec![
-        // 1. INSTAGRAM
         PlatformKnowledgeProfile {
             id: "instagram".into(),
             name: "Instagram".into(),
@@ -125,7 +124,6 @@ pub fn get_preloaded_platforms() -> Vec<PlatformKnowledgeProfile> {
             },
         },
 
-        // 2. FACEBOOK
         PlatformKnowledgeProfile {
             id: "facebook".into(),
             name: "Facebook".into(),
@@ -179,7 +177,7 @@ pub fn get_preloaded_platforms() -> Vec<PlatformKnowledgeProfile> {
             },
             multiple_account_policy: MultipleAccountPolicy {
                 official_url: "https://www.facebook.com/help/975828035803295".into(),
-                allowed: false, // For personal accounts; Pages are allowed
+                allowed: false,
                 max_accounts_per_identity: Some(1),
                 allowed_purposes: vec!["Distinct Pages/Businesses under single identity".into()],
                 prohibits_ban_evasion: true,
@@ -238,7 +236,6 @@ pub fn get_preloaded_platforms() -> Vec<PlatformKnowledgeProfile> {
             },
         },
 
-        // 3. THREADS
         PlatformKnowledgeProfile {
             id: "threads".into(),
             name: "Threads".into(),
@@ -344,7 +341,6 @@ pub fn get_preloaded_platforms() -> Vec<PlatformKnowledgeProfile> {
             },
         },
 
-        // 4. TIKTOK
         PlatformKnowledgeProfile {
             id: "tiktok".into(),
             name: "TikTok".into(),
@@ -450,7 +446,6 @@ pub fn get_preloaded_platforms() -> Vec<PlatformKnowledgeProfile> {
             },
         },
 
-        // 5. YOUTUBE / GOOGLE
         PlatformKnowledgeProfile {
             id: "youtube".into(),
             name: "YouTube".into(),
@@ -488,7 +483,7 @@ pub fn get_preloaded_platforms() -> Vec<PlatformKnowledgeProfile> {
             account_creation_requirements: CreationRequirements {
                 official_url: "https://support.google.com/accounts/answer/27441".into(),
                 requires_email: true,
-                allows_email_aliases: false, // Google provides primary Gmail
+                allows_email_aliases: false,
                 requires_phone: true,
                 allows_voip: false,
                 minimum_age: 13,
@@ -501,7 +496,7 @@ pub fn get_preloaded_platforms() -> Vec<PlatformKnowledgeProfile> {
                 max_accounts_per_identity: Some(50),
                 allowed_purposes: vec!["Brand Channels".into(), "Creator Channels".into(), "Business Operations".into()],
                 prohibits_ban_evasion: true,
-                requires_distinct_emails: false, // Brand accounts share primary Google Identity
+                requires_distinct_emails: false,
                 requires_identity_linking: true,
                 notes: "Google supports Brand Accounts allowing multiple distinct channels under a single manager account.".into(),
             },
@@ -552,11 +547,10 @@ pub fn get_preloaded_platforms() -> Vec<PlatformKnowledgeProfile> {
             monetization_restrictions: MonetizationPolicy {
                 official_url: "https://support.google.com/youtube/answer/72851".into(),
                 monetization_supported: true,
-                minimum_followers: Some(1000), // 1000 subs + 4000 watch hours
+                minimum_followers: Some(1000),
             },
         },
 
-        // 6. GOOGLE (Workspace / Cloud / Accounts)
         PlatformKnowledgeProfile {
             id: "google".into(),
             name: "Google".into(),
@@ -593,7 +587,7 @@ pub fn get_preloaded_platforms() -> Vec<PlatformKnowledgeProfile> {
             },
             account_creation_requirements: CreationRequirements {
                 official_url: "https://support.google.com/accounts/answer/27441".into(),
-                requires_email: false, // Generates new Gmail
+                requires_email: false,
                 allows_email_aliases: false,
                 requires_phone: true,
                 allows_voip: false,
@@ -662,7 +656,6 @@ pub fn get_preloaded_platforms() -> Vec<PlatformKnowledgeProfile> {
             },
         },
 
-        // 7. X (TWITTER)
         PlatformKnowledgeProfile {
             id: "x".into(),
             name: "X (formerly Twitter)".into(),
@@ -768,7 +761,6 @@ pub fn get_preloaded_platforms() -> Vec<PlatformKnowledgeProfile> {
             },
         },
 
-        // 8. REDDIT
         PlatformKnowledgeProfile {
             id: "reddit".into(),
             name: "Reddit".into(),
@@ -805,7 +797,7 @@ pub fn get_preloaded_platforms() -> Vec<PlatformKnowledgeProfile> {
             },
             account_creation_requirements: CreationRequirements {
                 official_url: "https://www.reddit.com/register/".into(),
-                requires_email: false, // Email optional during initial signup
+                requires_email: false,
                 allows_email_aliases: true,
                 requires_phone: false,
                 allows_voip: true,
@@ -816,7 +808,7 @@ pub fn get_preloaded_platforms() -> Vec<PlatformKnowledgeProfile> {
             multiple_account_policy: MultipleAccountPolicy {
                 official_url: "https://support.reddithelp.com/hc/en-us/articles/360043043412".into(),
                 allowed: true,
-                max_accounts_per_identity: None, // No hard ceiling if non-abusive
+                max_accounts_per_identity: None,
                 allowed_purposes: vec!["Alternative Persona".into(), "Professional".into(), "Bot / Automation".into(), "Moderation".into()],
                 prohibits_ban_evasion: true,
                 requires_distinct_emails: false,
@@ -834,7 +826,7 @@ pub fn get_preloaded_platforms() -> Vec<PlatformKnowledgeProfile> {
                 official_url: "https://www.reddit.com/dev/api".into(),
                 public_api_available: true,
                 requires_developer_application: true,
-                commercial_use_permitted: false, // Requires commercial agreement
+                commercial_use_permitted: false,
                 scopes_supported: vec!["identity".into(), "read".into(), "submit".into(), "privatemessages".into()],
             },
             rate_limits: vec![
@@ -870,11 +862,10 @@ pub fn get_preloaded_platforms() -> Vec<PlatformKnowledgeProfile> {
             monetization_restrictions: MonetizationPolicy {
                 official_url: "https://support.reddithelp.com/hc/en-us/articles/17331548463764".into(),
                 monetization_supported: true,
-                minimum_followers: None, // Based on gold and karma requirements
+                minimum_followers: None,
             },
         },
 
-        // 9. DISCORD
         PlatformKnowledgeProfile {
             id: "discord".into(),
             name: "Discord".into(),
@@ -976,11 +967,10 @@ pub fn get_preloaded_platforms() -> Vec<PlatformKnowledgeProfile> {
             monetization_restrictions: MonetizationPolicy {
                 official_url: "https://support.discord.com/hc/en-us/articles/5330075836311".into(),
                 monetization_supported: true,
-                minimum_followers: None, // Based on Server Subscriptions
+                minimum_followers: None,
             },
         },
 
-        // 10. TELEGRAM
         PlatformKnowledgeProfile {
             id: "telegram".into(),
             name: "Telegram".into(),
@@ -1020,7 +1010,7 @@ pub fn get_preloaded_platforms() -> Vec<PlatformKnowledgeProfile> {
                 requires_email: false,
                 allows_email_aliases: false,
                 requires_phone: true,
-                allows_voip: false, // Strict VOIP blocking
+                allows_voip: false,
                 minimum_age: 16,
                 captcha_enforced: false,
                 legal_consent_required: true,
@@ -1066,7 +1056,7 @@ pub fn get_preloaded_platforms() -> Vec<PlatformKnowledgeProfile> {
             enforcement_procedures: EnforcementPolicy {
                 official_url: "https://telegram.org/faq#spam-and-abuse".into(),
                 strike_system: false,
-                shadowban_possible: true, // @SpamBot restrictions
+                shadowban_possible: true,
                 temporary_lock_duration_hours: Some(72),
             },
             appeals_process: AppealsPolicy {
@@ -1086,7 +1076,6 @@ pub fn get_preloaded_platforms() -> Vec<PlatformKnowledgeProfile> {
             },
         },
 
-        // 11. TWITCH
         PlatformKnowledgeProfile {
             id: "twitch".into(),
             name: "Twitch".into(),
@@ -1188,11 +1177,10 @@ pub fn get_preloaded_platforms() -> Vec<PlatformKnowledgeProfile> {
             monetization_restrictions: MonetizationPolicy {
                 official_url: "https://help.twitch.tv/s/article/joining-the-affiliate-program".into(),
                 monetization_supported: true,
-                minimum_followers: Some(50), // 50 followers + 500 broadcast minutes
+                minimum_followers: Some(50),
             },
         },
 
-        // 12. PINTEREST
         PlatformKnowledgeProfile {
             id: "pinterest".into(),
             name: "Pinterest".into(),
@@ -1298,7 +1286,6 @@ pub fn get_preloaded_platforms() -> Vec<PlatformKnowledgeProfile> {
             },
         },
 
-        // 13. LINKEDIN
         PlatformKnowledgeProfile {
             id: "linkedin".into(),
             name: "LinkedIn".into(),
@@ -1337,7 +1324,7 @@ pub fn get_preloaded_platforms() -> Vec<PlatformKnowledgeProfile> {
                 official_url: "https://www.linkedin.com/help/linkedin/answer/a1339185".into(),
                 requires_email: true,
                 allows_email_aliases: true,
-                requires_phone: true, // Often required upon registration
+                requires_phone: true,
                 allows_voip: false,
                 minimum_age: 16,
                 captcha_enforced: true,
@@ -1345,7 +1332,7 @@ pub fn get_preloaded_platforms() -> Vec<PlatformKnowledgeProfile> {
             },
             multiple_account_policy: MultipleAccountPolicy {
                 official_url: "https://www.linkedin.com/help/linkedin/answer/a1337424".into(),
-                allowed: false, // Strict single profile policy for individuals
+                allowed: false,
                 max_accounts_per_identity: Some(1),
                 allowed_purposes: vec!["Company Pages (managed by single profile)".into()],
                 prohibits_ban_evasion: true,
@@ -1383,7 +1370,7 @@ pub fn get_preloaded_platforms() -> Vec<PlatformKnowledgeProfile> {
             },
             enforcement_procedures: EnforcementPolicy {
                 official_url: "https://www.linkedin.com/help/linkedin/answer/a1339870".into(),
-                strike_system: false, // Direct identity verification restriction
+                strike_system: false,
                 shadowban_possible: true,
                 temporary_lock_duration_hours: Some(72),
             },
@@ -1404,7 +1391,6 @@ pub fn get_preloaded_platforms() -> Vec<PlatformKnowledgeProfile> {
             },
         },
 
-        // 14. SNAPCHAT
         PlatformKnowledgeProfile {
             id: "snapchat".into(),
             name: "Snapchat".into(),
@@ -1510,7 +1496,6 @@ pub fn get_preloaded_platforms() -> Vec<PlatformKnowledgeProfile> {
             },
         },
 
-        // 15. GITHUB
         PlatformKnowledgeProfile {
             id: "github".into(),
             name: "GitHub".into(),
@@ -1558,7 +1543,7 @@ pub fn get_preloaded_platforms() -> Vec<PlatformKnowledgeProfile> {
             multiple_account_policy: MultipleAccountPolicy {
                 official_url: "https://docs.github.com/en/site-policy/github-terms-of-service#3-account-requirements".into(),
                 allowed: true,
-                max_accounts_per_identity: Some(2), // One personal, one machine/service account
+                max_accounts_per_identity: Some(2),
                 allowed_purposes: vec!["Personal".into(), "Machine Bot Account".into()],
                 prohibits_ban_evasion: true,
                 requires_distinct_emails: true,
@@ -1567,7 +1552,7 @@ pub fn get_preloaded_platforms() -> Vec<PlatformKnowledgeProfile> {
             },
             authentication_and_verification: AuthVerificationPolicy {
                 official_url: "https://docs.github.com/en/authentication/securing-your-account-with-two-factor-authentication-2fa".into(),
-                supports_2fa: true, // 2FA mandatory for active developers since 2023
+                supports_2fa: true,
                 supports_oauth: true,
                 supported_2fa_types: vec!["TOTP".into(), "SecurityKey/WebAuthn".into(), "GitHubMobile".into(), "SMS".into()],
                 session_duration_days: Some(14),
@@ -1596,7 +1581,7 @@ pub fn get_preloaded_platforms() -> Vec<PlatformKnowledgeProfile> {
             enforcement_procedures: EnforcementPolicy {
                 official_url: "https://docs.github.com/en/site-policy/github-terms-of-service#k-termination".into(),
                 strike_system: false,
-                shadowban_possible: true, // Spam flagging hides profile
+                shadowban_possible: true,
                 temporary_lock_duration_hours: Some(24),
             },
             appeals_process: AppealsPolicy {
@@ -1616,7 +1601,6 @@ pub fn get_preloaded_platforms() -> Vec<PlatformKnowledgeProfile> {
             },
         },
 
-        // 16. MICROSOFT
         PlatformKnowledgeProfile {
             id: "microsoft".into(),
             name: "Microsoft".into(),
@@ -1722,7 +1706,6 @@ pub fn get_preloaded_platforms() -> Vec<PlatformKnowledgeProfile> {
             },
         },
 
-        // 17. APPLE
         PlatformKnowledgeProfile {
             id: "apple".into(),
             name: "Apple".into(),
@@ -1779,8 +1762,8 @@ pub fn get_preloaded_platforms() -> Vec<PlatformKnowledgeProfile> {
             },
             authentication_and_verification: AuthVerificationPolicy {
                 official_url: "https://support.apple.com/en-us/102660".into(),
-                supports_2fa: true, // Mandatory 2FA
-                supports_oauth: true, // Sign in with Apple
+                supports_2fa: true,
+                supports_oauth: true,
                 supported_2fa_types: vec!["AppleTrustedDevice".into(), "SMS".into(), "SecurityKey".into()],
                 session_duration_days: Some(30),
             },
@@ -1828,7 +1811,6 @@ pub fn get_preloaded_platforms() -> Vec<PlatformKnowledgeProfile> {
             },
         },
 
-        // 18. AMAZON
         PlatformKnowledgeProfile {
             id: "amazon".into(),
             name: "Amazon".into(),
@@ -1886,7 +1868,7 @@ pub fn get_preloaded_platforms() -> Vec<PlatformKnowledgeProfile> {
             authentication_and_verification: AuthVerificationPolicy {
                 official_url: "https://www.amazon.com/gp/help/customer/display.html?nodeId=G3PWZPU52FKN7PW4".into(),
                 supports_2fa: true,
-                supports_oauth: true, // Login with Amazon
+                supports_oauth: true,
                 supported_2fa_types: vec!["TOTP".into(), "SMS".into()],
                 session_duration_days: Some(14),
             },
@@ -1930,11 +1912,10 @@ pub fn get_preloaded_platforms() -> Vec<PlatformKnowledgeProfile> {
             monetization_restrictions: MonetizationPolicy {
                 official_url: "https://affiliate-program.amazon.com/".into(),
                 monetization_supported: true,
-                minimum_followers: None, // 3 qualifying sales required within 180 days
+                minimum_followers: None,
             },
         },
 
-        // 19. SHOPIFY
         PlatformKnowledgeProfile {
             id: "shopify".into(),
             name: "Shopify".into(),
@@ -1985,7 +1966,7 @@ pub fn get_preloaded_platforms() -> Vec<PlatformKnowledgeProfile> {
                 max_accounts_per_identity: None,
                 allowed_purposes: vec!["Distinct E-Commerce Stores".into(), "Development Stores".into(), "Regional Stores".into()],
                 prohibits_ban_evasion: true,
-                requires_distinct_emails: false, // Unified Shopify ID manages multiple stores
+                requires_distinct_emails: false,
                 requires_identity_linking: true,
                 notes: "Single Shopify ID can own, manage, and switch between an unlimited number of stores.".into(),
             },
@@ -2040,7 +2021,6 @@ pub fn get_preloaded_platforms() -> Vec<PlatformKnowledgeProfile> {
             },
         },
 
-        // 20. ETSY
         PlatformKnowledgeProfile {
             id: "etsy".into(),
             name: "Etsy".into(),
@@ -2146,7 +2126,6 @@ pub fn get_preloaded_platforms() -> Vec<PlatformKnowledgeProfile> {
             },
         },
 
-        // 21. PATREON
         PlatformKnowledgeProfile {
             id: "patreon".into(),
             name: "Patreon".into(),
@@ -2252,7 +2231,6 @@ pub fn get_preloaded_platforms() -> Vec<PlatformKnowledgeProfile> {
             },
         },
 
-        // 22. WORDPRESS
         PlatformKnowledgeProfile {
             id: "wordpress".into(),
             name: "WordPress".into(),
@@ -2303,7 +2281,7 @@ pub fn get_preloaded_platforms() -> Vec<PlatformKnowledgeProfile> {
                 max_accounts_per_identity: None,
                 allowed_purposes: vec!["Unlimited Sites and Multi-Site Networks".into()],
                 prohibits_ban_evasion: true,
-                requires_distinct_emails: false, // Single WordPress.com account can manage unlimited sites
+                requires_distinct_emails: false,
                 requires_identity_linking: true,
                 notes: "A single WordPress user can administer an unlimited number of individual blogs and WooCommerce stores.".into(),
             },

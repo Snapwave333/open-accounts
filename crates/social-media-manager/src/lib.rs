@@ -5,11 +5,12 @@ use crate::bridge::{
 };
 use chrono::{DateTime, Utc};
 use openaccounts_brand_manager::BrandManager;
-use openaccounts_content_strategy::ContentStrategyEngine;
-use openaccounts_core::Result;
+use openaccounts_content_strategy::{CalendarPostSlot, ContentStrategyEngine};
+use openaccounts_core::{AccountId, Result};
 use openaccounts_creative_pipeline::CreativePipeline;
 use openaccounts_engagement_agent::EngagementAgent;
-use openaccounts_publishing_engine::{PublishingEngine, SocialPostPayload};
+use openaccounts_lm_gateway::{LMGateway, DEFAULT_PROFILE_ID};
+use openaccounts_publishing_engine::{PublishingEngine, SocialPostPayload, STATUS_AWAITING_APPROVAL, STATUS_FAILED};
 use openaccounts_social_analytics::SocialAnalyticsEngine;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -18,9 +19,15 @@ use std::{
         atomic::{AtomicBool, Ordering},
         Arc,
     },
+    time::Duration,
 };
 use tokio::sync::RwLock;
 use tracing::{info, warn};
+
+pub const SLOT_STATUS_PUBLISHED: &str = "Published";
+pub const SLOT_STATUS_FAILED: &str = "Failed";
+pub const SLOT_STATUS_NEEDS_ACCOUNT: &str = "NeedsAccount";
+pub const VISION_PROFILE_ID: &str = "nim-vision-cascade";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum SubAgentRole {
@@ -57,6 +64,26 @@ pub struct AutonomousStateCheckpoint {
     pub published_idempotency_keys: Vec<String>,
     pub pending_human_approvals_count: usize,
     pub is_loop_active: bool,
+    #[serde(default)]
+    pub failed_slots_count: usize,
+    #[serde(default)]
+    pub skipped_slots_count: usize,
+    #[serde(default)]
+    pub deferred_slots_count: usize,
+}
+
+#[derive(Default)]
+struct IdempotencyLedger {
+    published: HashSet<String>,
+    in_flight: HashSet<String>,
+}
+
+pub fn slot_idempotency_key(slot: &CalendarPostSlot) -> String {
+    format!("slot-{}-{}", slot.slot_id, slot.target_platform.to_lowercase())
+}
+
+fn parse_account_id(raw: &str) -> Option<AccountId> {
+    uuid::Uuid::parse_str(raw.trim()).ok().map(AccountId)
 }
 
 pub struct SocialMediaManagerAgent {
@@ -68,7 +95,8 @@ pub struct SocialMediaManagerAgent {
     pub social_analytics: Arc<SocialAnalyticsEngine>,
     pub stick_bridge: Arc<StickExplainersBridge>,
     pub is_autonomous_loop_running: Arc<AtomicBool>,
-    published_idempotency_keys: Arc<RwLock<HashSet<String>>>,
+    lm_gateway: Option<Arc<LMGateway>>,
+    ledger: Arc<RwLock<IdempotencyLedger>>,
     last_checkpoint: Arc<RwLock<Option<AutonomousStateCheckpoint>>>,
 }
 
@@ -90,9 +118,15 @@ impl SocialMediaManagerAgent {
             social_analytics,
             stick_bridge: Arc::new(StickExplainersBridge::new()),
             is_autonomous_loop_running: Arc::new(AtomicBool::new(false)),
-            published_idempotency_keys: Arc::new(RwLock::new(HashSet::new())),
+            lm_gateway: None,
+            ledger: Arc::new(RwLock::new(IdempotencyLedger::default())),
             last_checkpoint: Arc::new(RwLock::new(None)),
         }
+    }
+
+    pub fn with_lm_gateway(mut self, lm_gateway: Arc<LMGateway>) -> Self {
+        self.lm_gateway = Some(lm_gateway);
+        self
     }
 
     pub fn start_autonomous_loop(&self) {
@@ -109,85 +143,132 @@ impl SocialMediaManagerAgent {
         self.is_autonomous_loop_running.load(Ordering::SeqCst)
     }
 
-    /// Executes one full autonomous campaign cycle with restart recovery,
-    /// duplicate prevention, policy enforcement, and human approval checkpoints.
+    pub fn spawn_autonomous_loop(self: Arc<Self>, interval: Duration) -> tokio::task::JoinHandle<()> {
+        let interval = interval.max(Duration::from_secs(1));
+        tokio::spawn(async move {
+            loop {
+                if self.is_loop_running() {
+                    if let Err(e) = self.execute_autonomous_cycle().await {
+                        warn!("Autonomous marketing cycle failed: {}", e);
+                    }
+                }
+                tokio::time::sleep(interval).await;
+            }
+        })
+    }
+
+    async fn reserve(&self, key: &str) -> bool {
+        let mut ledger = self.ledger.write().await;
+        if ledger.published.contains(key) || ledger.in_flight.contains(key) {
+            return false;
+        }
+        ledger.in_flight.insert(key.to_string());
+        true
+    }
+
+    async fn release(&self, key: &str, published: bool) {
+        let mut ledger = self.ledger.write().await;
+        ledger.in_flight.remove(key);
+        if published {
+            ledger.published.insert(key.to_string());
+        }
+    }
+
     pub async fn execute_autonomous_cycle(&self) -> Result<AutonomousStateCheckpoint> {
         info!("Beginning autonomous marketing operations cycle...");
-
-        // 1. Fetch scheduled posts from Content Calendar
+        let now = Utc::now();
         let slots = self.content_strategy.list_calendar().await;
+
         let mut published_count = 0;
         let mut pending_approvals = 0;
+        let mut failed = 0;
+        let mut skipped = 0;
+        let mut deferred = 0;
 
         for slot in &slots {
-            // Duplicate prevention via idempotency key
-            let idempotency_key = format!("slot-{}-{}", slot.slot_id, slot.target_platform);
-            {
-                let keys = self.published_idempotency_keys.read().await;
-                if keys.contains(&idempotency_key) {
-                    continue; // Skip duplicate publication
-                }
+            let key = slot_idempotency_key(slot);
+            if slot.status == SLOT_STATUS_PUBLISHED || self.ledger.read().await.published.contains(&key) {
+                continue;
             }
-
-            // Human approval checkpoint
             if !slot.is_approved {
                 pending_approvals += 1;
-                info!(
-                    "Slot {} requires human approval. Pausing publication until user reviews caption and assets.",
-                    slot.slot_id
-                );
+                continue;
+            }
+            if slot.scheduled_time > now {
+                deferred += 1;
+                continue;
+            }
+            let Some(account_id) = slot.account_id.as_deref().and_then(parse_account_id) else {
+                skipped += 1;
+                warn!("Slot {} has no valid account assigned; flagging for review", slot.slot_id);
+                self.content_strategy
+                    .update_slot_status(&slot.slot_id, SLOT_STATUS_NEEDS_ACCOUNT)
+                    .await;
+                continue;
+            };
+            if !self.reserve(&key).await {
                 continue;
             }
 
-            // Stage post for publishing
-            let post_payload = SocialPostPayload {
+            let payload = SocialPostPayload {
                 post_id: format!("post-{}", slot.slot_id),
-                account_id: openaccounts_core::AccountId::new(),
+                account_id,
                 platform: slot.target_platform.clone(),
                 caption: slot.caption.clone(),
                 hashtags: slot.hashtags.clone(),
                 media_paths: slot.asset_ids.clone(),
-                idempotency_key: idempotency_key.clone(),
+                idempotency_key: key.clone(),
                 scheduled_at: Some(slot.scheduled_time),
                 requires_human_approval: false,
                 is_approved: true,
-                retry_count: 0,
-                status: "Published".into(),
+                status: "Queued".into(),
+                ..Default::default()
             };
 
-            // Queue and dispatch post with policy verification
-            match self.publishing_engine.queue_post(post_payload).await {
+            match self.publishing_engine.queue_post(payload).await {
                 Ok(_) => {
-                    self.published_idempotency_keys.write().await.insert(idempotency_key);
+                    self.release(&key, true).await;
+                    self.content_strategy
+                        .update_slot_status(&slot.slot_id, SLOT_STATUS_PUBLISHED)
+                        .await;
                     published_count += 1;
                 }
                 Err(e) => {
-                    warn!("Failed to publish slot {}: {:?}", slot.slot_id, e);
+                    self.release(&key, false).await;
+                    self.content_strategy
+                        .update_slot_status(&slot.slot_id, SLOT_STATUS_FAILED)
+                        .await;
+                    failed += 1;
+                    warn!("Failed to publish slot {}: {}", slot.slot_id, e);
                 }
             }
         }
 
-        // Create recovery checkpoint
         let checkpoint = AutonomousStateCheckpoint {
             checkpoint_id: uuid::Uuid::new_v4().to_string(),
             last_cycle_timestamp: Utc::now(),
             processed_slots_count: published_count,
-            published_idempotency_keys: self.published_idempotency_keys.read().await.iter().cloned().collect(),
+            published_idempotency_keys: self.ledger.read().await.published.iter().cloned().collect(),
             pending_human_approvals_count: pending_approvals,
             is_loop_active: self.is_loop_running(),
+            failed_slots_count: failed,
+            skipped_slots_count: skipped,
+            deferred_slots_count: deferred,
         };
 
         *self.last_checkpoint.write().await = Some(checkpoint.clone());
-        info!("Autonomous cycle completed. Checkpoint saved: {:?}", checkpoint.checkpoint_id);
+        info!(
+            "Autonomous cycle completed: {} published, {} failed, {} awaiting approval, {} need an account, {} scheduled later",
+            published_count, failed, pending_approvals, skipped, deferred
+        );
         Ok(checkpoint)
     }
 
-    /// Restore state from a previously saved checkpoint (restart recovery)
     pub async fn restore_from_checkpoint(&self, checkpoint: AutonomousStateCheckpoint) -> Result<()> {
         info!("Restoring autonomous state from checkpoint {}", checkpoint.checkpoint_id);
-        let mut keys = self.published_idempotency_keys.write().await;
-        for key in &checkpoint.published_idempotency_keys {
-            keys.insert(key.clone());
+        {
+            let mut ledger = self.ledger.write().await;
+            ledger.published.extend(checkpoint.published_idempotency_keys.iter().cloned());
         }
         if checkpoint.is_loop_active {
             self.start_autonomous_loop();
@@ -228,47 +309,105 @@ impl SocialMediaManagerAgent {
         )
     }
 
-    pub fn list_collaborating_agents(&self) -> Vec<SubAgentAssignment> {
+    async fn profile_label(&self, profile_id: &str) -> String {
+        let Some(gateway) = self.lm_gateway.as_ref() else {
+            return "No LM gateway attached".into();
+        };
+        match gateway.list_profiles().await.into_iter().find(|p| p.id == profile_id) {
+            Some(p) => format!("{} · {}", p.id, p.model_id),
+            None => format!("Profile '{profile_id}' not registered"),
+        }
+    }
+
+    pub async fn list_collaborating_agents(&self) -> Vec<SubAgentAssignment> {
+        let running = self.is_loop_running();
+        let slots = self.content_strategy.list_calendar().await;
+        let open_slots: Vec<&CalendarPostSlot> =
+            slots.iter().filter(|s| s.status != SLOT_STATUS_PUBLISHED).collect();
+        let awaiting_slot_approval = open_slots.iter().filter(|s| !s.is_approved).count();
+        let needs_account = open_slots
+            .iter()
+            .filter(|s| s.account_id.as_deref().and_then(parse_account_id).is_none())
+            .count();
+
+        let inbox_pending = self.engagement_agent.pending_inbox_count().await;
+        let posts = self.publishing_engine.list_posts().await;
+        let posts_awaiting = posts.iter().filter(|p| p.status == STATUS_AWAITING_APPROVAL).count();
+        let posts_failed = posts.iter().filter(|p| p.status == STATUS_FAILED).count();
+        let tools = self.creative_pipeline.list_tools().await;
+        let tools_ready = tools.iter().filter(|t| t.is_available).count();
+        let metrics = self.social_analytics.list_metrics().await;
+        let last_capture = metrics.first().map(|m| m.captured_at);
+        let checkpoint = self.get_last_checkpoint().await;
+
+        let text_profile = self.profile_label(DEFAULT_PROFILE_ID).await;
+        let vision_profile = self.profile_label(VISION_PROFILE_ID).await;
+
         vec![
             SubAgentAssignment {
                 role: SubAgentRole::ContentStrategist,
                 title: "Head of Marketing Strategy".into(),
-                current_task: "Synthesizing cross-platform audience briefs".into(),
-                assigned_model_profile: "NIM: nvidia/nemotron-3.5-super-vl-120b-a12b".into(),
-                is_active: true,
+                current_task: format!(
+                    "{} open calendar slots · {} awaiting approval · {} without an account",
+                    open_slots.len(),
+                    awaiting_slot_approval,
+                    needs_account
+                ),
+                assigned_model_profile: text_profile.clone(),
+                is_active: running && !open_slots.is_empty(),
             },
             SubAgentAssignment {
                 role: SubAgentRole::TrendResearcher,
                 title: "Live Trend Intelligence Agent".into(),
-                current_task: "Scanning viral hashtag velocity on TikTok and X".into(),
-                assigned_model_profile: "NIM: nvidia/nemotron-3-nano-omni-30b-a3b-reasoning".into(),
-                is_active: true,
+                current_task: "On demand: Reddit r/popular, Google Trends daily RSS, YouTube most popular".into(),
+                assigned_model_profile: "Public trend sources".into(),
+                is_active: running,
             },
             SubAgentAssignment {
                 role: SubAgentRole::GraphicDesigner,
-                title: "Vector & Photo Production Specialist".into(),
-                current_task: "Driving Vector Craft CLI and Photo Craft CLI".into(),
-                assigned_model_profile: "NIM Vision: meta/llama-3.2-90b-vision-instruct".into(),
-                is_active: true,
+                title: "Creative Production Specialist".into(),
+                current_task: format!("{} of {} creative tools detected on this machine", tools_ready, tools.len()),
+                assigned_model_profile: vision_profile,
+                is_active: running && tools_ready > 0,
             },
             SubAgentAssignment {
-                role: SubAgentRole::VideoDirector,
-                title: "Short-Form Video & Reel Director".into(),
-                current_task: "Assembling 9:16 vertical reels with FFmpeg and Effect Craft".into(),
-                assigned_model_profile: "NIM: meta/muse-glimmer-30b".into(),
-                is_active: true,
+                role: SubAgentRole::Publisher,
+                title: "Cross-Platform Publisher".into(),
+                current_task: match checkpoint {
+                    Some(cp) => format!(
+                        "Last cycle {}: {} published, {} failed · {} posts awaiting approval, {} failed overall",
+                        cp.last_cycle_timestamp.format("%Y-%m-%d %H:%M UTC"),
+                        cp.processed_slots_count,
+                        cp.failed_slots_count,
+                        posts_awaiting,
+                        posts_failed
+                    ),
+                    None => format!("No cycle run yet · {} posts awaiting approval", posts_awaiting),
+                },
+                assigned_model_profile: "Official platform APIs".into(),
+                is_active: running,
             },
             SubAgentAssignment {
                 role: SubAgentRole::CommunityManager,
                 title: "Community Moderation & Engagement".into(),
-                current_task: "Classifying incoming audience comments and inquiries".into(),
-                assigned_model_profile: "NIM: nvidia/nemotron-3.5-lightning-30b-a3b".into(),
-                is_active: true,
+                current_task: format!("{} inbox messages awaiting a response", inbox_pending),
+                assigned_model_profile: text_profile,
+                is_active: running && inbox_pending > 0,
+            },
+            SubAgentAssignment {
+                role: SubAgentRole::AnalyticsAgent,
+                title: "Performance Analytics".into(),
+                current_task: match last_capture {
+                    Some(at) => format!("{} API snapshots · latest {}", metrics.len(), at.format("%Y-%m-%d %H:%M UTC")),
+                    None => "No platform metrics captured yet".into(),
+                },
+                assigned_model_profile: "Official platform APIs".into(),
+                is_active: running,
             },
             SubAgentAssignment {
                 role: SubAgentRole::ComplianceAgent,
                 title: "Policy & Rate Limit Gatekeeper".into(),
-                current_task: "Enforcing official Graph and X API compliance limits".into(),
+                current_task: format!("Gating {} publishing records against platform policy", posts.len()),
                 assigned_model_profile: "Deterministic Policy Engine".into(),
                 is_active: true,
             },

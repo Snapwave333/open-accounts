@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use openaccounts_core::Result;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ChallengeType {
     Captcha,
     LegalConsent,

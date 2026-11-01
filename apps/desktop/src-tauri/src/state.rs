@@ -1,9 +1,9 @@
+use crate::tokens::VaultTokenSource;
 use chrono::Utc;
 use openaccounts_account_creator::AccountCreator;
 use openaccounts_account_identity_manager::AccountIdentityManager;
 use openaccounts_account_registry::{AccountRecord, AccountRegistry};
 use openaccounts_audit_engine::AuditEngine;
-use openaccounts_authentication_engine::AuthenticationEngine;
 use openaccounts_automation_engine::AutomationEngine;
 use openaccounts_brand_manager::BrandManager;
 use openaccounts_compliance_audit::ComplianceAuditEngine;
@@ -13,47 +13,67 @@ use openaccounts_creative_pipeline::CreativePipeline;
 use openaccounts_credential_vault::VaultManager;
 use openaccounts_database::Database;
 use openaccounts_email_identity::EmailIdentityManager;
-use openaccounts_email_provider_gateway::{EmailProviderType, MockEmailProviderAdapter};
-use openaccounts_email_verification::EmailVerificationEngine;
-use openaccounts_engagement_agent::EngagementAgent;
-use openaccounts_event_bus::EventBus;
+use openaccounts_email_provider_gateway::{GmailApiAdapter, MicrosoftGraphAdapter};
+use openaccounts_engagement_agent::{EngagementAgent, EngagementCaps, EngagementConfig};
 use openaccounts_human_intervention::HumanInterventionController;
 use openaccounts_lm_gateway::LMGateway;
 use openaccounts_multi_account_registry::MultiAccountRegistry;
 use openaccounts_permission_engine::PermissionEngine;
+use openaccounts_platform_connectors::{ChainedTokenSource, ConnectorRegistry, EnvTokenSource, TokenSource};
 use openaccounts_platform_intelligence::PlatformIntelligence;
 use openaccounts_policy_engine::PolicyEngine;
 use openaccounts_policy_monitor::PolicyMonitor;
 use openaccounts_policy_versioning::PolicyVersioningRegistry;
 use openaccounts_publishing_engine::PublishingEngine;
-use openaccounts_scheduler::TaskScheduler;
+use openaccounts_scheduler::{JobHandler, TaskScheduler};
 use openaccounts_social_analytics::SocialAnalyticsEngine;
-use openaccounts_social_media_manager::SocialMediaManagerAgent;
+use openaccounts_social_media_manager::{bridge::GarbageCollectionReport, SocialMediaManagerAgent};
 use serde_json::json;
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc, time::Duration};
+use tokio::sync::RwLock;
+use tracing::{info, warn};
 
-#[allow(dead_code)]
+pub const AUTOPILOT_SETTING: &str = "autopilot_enabled";
+pub const DATA_DIR_ENV: &str = "OPENACCOUNTS_DATA_DIR";
+const DB_FILE: &str = "openaccounts.sqlite";
+
+pub fn data_dir() -> PathBuf {
+    if let Some(dir) = std::env::var(DATA_DIR_ENV).ok().filter(|v| !v.trim().is_empty()) {
+        return PathBuf::from(dir);
+    }
+    if let Ok(cwd) = std::env::current_dir() {
+        if cwd.join(DB_FILE).is_file() {
+            return cwd;
+        }
+    }
+    let base = if cfg!(target_os = "windows") {
+        std::env::var("APPDATA").ok().map(PathBuf::from)
+    } else if cfg!(target_os = "macos") {
+        std::env::var("HOME").ok().map(|h| PathBuf::from(h).join("Library").join("Application Support"))
+    } else {
+        std::env::var("XDG_DATA_HOME")
+            .ok()
+            .map(PathBuf::from)
+            .or_else(|| std::env::var("HOME").ok().map(|h| PathBuf::from(h).join(".local").join("share")))
+    };
+    base.map(|b| b.join("OpenAccounts")).unwrap_or_else(|| PathBuf::from("."))
+}
+
 pub struct AppState {
     pub db: Arc<Database>,
     pub vault: Arc<VaultManager>,
     pub lm_gateway: Arc<LMGateway>,
     pub human_controller: Arc<HumanInterventionController>,
-    pub permission_engine: Arc<PermissionEngine>,
     pub audit_engine: Arc<AuditEngine>,
     pub account_registry: Arc<AccountRegistry>,
     pub automation_engine: Arc<AutomationEngine>,
     pub scheduler: Arc<TaskScheduler>,
-    pub event_bus: Arc<EventBus>,
     pub platform_intelligence: Arc<PlatformIntelligence>,
     pub policy_engine: Arc<PolicyEngine>,
     pub policy_versioning: Arc<PolicyVersioningRegistry>,
     pub policy_monitor: Arc<PolicyMonitor>,
     pub email_manager: Arc<EmailIdentityManager>,
-    pub email_verification: Arc<EmailVerificationEngine>,
-    pub auth_engine: Arc<AuthenticationEngine>,
-    pub identity_manager: Arc<AccountIdentityManager>,
     pub multi_account_registry: Arc<MultiAccountRegistry>,
-    pub compliance_audit: Arc<ComplianceAuditEngine>,
     pub account_creator: Arc<AccountCreator>,
     pub brand_manager: Arc<BrandManager>,
     pub content_strategy: Arc<ContentStrategyEngine>,
@@ -62,146 +82,81 @@ pub struct AppState {
     pub engagement_agent: Arc<EngagementAgent>,
     pub social_analytics: Arc<SocialAnalyticsEngine>,
     pub social_media_manager: Arc<SocialMediaManagerAgent>,
+    pub gc_report: Arc<RwLock<Option<GarbageCollectionReport>>>,
+}
+
+fn seed_accounts() -> Vec<AccountRecord> {
+    let now = Utc::now();
+    let account = |platform: Platform, username: &str, metadata: serde_json::Value| AccountRecord {
+        id: AccountId::new(),
+        platform,
+        username: username.into(),
+        email: Some(if username.contains('@') && !username.starts_with('@') { username.into() } else { "elikenny333@gmail.com".into() }),
+        phone: None,
+        status: "active".into(),
+        profile_metadata: metadata,
+        created_at: now,
+        updated_at: now,
+        last_active: None,
+    };
+    vec![
+        account(Platform::Instagram, "@snapwave", json!({
+            "source": "StickExplainers", "brand": "Clearly Drawn News (CDN)", "account_type": "Creator (Digital creator)",
+            "integration": "chrome_relay",
+            "daily_caps": { "likes": 12, "follows": 3, "comments": 2, "replies": 15, "feed_posts": 2 }
+        })),
+        account(Platform::Custom("tiktok".into()), "@clearlydrawnlessons", json!({
+            "source": "StickExplainers", "brand": "Clearly Drawn News (CDN)", "integration": "chrome_relay",
+            "daily_caps": { "likes": 12, "follows": 3, "comments": 2, "replies": 15 }
+        })),
+        account(Platform::YouTube, "@ClearlyDrawnLessons", json!({
+            "source": "StickExplainers", "brand": "Clearly Drawn News (CDN)", "channel_id": "UC16fbSsDJcc6RVvNsH3Cbfg",
+            "daily_caps": { "uploads": 9, "comment_replies": 20, "likes": 5, "subs": 1, "comments": 2 }
+        })),
+        account(Platform::Custom("shopify".into()), "zs56hs-fj.myshopify.com", json!({
+            "source": "StickExplainers", "brand": "Clearly Drawn News Merch (Printful)", "store_url": "https://zs56hs-fj.myshopify.com"
+        })),
+        account(Platform::Custom("paypal".into()), "paypal.me/snapwave333", json!({
+            "source": "StickExplainers", "brand": "Clearly Drawn News CFO", "paypal_link": "https://paypal.me/snapwave333"
+        })),
+        account(Platform::Email, "elikenny333@gmail.com", json!({
+            "source": "StickExplainers", "provider": "gmail", "role": "Primary Sponsor Outreach & Inbox Watch"
+        })),
+        account(Platform::Email, "focogaming@outlook.com", json!({
+            "source": "StickExplainers", "provider": "outlook", "role": "Secondary Inbox Watch"
+        })),
+    ]
+}
+
+fn handler<F, Fut>(f: F) -> JobHandler
+where
+    F: Fn() -> Fut + Send + Sync + 'static,
+    Fut: std::future::Future<Output = openaccounts_core::Result<String>> + Send + 'static,
+{
+    Arc::new(move |_job| Box::pin(f()))
 }
 
 impl AppState {
-    pub async fn init() -> Self {
-        let app_dir = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
-        let db_path = app_dir.join("openaccounts.sqlite");
-        let db = Arc::new(Database::init(&db_path).await.expect("Database init failed"));
+    pub async fn init() -> Result<Self, String> {
+        let dir = data_dir();
+        let db_path = dir.join(DB_FILE);
+        info!("Using data directory {}", dir.display());
+        let db = Arc::new(Database::init(&db_path).await.map_err(|e| format!("Database init failed: {e}"))?);
 
-        let vault = Arc::new(VaultManager::new());
+        let vault = Arc::new(VaultManager::with_database(db.clone()).await.map_err(|e| e.to_string())?);
         let lm_gateway = Arc::new(LMGateway::new());
-        let human_controller = Arc::new(HumanInterventionController::new());
+        let human_controller = Arc::new(HumanInterventionController::with_database(db.clone()).await.map_err(|e| e.to_string())?);
         let permission_engine = Arc::new(PermissionEngine::new());
         let audit_engine = Arc::new(AuditEngine::new(db.clone()));
         let account_registry = Arc::new(AccountRegistry::new(db.clone()));
-        if account_registry.list_accounts().await.map(|a| a.is_empty()).unwrap_or(true) {
-            let now = Utc::now();
-            let stick_accounts = vec![
-                AccountRecord {
-                    id: AccountId::new(),
-                    platform: Platform::Instagram,
-                    username: "@snapwave".into(),
-                    email: Some("elikenny333@gmail.com".into()),
-                    phone: None,
-                    status: "active".into(),
-                    profile_metadata: json!({
-                        "source": "StickExplainers",
-                        "brand": "Clearly Drawn News (CDN)",
-                        "account_type": "Creator (Digital creator)",
-                        "integration": "chrome_relay",
-                        "daily_caps": { "likes": 12, "follows": 3, "comments": 2, "replies": 15, "feed_posts": 2 }
-                    }),
-                    created_at: now,
-                    updated_at: now,
-                    last_active: Some(now),
-                },
-                AccountRecord {
-                    id: AccountId::new(),
-                    platform: Platform::Custom("tiktok".into()),
-                    username: "@clearlydrawnlessons".into(),
-                    email: Some("elikenny333@gmail.com".into()),
-                    phone: None,
-                    status: "active".into(),
-                    profile_metadata: json!({
-                        "source": "StickExplainers",
-                        "brand": "Clearly Drawn News (CDN)",
-                        "integration": "chrome_relay",
-                        "daily_caps": { "likes": 12, "follows": 3, "comments": 2, "replies": 15 }
-                    }),
-                    created_at: now,
-                    updated_at: now,
-                    last_active: Some(now),
-                },
-                AccountRecord {
-                    id: AccountId::new(),
-                    platform: Platform::YouTube,
-                    username: "@ClearlyDrawnLessons".into(),
-                    email: Some("elikenny333@gmail.com".into()),
-                    phone: None,
-                    status: "active".into(),
-                    profile_metadata: json!({
-                        "source": "StickExplainers",
-                        "brand": "Clearly Drawn News (CDN)",
-                        "channel_id": "UC16fbSsDJcc6RVvNsH3Cbfg",
-                        "oauth_credentials": "~/.youtube-analytics-mcp/credentials.json",
-                        "daily_caps": { "uploads": 9, "comment_replies": 20, "likes": 5, "subs": 1, "comments": 2 }
-                    }),
-                    created_at: now,
-                    updated_at: now,
-                    last_active: Some(now),
-                },
-                AccountRecord {
-                    id: AccountId::new(),
-                    platform: Platform::Custom("shopify".into()),
-                    username: "zs56hs-fj.myshopify.com".into(),
-                    email: Some("elikenny333@gmail.com".into()),
-                    phone: None,
-                    status: "active".into(),
-                    profile_metadata: json!({
-                        "source": "StickExplainers",
-                        "brand": "Clearly Drawn News Merch (Printful)",
-                        "store_url": "https://zs56hs-fj.myshopify.com",
-                        "live": true
-                    }),
-                    created_at: now,
-                    updated_at: now,
-                    last_active: Some(now),
-                },
-                AccountRecord {
-                    id: AccountId::new(),
-                    platform: Platform::Custom("paypal".into()),
-                    username: "paypal.me/snapwave333".into(),
-                    email: Some("elikenny333@gmail.com".into()),
-                    phone: None,
-                    status: "active".into(),
-                    profile_metadata: json!({
-                        "source": "StickExplainers",
-                        "brand": "Clearly Drawn News CFO",
-                        "paypal_link": "https://paypal.me/snapwave333"
-                    }),
-                    created_at: now,
-                    updated_at: now,
-                    last_active: Some(now),
-                },
-                AccountRecord {
-                    id: AccountId::new(),
-                    platform: Platform::Email,
-                    username: "elikenny333@gmail.com".into(),
-                    email: Some("elikenny333@gmail.com".into()),
-                    phone: None,
-                    status: "active".into(),
-                    profile_metadata: json!({
-                        "source": "StickExplainers",
-                        "provider": "gmail",
-                        "role": "Primary Sponsor Outreach & Inbox Watch"
-                    }),
-                    created_at: now,
-                    updated_at: now,
-                    last_active: Some(now),
-                },
-                AccountRecord {
-                    id: AccountId::new(),
-                    platform: Platform::Email,
-                    username: "focogaming@outlook.com".into(),
-                    email: Some("focogaming@outlook.com".into()),
-                    phone: None,
-                    status: "active".into(),
-                    profile_metadata: json!({
-                        "source": "StickExplainers",
-                        "provider": "outlook",
-                        "role": "Secondary Inbox Watch"
-                    }),
-                    created_at: now,
-                    updated_at: now,
-                    last_active: Some(now),
-                },
-            ];
-            for acc in stick_accounts {
-                let _ = account_registry.create_account(acc).await;
+        if account_registry.list_accounts().await.map(|a| a.is_empty()).unwrap_or(false) {
+            for acc in seed_accounts() {
+                if let Err(e) = account_registry.create_account(acc).await {
+                    warn!("Failed to seed account: {}", e);
+                }
             }
         }
+
         let automation_engine = Arc::new(AutomationEngine::new(
             permission_engine.clone(),
             audit_engine.clone(),
@@ -209,27 +164,24 @@ impl AppState {
             human_controller.clone(),
         ));
         let scheduler = Arc::new(TaskScheduler::new());
-        let event_bus = Arc::new(EventBus::new());
 
         let platform_intelligence = Arc::new(PlatformIntelligence::new());
         let policy_engine = Arc::new(PolicyEngine::new(platform_intelligence.clone()));
         let policy_versioning = Arc::new(PolicyVersioningRegistry::new());
-        let policy_monitor = Arc::new(PolicyMonitor::new(
-            platform_intelligence.clone(),
-            policy_versioning.clone(),
-        ));
+        let policy_monitor = Arc::new(
+            PolicyMonitor::with_database(platform_intelligence.clone(), policy_versioning.clone(), db.clone())
+                .await
+                .map_err(|e| e.to_string())?,
+        );
 
         let email_manager = Arc::new(EmailIdentityManager::new());
-        let mock_email_adapter = Arc::new(MockEmailProviderAdapter::new(
-            EmailProviderType::CustomDomainApi,
-            "openaccounts.io".into(),
-        ));
-        email_manager
-            .register_provider("primary_domain", mock_email_adapter)
-            .await;
-        let email_verification = Arc::new(EmailVerificationEngine::new());
+        if let Some(gmail) = GmailApiAdapter::from_env() {
+            email_manager.register_provider("gmail", Arc::new(gmail)).await;
+        }
+        if let Some(outlook) = MicrosoftGraphAdapter::from_env() {
+            email_manager.register_provider("outlook", Arc::new(outlook)).await;
+        }
 
-        let auth_engine = Arc::new(AuthenticationEngine::new(vault.clone()));
         let identity_manager = Arc::new(AccountIdentityManager::new());
         let multi_account_registry = Arc::new(MultiAccountRegistry::new(
             account_registry.clone(),
@@ -237,7 +189,6 @@ impl AppState {
             policy_engine.clone(),
         ));
         let compliance_audit = Arc::new(ComplianceAuditEngine::new(db.clone()));
-
         let account_creator = Arc::new(AccountCreator::new(
             vault.clone(),
             human_controller.clone(),
@@ -247,61 +198,60 @@ impl AppState {
             account_registry.clone(),
         ));
 
-        // Social Media Manager & Marketing Subsystems
+        let tokens: Arc<dyn TokenSource> = Arc::new(ChainedTokenSource::new(vec![
+            Arc::new(VaultTokenSource::new(vault.clone())),
+            Arc::new(EnvTokenSource),
+        ]));
+        let connectors = Arc::new(ConnectorRegistry::new(tokens));
+
         let brand_manager = Arc::new(BrandManager::new());
-        let content_strategy = Arc::new(ContentStrategyEngine::new(
-            brand_manager.clone(),
-            lm_gateway.clone(),
-        ));
+        let content_strategy = Arc::new(ContentStrategyEngine::new(brand_manager.clone(), lm_gateway.clone()));
         let creative_pipeline = Arc::new(CreativePipeline::new());
         creative_pipeline.discover_tools().await;
 
-        let publishing_engine = Arc::new(PublishingEngine::new(policy_engine.clone()));
-        let engagement_agent = Arc::new(EngagementAgent::new(
+        let publishing_engine = Arc::new(PublishingEngine::with_connectors(policy_engine.clone(), connectors.clone()));
+        let engagement_agent = Arc::new(EngagementAgent::with_connectors(
             policy_engine.clone(),
             lm_gateway.clone(),
+            EngagementConfig::default(),
+            connectors.clone(),
         ));
-        let social_analytics = Arc::new(SocialAnalyticsEngine::new());
-        let social_media_manager = Arc::new(SocialMediaManagerAgent::new(
-            brand_manager.clone(),
-            content_strategy.clone(),
-            creative_pipeline.clone(),
-            publishing_engine.clone(),
-            engagement_agent.clone(),
-            social_analytics.clone(),
-        ));
-        social_media_manager.start_autonomous_loop();
-        let _ = social_media_manager.execute_autonomous_cycle().await;
-        let _ = social_media_manager.send_stick_bridge_message(
-            "OpenAccounts · SocialMediaManager & EngagementAgent",
-            "V. Sterling, C. Coral & E. Emerald",
-            "Delegated Social, Comments & Merch Replies",
-            "Social Media & Engagement Agents Started",
-            "Autonomous loop active for @snapwave (IG), @clearlydrawnlessons (TikTok), and @ClearlyDrawnLessons (YouTube).",
-            false,
+        for acc in account_registry.list_accounts().await.unwrap_or_default() {
+            engagement_agent
+                .set_account_caps(acc.id.clone(), EngagementCaps::from_profile_metadata(&acc.profile_metadata))
+                .await;
+        }
+        let social_analytics = Arc::new(SocialAnalyticsEngine::with_connectors(connectors.clone()));
+        let social_media_manager = Arc::new(
+            SocialMediaManagerAgent::new(
+                brand_manager.clone(),
+                content_strategy.clone(),
+                creative_pipeline.clone(),
+                publishing_engine.clone(),
+                engagement_agent.clone(),
+                social_analytics.clone(),
+            )
+            .with_lm_gateway(lm_gateway.clone()),
         );
+        if db.get_setting(AUTOPILOT_SETTING).await.ok().flatten().as_deref() == Some("true") {
+            social_media_manager.start_autonomous_loop();
+        }
 
-        Self {
+        let state = Self {
             db,
             vault,
             lm_gateway,
             human_controller,
-            permission_engine,
             audit_engine,
             account_registry,
             automation_engine,
             scheduler,
-            event_bus,
             platform_intelligence,
             policy_engine,
             policy_versioning,
             policy_monitor,
             email_manager,
-            email_verification,
-            auth_engine,
-            identity_manager,
             multi_account_registry,
-            compliance_audit,
             account_creator,
             brand_manager,
             content_strategy,
@@ -310,6 +260,120 @@ impl AppState {
             engagement_agent,
             social_analytics,
             social_media_manager,
-        }
+            gc_report: Arc::new(RwLock::new(None)),
+        };
+        state.register_jobs().await;
+        state.scheduler.clone().spawn_runner(Duration::from_secs(30));
+        Ok(state)
+    }
+
+    async fn register_jobs(&self) {
+        let register = |name: &str, expr: &str, h: JobHandler| {
+            let scheduler = self.scheduler.clone();
+            let name = name.to_string();
+            let expr = expr.to_string();
+            async move {
+                if let Err(e) = scheduler.register_handler(name.clone(), expr, h).await {
+                    warn!("Could not schedule '{}': {}", name, e);
+                }
+            }
+        };
+
+        let (manager, engine) = (self.social_media_manager.clone(), self.automation_engine.clone());
+        register(
+            "Autopilot marketing cycle",
+            "every 15m",
+            handler(move || {
+                let (manager, engine) = (manager.clone(), engine.clone());
+                async move {
+                    if engine.is_kill_switch_active() {
+                        return Ok("skipped: kill switch active".into());
+                    }
+                    if !manager.is_loop_running() {
+                        return Ok("skipped: autopilot paused".into());
+                    }
+                    let cp = manager.execute_autonomous_cycle().await?;
+                    Ok(format!(
+                        "published {} · awaiting approval {}",
+                        cp.processed_slots_count, cp.pending_human_approvals_count
+                    ))
+                }
+            }),
+        )
+        .await;
+
+        let (agent, registry, engine) = (self.engagement_agent.clone(), self.account_registry.clone(), self.automation_engine.clone());
+        register(
+            "Inbox sync",
+            "every 10m",
+            handler(move || {
+                let (agent, registry, engine) = (agent.clone(), registry.clone(), engine.clone());
+                async move {
+                    if engine.is_kill_switch_active() {
+                        return Ok("skipped: kill switch active".into());
+                    }
+                    let mut synced = 0usize;
+                    let mut errors = Vec::new();
+                    for acc in registry.list_accounts().await? {
+                        let platform = acc.platform.to_string();
+                        if !matches!(platform.as_str(), "x" | "youtube" | "reddit" | "instagram") {
+                            continue;
+                        }
+                        match agent.sync_inbox(acc.id.clone(), &platform).await {
+                            Ok(msgs) => synced += msgs.len(),
+                            Err(e) => errors.push(format!("{}: {}", acc.username, e)),
+                        }
+                    }
+                    Ok(if errors.is_empty() {
+                        format!("{synced} new interactions")
+                    } else {
+                        format!("{synced} new interactions · {}", errors.join("; "))
+                    })
+                }
+            }),
+        )
+        .await;
+
+        let (analytics, registry) = (self.social_analytics.clone(), self.account_registry.clone());
+        register(
+            "Analytics refresh",
+            "every 6h",
+            handler(move || {
+                let (analytics, registry) = (analytics.clone(), registry.clone());
+                async move {
+                    let mut refreshed = 0usize;
+                    let mut errors = Vec::new();
+                    for acc in registry.list_accounts().await? {
+                        let platform = acc.platform.to_string();
+                        if !matches!(platform.as_str(), "x" | "youtube" | "reddit" | "instagram") {
+                            continue;
+                        }
+                        match analytics.refresh_metrics(&acc.id.0.to_string(), &platform).await {
+                            Ok(_) => refreshed += 1,
+                            Err(e) => errors.push(format!("{}: {}", acc.username, e)),
+                        }
+                    }
+                    Ok(format!("{refreshed} accounts refreshed{}", if errors.is_empty() { String::new() } else { format!(" · {}", errors.join("; ")) }))
+                }
+            }),
+        )
+        .await;
+
+        let monitor = self.policy_monitor.clone();
+        register(
+            "Policy document monitor",
+            "@daily",
+            handler(move || {
+                let monitor = monitor.clone();
+                async move {
+                    let r = monitor.run_policy_check_cycle_report().await;
+                    Ok(format!(
+                        "{} documents · {} changes · {} unreachable",
+                        r.documents_checked, r.changes_detected, r.unreachable
+                    ))
+                }
+            }),
+        )
+        .await;
     }
 }

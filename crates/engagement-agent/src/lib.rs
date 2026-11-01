@@ -1,6 +1,9 @@
 use chrono::{DateTime, Duration as ChronoDuration, Utc};
 use openaccounts_core::{AccountId, OpenAccountsError, Result};
 use openaccounts_lm_gateway::{LMGateway, DEFAULT_PROFILE_ID};
+use openaccounts_platform_connectors::{
+    normalize_platform, ConnectorRegistry, InteractionKind, PlatformConnector, RemoteActionReceipt, RemoteInteraction,
+};
 use openaccounts_policy_engine::PolicyEngine;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -75,6 +78,10 @@ pub struct UnifiedInboxMessage {
     pub requires_human_approval: bool,
     pub status: String,
     pub received_at: DateTime<Utc>,
+    #[serde(default)]
+    pub remote_id: Option<String>,
+    #[serde(default)]
+    pub permalink: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
@@ -86,6 +93,17 @@ pub enum EngagementActionType {
     Reshare,
     Comment,
     Reply,
+}
+
+impl From<InteractionKind> for InteractionType {
+    fn from(kind: InteractionKind) -> Self {
+        match kind {
+            InteractionKind::Comment => InteractionType::Comment,
+            InteractionKind::Mention => InteractionType::Mention,
+            InteractionKind::DirectMessage => InteractionType::DirectMessage,
+            InteractionKind::Reply => InteractionType::Reply,
+        }
+    }
 }
 
 impl EngagementActionType {
@@ -121,6 +139,10 @@ pub struct EngagementActionResult {
     pub success: bool,
     pub error_message: Option<String>,
     pub executed_at: DateTime<Utc>,
+    #[serde(default)]
+    pub remote_id: Option<String>,
+    #[serde(default)]
+    pub permalink: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -359,12 +381,52 @@ const TRIAGE_SYSTEM_PROMPT: &str = "You triage social media messages sent to a b
 Respond with JSON only, no prose: {\"category\": \"<one of general_inquiry, sales_lead, customer_support, \
 compliment, complaint, spam, security_or_legal_escalation>\", \"sentiment\": <number from -1 to 1>}.";
 
+struct Incoming {
+    account_id: AccountId,
+    platform: String,
+    author_handle: String,
+    interaction_type: InteractionType,
+    content_text: String,
+    received_at: DateTime<Utc>,
+    remote_id: Option<String>,
+    permalink: Option<String>,
+}
+
+#[derive(Default)]
+struct ActionLedger {
+    history: VecDeque<EngagementActionResult>,
+    in_flight: Vec<(AccountId, String, EngagementActionType, String)>,
+}
+
+enum ConnectorCall {
+    Like(String),
+    Follow(String),
+    Subscribe(String),
+    Reshare(String, Option<String>),
+    Comment(String, String),
+    Reply(String, String),
+}
+
+impl ConnectorCall {
+    async fn run(&self, connector: &dyn PlatformConnector) -> Result<RemoteActionReceipt> {
+        match self {
+            ConnectorCall::Like(t) => connector.like(t).await,
+            ConnectorCall::Follow(t) => connector.follow(t).await,
+            ConnectorCall::Subscribe(t) => connector.subscribe(t).await,
+            ConnectorCall::Reshare(t, q) => connector.reshare(t, q.as_deref()).await,
+            ConnectorCall::Comment(t, text) => connector.comment(t, text).await,
+            ConnectorCall::Reply(t, text) => connector.reply(t, text).await,
+        }
+    }
+}
+
 pub struct EngagementAgent {
     policy_engine: Arc<PolicyEngine>,
     lm_gateway: Arc<LMGateway>,
+    connectors: Arc<ConnectorRegistry>,
     config: EngagementConfig,
     inbox: Arc<RwLock<HashMap<String, UnifiedInboxMessage>>>,
-    history: Arc<RwLock<VecDeque<EngagementActionResult>>>,
+    ledger: Arc<RwLock<ActionLedger>>,
     account_caps: Arc<RwLock<HashMap<AccountId, EngagementCaps>>>,
     default_caps: EngagementCaps,
 }
@@ -375,46 +437,22 @@ impl EngagementAgent {
     }
 
     pub fn with_config(policy_engine: Arc<PolicyEngine>, lm_gateway: Arc<LMGateway>, config: EngagementConfig) -> Self {
-        let seeded = [
-            UnifiedInboxMessage {
-                message_id: "inb-101".into(),
-                account_id: AccountId::new(),
-                platform: "instagram".into(),
-                author_handle: "@creator_studio".into(),
-                interaction_type: InteractionType::Comment,
-                content_text: "Does OpenAccounts support scheduling 9:16 Instagram Reels automatically?".into(),
-                category: ClassificationCategory::SalesLead,
-                sentiment_score: 0.8,
-                drafted_reply: Some("Yes! OpenAccounts includes full 9:16 Reel rendering, audio normalization, and automated publishing via official Graph API.".into()),
-                is_auto_reply_eligible: true,
-                requires_human_approval: false,
-                status: STATUS_NEW.into(),
-                received_at: Utc::now(),
-            },
-            UnifiedInboxMessage {
-                message_id: "inb-102".into(),
-                account_id: AccountId::new(),
-                platform: "x".into(),
-                author_handle: "@enterprise_buyer".into(),
-                interaction_type: InteractionType::DirectMessage,
-                content_text: "We want to purchase an enterprise license and require custom legal terms for our multi-account setup.".into(),
-                category: ClassificationCategory::SecurityOrLegalEscalation,
-                sentiment_score: 0.5,
-                drafted_reply: None,
-                is_auto_reply_eligible: false,
-                requires_human_approval: true,
-                status: STATUS_PENDING_APPROVAL.into(),
-                received_at: Utc::now(),
-            },
-        ];
-        let inbox = seeded.into_iter().map(|m| (m.message_id.clone(), m)).collect();
+        Self::with_connectors(policy_engine, lm_gateway, config, Arc::new(ConnectorRegistry::from_env()))
+    }
 
+    pub fn with_connectors(
+        policy_engine: Arc<PolicyEngine>,
+        lm_gateway: Arc<LMGateway>,
+        config: EngagementConfig,
+        connectors: Arc<ConnectorRegistry>,
+    ) -> Self {
         Self {
             policy_engine,
             lm_gateway,
+            connectors,
             config,
-            inbox: Arc::new(RwLock::new(inbox)),
-            history: Arc::new(RwLock::new(VecDeque::new())),
+            inbox: Arc::new(RwLock::new(HashMap::new())),
+            ledger: Arc::new(RwLock::new(ActionLedger::default())),
             account_caps: Arc::new(RwLock::new(HashMap::new())),
             default_caps: EngagementCaps::default(),
         }
@@ -422,6 +460,10 @@ impl EngagementAgent {
 
     pub fn config(&self) -> &EngagementConfig {
         &self.config
+    }
+
+    pub fn connectors(&self) -> Arc<ConnectorRegistry> {
+        self.connectors.clone()
     }
 
     pub async fn set_account_caps(&self, account_id: AccountId, caps: EngagementCaps) {
@@ -441,9 +483,10 @@ impl EngagementAgent {
         let cap = self.caps_for(account_id).await.limit(action);
         let window_start = Utc::now() - ChronoDuration::hours(24);
         let used = self
-            .history
+            .ledger
             .read()
             .await
+            .history
             .iter()
             .filter(|r| r.success && &r.account_id == account_id && r.action_type == action && r.executed_at > window_start)
             .count() as u32;
@@ -454,6 +497,15 @@ impl EngagementAgent {
         let mut messages: Vec<UnifiedInboxMessage> = self.inbox.read().await.values().cloned().collect();
         messages.sort_by(|a, b| b.received_at.cmp(&a.received_at).then_with(|| a.message_id.cmp(&b.message_id)));
         messages
+    }
+
+    pub async fn pending_inbox_count(&self) -> usize {
+        self.inbox
+            .read()
+            .await
+            .values()
+            .filter(|m| m.status == STATUS_NEW || m.status == STATUS_PENDING_APPROVAL)
+            .count()
     }
 
     pub async fn get_message(&self, message_id: &str) -> Option<UnifiedInboxMessage> {
@@ -525,29 +577,28 @@ Output only the reply text.",
         }
     }
 
-    pub async fn ingest_message(
-        &self,
-        account_id: AccountId,
-        platform: &str,
-        author_handle: &str,
-        interaction_type: InteractionType,
-        content_text: &str,
-    ) -> Result<UnifiedInboxMessage> {
-        if content_text.trim().is_empty() {
-            return Err(OpenAccountsError::Automation("Cannot ingest an empty message".into()));
-        }
-
-        let triage = self.triage(content_text).await;
+    async fn build_message(&self, incoming: Incoming) -> UnifiedInboxMessage {
+        let Incoming {
+            account_id,
+            platform,
+            author_handle,
+            interaction_type,
+            content_text,
+            received_at,
+            remote_id,
+            permalink,
+        } = incoming;
+        let triage = self.triage(&content_text).await;
         let requires_human_approval = triage.category.requires_human() || triage.sentiment < -0.3;
         let is_spam = triage.category == ClassificationCategory::Spam;
 
         let mut msg = UnifiedInboxMessage {
             message_id: format!("inb-{}", Uuid::new_v4().simple()),
             account_id,
-            platform: platform.to_lowercase(),
-            author_handle: author_handle.to_string(),
+            platform: normalize_platform(&platform),
+            author_handle,
             interaction_type,
-            content_text: content_text.to_string(),
+            content_text,
             category: triage.category,
             sentiment_score: triage.sentiment,
             drafted_reply: None,
@@ -560,18 +611,112 @@ Output only the reply text.",
             } else {
                 STATUS_NEW.into()
             },
-            received_at: Utc::now(),
+            received_at,
+            remote_id,
+            permalink,
         };
         if !is_spam {
             msg.drafted_reply = self.compose_reply(&msg).await;
         }
+        msg
+    }
 
+    pub async fn ingest_message(
+        &self,
+        account_id: AccountId,
+        platform: &str,
+        author_handle: &str,
+        interaction_type: InteractionType,
+        content_text: &str,
+    ) -> Result<UnifiedInboxMessage> {
+        if content_text.trim().is_empty() {
+            return Err(OpenAccountsError::Automation("Cannot ingest an empty message".into()));
+        }
+        let msg = self
+            .build_message(Incoming {
+                account_id,
+                platform: platform.to_string(),
+                author_handle: author_handle.to_string(),
+                interaction_type,
+                content_text: content_text.to_string(),
+                received_at: Utc::now(),
+                remote_id: None,
+                permalink: None,
+            })
+            .await;
         info!(
             "Inbox: {:?} from {} on {} triaged as {:?}",
             msg.interaction_type, msg.author_handle, msg.platform, msg.category
         );
         self.inbox.write().await.insert(msg.message_id.clone(), msg.clone());
         Ok(msg)
+    }
+
+    pub async fn ingest_remote_interaction(
+        &self,
+        account_id: AccountId,
+        platform: &str,
+        interaction: RemoteInteraction,
+    ) -> Result<Option<UnifiedInboxMessage>> {
+        let platform = normalize_platform(platform);
+        if interaction.text.trim().is_empty() || self.has_remote(&platform, &interaction.remote_id).await {
+            return Ok(None);
+        }
+        let msg = self
+            .build_message(Incoming {
+                account_id,
+                platform: platform.clone(),
+                author_handle: interaction.author_handle.clone(),
+                interaction_type: interaction.kind.into(),
+                content_text: interaction.text.clone(),
+                received_at: interaction.created_at,
+                remote_id: Some(interaction.remote_id.clone()),
+                permalink: interaction.permalink.clone(),
+            })
+            .await;
+        let mut inbox = self.inbox.write().await;
+        let duplicate = inbox
+            .values()
+            .any(|m| m.platform == platform && m.remote_id.as_deref() == Some(interaction.remote_id.as_str()));
+        if duplicate {
+            return Ok(None);
+        }
+        inbox.insert(msg.message_id.clone(), msg.clone());
+        Ok(Some(msg))
+    }
+
+    async fn has_remote(&self, platform: &str, remote_id: &str) -> bool {
+        self.inbox
+            .read()
+            .await
+            .values()
+            .any(|m| m.platform == platform && m.remote_id.as_deref() == Some(remote_id))
+    }
+
+    pub async fn sync_inbox(&self, account_id: AccountId, platform: &str) -> Result<Vec<UnifiedInboxMessage>> {
+        let platform = normalize_platform(platform);
+        let connector = self.connectors.connector_for(&platform).await?;
+        let since = self
+            .inbox
+            .read()
+            .await
+            .values()
+            .filter(|m| m.platform == platform && m.account_id == account_id && m.remote_id.is_some())
+            .map(|m| m.received_at)
+            .max();
+        let interactions = connector.fetch_inbox(since, 50).await?;
+
+        let mut added = Vec::new();
+        for interaction in interactions {
+            if let Some(msg) = self
+                .ingest_remote_interaction(account_id.clone(), &platform, interaction)
+                .await?
+            {
+                added.push(msg);
+            }
+        }
+        info!("Synced {} new {} interactions into the inbox", added.len(), platform);
+        Ok(added)
     }
 
     pub async fn redraft_reply(&self, message_id: &str) -> Result<Option<String>> {
@@ -600,7 +745,7 @@ Output only the reply text.",
             return Err(OpenAccountsError::Automation("Reply text cannot be empty".into()));
         }
 
-        let (account_id, platform, previous_status) = {
+        let (account_id, platform, remote_id, previous_status) = {
             let mut inbox = self.inbox.write().await;
             let msg = inbox
                 .get_mut(message_id)
@@ -610,14 +755,18 @@ Output only the reply text.",
                     "Message {message_id} has already been answered"
                 )));
             }
+            let remote_id = msg.remote_id.clone().ok_or_else(|| {
+                OpenAccountsError::Automation(format!(
+                    "Message {message_id} was not synced from {} and has no remote thread to reply to",
+                    msg.platform
+                ))
+            })?;
             let previous = std::mem::replace(&mut msg.status, STATUS_SENDING.into());
-            (msg.account_id.clone(), msg.platform.clone(), previous)
+            (msg.account_id.clone(), msg.platform.clone(), remote_id, previous)
         };
 
         let reply = sanitize_reply(final_reply, &platform);
-        let dispatched = self
-            .dispatch_reply(account_id, &platform, message_id, &reply)
-            .await;
+        let dispatched = self.dispatch_reply(account_id, &platform, &remote_id, &reply).await;
 
         let mut inbox = self.inbox.write().await;
         let msg = inbox
@@ -644,6 +793,7 @@ Output only the reply text.",
             .await
             .values()
             .filter(|m| m.status == STATUS_NEW && m.is_auto_reply_eligible && !m.requires_human_approval)
+            .filter(|m| m.remote_id.is_some())
             .filter_map(|m| m.drafted_reply.clone().map(|r| (m.message_id.clone(), r)))
             .collect();
 
@@ -660,69 +810,116 @@ Output only the reply text.",
         platform: &str,
         action_type: EngagementActionType,
         target_id: String,
+        call: ConnectorCall,
     ) -> Result<EngagementActionResult> {
-        self.validate_policy(platform, action_type.policy_action()).await?;
+        let platform = normalize_platform(platform);
+        self.validate_policy(&platform, action_type.policy_action()).await?;
+        let connector = self.connectors.connector_for(&platform).await?;
         let cap = self.caps_for(&account_id).await.limit(action_type);
+        let key = (account_id.clone(), platform.clone(), action_type, target_id.clone());
 
-        let now = Utc::now();
-        let window_start = now - ChronoDuration::hours(24);
-        let mut history = self.history.write().await;
+        {
+            let now = Utc::now();
+            let window_start = now - ChronoDuration::hours(24);
+            let mut ledger = self.ledger.write().await;
 
-        if let Some(prev) = history.iter().rev().find(|r| {
-            r.success
-                && r.account_id == account_id
-                && r.platform == platform
-                && r.action_type == action_type
-                && r.target_id == target_id
-        }) {
-            if action_type.is_idempotent() {
-                debug!("Skipping repeated {:?} on {} ({})", action_type, platform, prev.target_id);
-                return Ok(prev.clone());
+            let previous = ledger.history.iter().rev().find(|r| {
+                r.success
+                    && r.account_id == account_id
+                    && r.platform == platform
+                    && r.action_type == action_type
+                    && r.target_id == target_id
+            });
+            if let Some(prev) = previous {
+                if action_type.is_idempotent() {
+                    debug!("Skipping repeated {:?} on {} ({})", action_type, platform, prev.target_id);
+                    return Ok(prev.clone());
+                }
+                return Err(OpenAccountsError::Automation(format!(
+                    "Duplicate {:?} on {} suppressed to avoid spam",
+                    action_type, platform
+                )));
             }
-            return Err(OpenAccountsError::Automation(format!(
-                "Duplicate {:?} on {} suppressed to avoid spam",
-                action_type, platform
-            )));
-        }
+            if ledger.in_flight.contains(&key) {
+                return Err(OpenAccountsError::Automation(format!(
+                    "An identical {:?} on {} is already in progress",
+                    action_type, platform
+                )));
+            }
 
-        let in_window: Vec<&EngagementActionResult> = history
-            .iter()
-            .filter(|r| r.success && r.account_id == account_id && r.action_type == action_type && r.executed_at > window_start)
-            .collect();
-        if in_window.len() as u32 >= cap {
-            let retry_after = in_window
+            let used_times: Vec<DateTime<Utc>> = ledger
+                .history
                 .iter()
+                .filter(|r| {
+                    r.success && r.account_id == account_id && r.action_type == action_type && r.executed_at > window_start
+                })
                 .map(|r| r.executed_at)
-                .min()
-                .map(|oldest| (oldest + ChronoDuration::hours(24) - now).num_seconds().max(1) as u64)
-                .unwrap_or(86_400);
-            warn!(
-                "Daily {:?} cap ({}) reached for account {} on {}",
-                action_type, cap, account_id, platform
-            );
-            return Err(OpenAccountsError::RateLimitExceeded(account_id.to_string(), retry_after));
+                .collect();
+            let in_flight = ledger
+                .in_flight
+                .iter()
+                .filter(|(a, _, t, _)| *a == account_id && *t == action_type)
+                .count();
+            if (used_times.len() + in_flight) as u32 >= cap {
+                let retry_after = used_times
+                    .iter()
+                    .min()
+                    .map(|oldest| (*oldest + ChronoDuration::hours(24) - now).num_seconds().max(1) as u64)
+                    .unwrap_or(86_400);
+                warn!(
+                    "Daily {:?} cap ({}) reached for account {} on {}",
+                    action_type, cap, account_id, platform
+                );
+                return Err(OpenAccountsError::RateLimitExceeded(account_id.to_string(), retry_after));
+            }
+            ledger.in_flight.push(key.clone());
         }
 
-        let result = EngagementActionResult {
+        let outcome = call.run(connector.as_ref()).await;
+
+        let mut ledger = self.ledger.write().await;
+        ledger.in_flight.retain(|k| k != &key);
+        let mut result = EngagementActionResult {
             action_id: Uuid::new_v4().to_string(),
             account_id,
-            platform: platform.to_string(),
+            platform: platform.clone(),
             action_type,
             target_id,
-            success: true,
+            success: outcome.is_ok(),
             error_message: None,
-            executed_at: now,
+            executed_at: Utc::now(),
+            remote_id: None,
+            permalink: None,
         };
-        history.push_back(result.clone());
-        while history.len() > self.config.history_limit.max(1) {
-            history.pop_front();
+        let returned = match outcome {
+            Ok(receipt) => {
+                result.remote_id = Some(receipt.remote_id);
+                result.permalink = receipt.permalink;
+                info!("Engagement {:?} on {} -> {}", action_type, platform, result.target_id);
+                Ok(result.clone())
+            }
+            Err(e) => {
+                warn!("Engagement {:?} on {} failed: {}", action_type, platform, e);
+                result.error_message = Some(e.to_string());
+                Err(e)
+            }
+        };
+        ledger.history.push_back(result);
+        while ledger.history.len() > self.config.history_limit.max(1) {
+            ledger.history.pop_front();
         }
-        info!("Engagement {:?} on {} -> {}", action_type, platform, result.target_id);
-        Ok(result)
+        returned
     }
 
     pub async fn like_post(&self, account_id: AccountId, platform: &str, post_id: &str) -> Result<EngagementActionResult> {
-        self.perform(account_id, platform, EngagementActionType::Like, post_id.to_string()).await
+        self.perform(
+            account_id,
+            platform,
+            EngagementActionType::Like,
+            post_id.to_string(),
+            ConnectorCall::Like(post_id.to_string()),
+        )
+        .await
     }
 
     pub async fn follow_user(
@@ -731,7 +928,14 @@ Output only the reply text.",
         platform: &str,
         target_handle: &str,
     ) -> Result<EngagementActionResult> {
-        self.perform(account_id, platform, EngagementActionType::Follow, target_handle.to_string()).await
+        self.perform(
+            account_id,
+            platform,
+            EngagementActionType::Follow,
+            target_handle.to_string(),
+            ConnectorCall::Follow(target_handle.to_string()),
+        )
+        .await
     }
 
     pub async fn subscribe_channel(
@@ -740,7 +944,14 @@ Output only the reply text.",
         platform: &str,
         channel_id: &str,
     ) -> Result<EngagementActionResult> {
-        self.perform(account_id, platform, EngagementActionType::Subscribe, channel_id.to_string()).await
+        self.perform(
+            account_id,
+            platform,
+            EngagementActionType::Subscribe,
+            channel_id.to_string(),
+            ConnectorCall::Subscribe(channel_id.to_string()),
+        )
+        .await
     }
 
     pub async fn reshare_content(
@@ -750,11 +961,21 @@ Output only the reply text.",
         post_id: &str,
         quote_text: Option<&str>,
     ) -> Result<EngagementActionResult> {
-        let target = match quote_text {
-            Some(quote) => format!("{}:{}", post_id, sanitize_reply(quote, platform)),
+        let quote = quote_text
+            .map(|q| sanitize_reply(q, platform))
+            .filter(|q| !q.is_empty());
+        let target = match &quote {
+            Some(q) => format!("{}:{}", post_id, q),
             None => post_id.to_string(),
         };
-        self.perform(account_id, platform, EngagementActionType::Reshare, target).await
+        self.perform(
+            account_id,
+            platform,
+            EngagementActionType::Reshare,
+            target,
+            ConnectorCall::Reshare(post_id.to_string(), quote),
+        )
+        .await
     }
 
     pub async fn post_comment(
@@ -768,8 +989,14 @@ Output only the reply text.",
         if text.is_empty() {
             return Err(OpenAccountsError::Automation("Comment text cannot be empty".into()));
         }
-        self.perform(account_id, platform, EngagementActionType::Comment, format!("{}:{}", post_id, text))
-            .await
+        self.perform(
+            account_id,
+            platform,
+            EngagementActionType::Comment,
+            format!("{}:{}", post_id, text),
+            ConnectorCall::Comment(post_id.to_string(), text),
+        )
+        .await
     }
 
     pub async fn dispatch_reply(
@@ -783,12 +1010,18 @@ Output only the reply text.",
         if text.is_empty() {
             return Err(OpenAccountsError::Automation("Reply text cannot be empty".into()));
         }
-        self.perform(account_id, platform, EngagementActionType::Reply, format!("{}:{}", interaction_id, text))
-            .await
+        self.perform(
+            account_id,
+            platform,
+            EngagementActionType::Reply,
+            format!("{}:{}", interaction_id, text),
+            ConnectorCall::Reply(interaction_id.to_string(), text),
+        )
+        .await
     }
 
     pub async fn get_engagement_history(&self) -> Vec<EngagementActionResult> {
-        self.history.read().await.iter().cloned().collect()
+        self.ledger.read().await.history.iter().cloned().collect()
     }
 
     async fn validate_policy(&self, platform: &str, action: &str) -> Result<()> {

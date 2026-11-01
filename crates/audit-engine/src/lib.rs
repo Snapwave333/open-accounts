@@ -1,9 +1,8 @@
 use chrono::{DateTime, Utc};
 use openaccounts_core::{ActionType, Result, RiskLevel};
-use openaccounts_database::Database;
+use openaccounts_database::{AuditInsert, ChainVerification, Database};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuditRecord {
@@ -27,6 +26,7 @@ impl AuditEngine {
         Self { db }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn log_action(
         &self,
         execution_id: &str,
@@ -37,31 +37,43 @@ impl AuditEngine {
         details: serde_json::Value,
         status: &str,
     ) -> Result<String> {
-        let id = Uuid::new_v4().to_string();
-        let action_str = serde_json::to_string(action_type).unwrap_or_default();
+        let action_str = serde_json::to_string(action_type)?;
         let risk_str = format!("{:?}", risk_level);
-        let details_str = serde_json::to_string(&details).unwrap_or_default();
-        let now = Utc::now().to_rfc3339();
+        let details_str = serde_json::to_string(&details)?;
+        self.db
+            .append_audit(AuditInsert {
+                execution_id,
+                account_id,
+                automation_id,
+                action_type: &action_str,
+                risk_level: &risk_str,
+                details: &details_str,
+                status,
+            })
+            .await
+    }
 
-        sqlx::query(
-            r#"
-            INSERT INTO audit_logs (id, execution_id, account_id, automation_id, action_type, risk_level, details, status, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            "#,
-        )
-        .bind(&id)
-        .bind(execution_id)
-        .bind(account_id)
-        .bind(automation_id)
-        .bind(&action_str)
-        .bind(&risk_str)
-        .bind(&details_str)
-        .bind(status)
-        .bind(&now)
-        .execute(self.db.pool())
-        .await
-        .map_err(|e| openaccounts_core::OpenAccountsError::Database(e.to_string()))?;
+    pub async fn recent(&self, limit: u32) -> Result<Vec<AuditRecord>> {
+        let rows = self.db.recent_audit(limit).await?;
+        Ok(rows
+            .into_iter()
+            .map(|r| AuditRecord {
+                id: r.id,
+                execution_id: r.execution_id,
+                account_id: r.account_id,
+                automation_id: r.automation_id,
+                action_type: r.action_type.trim_matches('"').to_string(),
+                risk_level: r.risk_level,
+                details: serde_json::from_str(&r.details).unwrap_or(serde_json::Value::String(r.details)),
+                status: r.status,
+                created_at: DateTime::parse_from_rfc3339(&r.created_at)
+                    .map(|d| d.with_timezone(&Utc))
+                    .unwrap_or_else(|_| Utc::now()),
+            })
+            .collect())
+    }
 
-        Ok(id)
+    pub async fn verify_integrity(&self) -> Result<ChainVerification> {
+        self.db.verify_audit_chain().await
     }
 }

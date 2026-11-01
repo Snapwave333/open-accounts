@@ -1,9 +1,8 @@
 use chrono::{DateTime, Utc};
 use openaccounts_core::Result;
-use openaccounts_database::Database;
+use openaccounts_database::{AuditInsert, Database};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ComplianceEventType {
@@ -48,33 +47,24 @@ impl ComplianceAuditEngine {
         outcome: &str,
         mut details: serde_json::Value,
     ) -> Result<String> {
-        let entry_id = Uuid::new_v4().to_string();
         let event_type_str = format!("{:?}", event_type);
-        let now = Utc::now().to_rfc3339();
-
         if let Some(obj) = details.as_object_mut() {
             obj.insert("platform".into(), serde_json::json!(platform));
+            if let Some(url) = official_policy_url {
+                obj.insert("official_policy_url".into(), serde_json::json!(url));
+            }
         }
-        let details_str = serde_json::to_string(&details).unwrap_or_default();
-
-        let _ = sqlx::query(
-            r#"
-            INSERT INTO audit_logs (id, execution_id, account_id, automation_id, action_type, risk_level, details, status, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            "#,
-        )
-        .bind(&entry_id)
-        .bind("COMPLIANCE_RUN")
-        .bind(account_id)
-        .bind(official_policy_url)
-        .bind(&event_type_str)
-        .bind("Low")
-        .bind(&details_str)
-        .bind(outcome)
-        .bind(&now)
-        .execute(self.db.pool())
-        .await;
-
-        Ok(entry_id)
+        let details_str = serde_json::to_string(&details)?;
+        self.db
+            .append_audit(AuditInsert {
+                execution_id: "COMPLIANCE_RUN",
+                account_id,
+                automation_id: None,
+                action_type: &event_type_str,
+                risk_level: "Low",
+                details: &details_str,
+                status: outcome,
+            })
+            .await
     }
 }

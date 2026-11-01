@@ -18,3 +18,8 @@ rand.workspace = true
 subtle.workspace = true
 tokio.workspace = true
 tracing.workspace = true
+sqlx.workspace = true
+openaccounts-database = { path = "../database" }
+
+[dev-dependencies]
+uuid.workspace = true

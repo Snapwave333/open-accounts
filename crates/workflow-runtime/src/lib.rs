@@ -23,6 +23,12 @@ pub struct WorkflowCheckpoint {
 
 pub struct WorkflowRuntime;
 
+impl Default for WorkflowRuntime {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl WorkflowRuntime {
     pub fn new() -> Self {
         Self

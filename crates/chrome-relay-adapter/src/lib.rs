@@ -1,10 +1,15 @@
+pub mod cdp;
+pub mod driver;
+pub mod launch;
+
+pub use cdp::{devtools_http_base, CdpEvent, CdpSession, CdpTarget};
+pub use driver::{is_url_allowed, page_state_from_value, CdpDriver};
+pub use launch::{find_browser_binary, ChromeProcess, CHROME_PATH_ENV};
+
 use async_trait::async_trait;
 use openaccounts_browser_abstraction::{BrowserProvider, PageState};
 use openaccounts_core::Result;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
-use tokio::sync::RwLock;
-use tracing::info;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChromeRelayConfig {
@@ -15,73 +20,60 @@ pub struct ChromeRelayConfig {
 
 pub struct ChromeRelayAdapter {
     pub config: ChromeRelayConfig,
-    current_state: Arc<RwLock<PageState>>,
+    driver: CdpDriver,
 }
 
 impl ChromeRelayAdapter {
     pub fn new(config: ChromeRelayConfig) -> Self {
-        Self {
-            config,
-            current_state: Arc::new(RwLock::new(PageState {
-                url: "about:blank".into(),
-                title: "New Tab".into(),
-                text_content: "".into(),
-                is_ready: true,
-                pending_challenge: None,
-            })),
-        }
+        let driver = CdpDriver::new(devtools_http_base(&config.endpoint), config.origin_fence.clone())
+            .with_attach_target(config.tab_lease_id.clone());
+        Self { config, driver }
+    }
+
+    pub fn driver(&self) -> &CdpDriver {
+        &self.driver
+    }
+
+    pub fn is_paused(&self) -> bool {
+        self.driver.is_paused()
     }
 }
 
 #[async_trait]
 impl BrowserProvider for ChromeRelayAdapter {
     async fn navigate(&self, url: &str) -> Result<()> {
-        info!("Chrome Relay navigating to {}", url);
-        let mut state = self.current_state.write().await;
-        state.url = url.to_string();
-        state.is_ready = true;
-        Ok(())
+        self.driver.navigate(url).await
     }
 
     async fn click(&self, selector: &str) -> Result<()> {
-        info!("Chrome Relay clicking selector: {}", selector);
-        Ok(())
+        self.driver.click(selector).await
     }
 
     async fn type_text(&self, selector: &str, text: &str, is_secret: bool) -> Result<()> {
-        if is_secret {
-            info!("Chrome Relay typing secret into selector: {}", selector);
-        } else {
-            info!("Chrome Relay typing '{}' into selector: {}", text, selector);
-        }
-        Ok(())
+        self.driver.type_text(selector, text, is_secret).await
     }
 
     async fn get_page_state(&self) -> Result<PageState> {
-        let state = self.current_state.read().await;
-        Ok(state.clone())
+        self.driver.get_page_state().await
     }
 
     async fn take_screenshot(&self) -> Result<Vec<u8>> {
-        Ok(vec![])
+        self.driver.take_screenshot().await
     }
 
-    async fn evaluate_script(&self, _script: &str) -> Result<serde_json::Value> {
-        Ok(serde_json::json!({ "result": "ok" }))
+    async fn evaluate_script(&self, script: &str) -> Result<serde_json::Value> {
+        self.driver.evaluate_script(script).await
     }
 
     async fn pause(&self) -> Result<()> {
-        info!("Chrome Relay automation paused for human takeover");
-        Ok(())
+        self.driver.pause().await
     }
 
     async fn resume(&self) -> Result<()> {
-        info!("Chrome Relay automation resumed by user");
-        Ok(())
+        self.driver.resume().await
     }
 
     async fn close(&self) -> Result<()> {
-        info!("Chrome Relay session closed");
-        Ok(())
+        self.driver.close().await
     }
 }

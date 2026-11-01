@@ -41,6 +41,7 @@ impl AuthenticationEngine {
         account_id: AccountId,
         platform: &str,
         method: AuthMethod,
+        expires_at: Option<DateTime<Utc>>,
     ) -> Result<AuthSessionRecord> {
         info!("Recording authenticated session for account {}", account_id);
         Ok(AuthSessionRecord {
@@ -49,8 +50,8 @@ impl AuthenticationEngine {
             platform: platform.to_string(),
             auth_method: method,
             authenticated_at: Utc::now(),
-            expires_at: Some(Utc::now() + chrono::Duration::days(30)),
-            is_active: true,
+            expires_at,
+            is_active: expires_at.map(|t| t > Utc::now()).unwrap_or(true),
         })
     }
 }

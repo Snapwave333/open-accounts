@@ -5,6 +5,27 @@ use std::path::{Path, PathBuf};
 use tracing::info;
 
 pub const DEFAULT_STICK_EXPLAINERS_ROOT: &str = r"C:\Users\chrom\Desktop\StickExplainers";
+pub const STICK_ROOT_ENV: &str = "OPENACCOUNTS_STICK_ROOT";
+
+pub fn default_stick_root() -> PathBuf {
+    std::env::var(STICK_ROOT_ENV)
+        .ok()
+        .map(|v| v.trim().to_string())
+        .filter(|v| !v.is_empty())
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from(DEFAULT_STICK_EXPLAINERS_ROOT))
+}
+
+pub fn free_disk_gb(path: &Path) -> Option<f64> {
+    let disks = sysinfo::Disks::new_with_refreshed_list();
+    let canonical = std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
+    disks
+        .list()
+        .iter()
+        .filter(|d| canonical.starts_with(d.mount_point()))
+        .max_by_key(|d| d.mount_point().as_os_str().len())
+        .map(|d| d.available_space() as f64 / 1_073_741_824.0)
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StickAgentPairing {
@@ -80,10 +101,16 @@ pub struct StickExplainersBridge {
     root: PathBuf,
 }
 
+impl Default for StickExplainersBridge {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl StickExplainersBridge {
     pub fn new() -> Self {
         Self {
-            root: PathBuf::from(DEFAULT_STICK_EXPLAINERS_ROOT),
+            root: default_stick_root(),
         }
     }
 
@@ -120,7 +147,7 @@ impl StickExplainersBridge {
         let now = Utc::now().to_rfc3339();
         StickBridgeState {
             bridge_version: "1.0.0".into(),
-            status: "CONNECTED".into(),
+            status: if self.root.is_dir() { "CONNECTED".into() } else { "NOT_FOUND".into() },
             stick_studio_root: self.root.to_string_lossy().to_string(),
             control_room_url: "http://127.0.0.1:4840".into(),
             delegation: StickDelegationConfig {
@@ -135,6 +162,7 @@ impl StickExplainersBridge {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn send_message(
         &self,
         from_agent: &str,
@@ -145,6 +173,13 @@ impl StickExplainersBridge {
         direction: &str,
         create_ceo_directive: bool,
     ) -> Result<StickBridgeMessage> {
+        if !self.root.is_dir() {
+            return Err(OpenAccountsError::Internal(format!(
+                "StickExplainers studio not found at {} (set {})",
+                self.root.display(),
+                STICK_ROOT_ENV
+            )));
+        }
         let mut state = self.load_state();
         let now = Utc::now();
         let now_str = now.to_rfc3339();
@@ -159,7 +194,7 @@ impl StickExplainersBridge {
             channel: channel.to_string(),
             subject: subject.to_string(),
             body: body.to_string(),
-            status: "delivered".into(),
+            status: "written".into(),
         };
 
         state.messages.insert(0, msg.clone());
@@ -176,7 +211,6 @@ impl StickExplainersBridge {
         std::fs::write(&bridge_path, serialized)
             .map_err(|e| OpenAccountsError::Internal(e.to_string()))?;
 
-        // Also write interaction transcript to StickExplainers Obsidian Vault
         let interactions_dir = self.vault_interactions_dir();
         if interactions_dir.exists() {
             let slug = format!(
@@ -186,7 +220,7 @@ impl StickExplainersBridge {
                 to_agent.replace(' ', "_").replace('&', "and")
             );
             let md = format!(
-                "---\ndate: \"{}\"\ntime: \"{}\"\ncategory: \"OpenAccounts Bridge · {}\"\nparticipants:\n  - \"{}\"\n  - \"{}\"\ntags:\n  - interaction/bridge\n  - openaccounts/sync\n---\n\n# 🔗 Bridge Sync: {} → {}\n\n**Channel:** `{}`  \n**Subject:** {}  \n**Logged At:** `{}`\n\n---\n\n## 📜 Coordination Transcript\n\n> **{}:** \"[{}] {}\"\n>\n> **[[Agents/{}|{}]]:** \"Acknowledged and synced into Clearly Drawn Studios workflow.\"\n",
+                "---\ndate: \"{}\"\ntime: \"{}\"\ncategory: \"OpenAccounts Bridge · {}\"\nparticipants:\n  - \"{}\"\n  - \"{}\"\ntags:\n  - interaction/bridge\n  - openaccounts/sync\n---\n\n# 🔗 Bridge Sync: {} → {}\n\n**Channel:** `{}`  \n**Subject:** {}  \n**Logged At:** `{}`\n\n---\n\n## 📜 Coordination Transcript\n\n> **{}:** \"[{}] {}\"\n",
                 now.format("%Y-%m-%d"),
                 now.format("%H:%M:%S UTC"),
                 channel,
@@ -199,14 +233,11 @@ impl StickExplainersBridge {
                 now_str,
                 from_agent,
                 subject,
-                body,
-                to_agent,
-                to_agent
+                body
             );
             let _ = std::fs::write(interactions_dir.join(slug), md);
         }
 
-        // Optionally append to StickExplainers CEO directives.json
         if create_ceo_directive {
             let dir_path = self.directives_json_path();
             if let Ok(raw) = std::fs::read_to_string(&dir_path) {
@@ -395,20 +426,54 @@ impl StickExplainersBridge {
     }
 
     pub fn run_garbage_collection(&self, apply: bool) -> Result<GarbageCollectionReport> {
-        let mut cmd = std::process::Command::new("python");
-        cmd.arg(self.root.join("retention.py"));
-        if apply {
-            cmd.arg("--apply");
+        if !self.root.is_dir() {
+            return Err(OpenAccountsError::Internal(format!(
+                "StickExplainers studio not found at {} (set {})",
+                self.root.display(),
+                STICK_ROOT_ENV
+            )));
         }
-        let _ = cmd.current_dir(&self.root).output();
 
-        // Clean any .tmp files in StickExplainers _logs or insights/bridge
+        let script = self.root.join("retention.py");
+        let mut script_error: Option<String> = None;
+        if script.is_file() {
+            let mut ran = false;
+            for interpreter in ["python3", "python", "py"] {
+                let mut cmd = std::process::Command::new(interpreter);
+                cmd.arg(&script).current_dir(&self.root);
+                if apply {
+                    cmd.arg("--apply");
+                }
+                match cmd.output() {
+                    Ok(out) if out.status.success() => {
+                        ran = true;
+                        break;
+                    }
+                    Ok(out) => {
+                        script_error = Some(format!(
+                            "retention.py exited with {}: {}",
+                            out.status,
+                            String::from_utf8_lossy(&out.stderr).chars().take(300).collect::<String>()
+                        ));
+                        ran = true;
+                        break;
+                    }
+                    Err(_) => continue,
+                }
+            }
+            if !ran {
+                script_error = Some("No Python interpreter found to run retention.py".into());
+            }
+        } else {
+            script_error = Some(format!("{} not found", script.display()));
+        }
+
         let mut oa_scrubbed = 0usize;
-        if let Ok(entries) = std::fs::read_dir(self.root.join("_logs")) {
-            for entry in entries.flatten() {
-                let p = entry.path();
-                if p.extension().and_then(|e| e.to_str()) == Some("tmp") {
-                    if std::fs::remove_file(&p).is_ok() {
+        if apply {
+            if let Ok(entries) = std::fs::read_dir(self.root.join("_logs")) {
+                for entry in entries.flatten() {
+                    let p = entry.path();
+                    if p.extension().and_then(|e| e.to_str()) == Some("tmp") && std::fs::remove_file(&p).is_ok() {
                         oa_scrubbed += 1;
                     }
                 }
@@ -420,38 +485,38 @@ impl StickExplainersBridge {
             .ok()
             .and_then(|s| serde_json::from_str(&s).ok())
             .unwrap_or_default();
+        let free_gb = gc_val
+            .get("free_gb")
+            .and_then(|v| v.as_f64())
+            .or_else(|| free_disk_gb(&self.root))
+            .unwrap_or(0.0);
 
         let report = GarbageCollectionReport {
-            executed_at: gc_val
-                .get("at")
-                .and_then(|v| v.as_str())
-                .unwrap_or(&Utc::now().to_rfc3339())
-                .to_string(),
-            applied: gc_val.get("applied").and_then(|v| v.as_bool()).unwrap_or(apply),
-            free_gb: gc_val.get("free_gb").and_then(|v| v.as_f64()).unwrap_or(109.9),
+            executed_at: Utc::now().to_rfc3339(),
+            applied: apply && script_error.is_none(),
+            free_gb: (free_gb * 10.0).round() / 10.0,
             freed_this_run_gb: gc_val.get("freed_gb").and_then(|v| v.as_f64()).unwrap_or(0.0),
-            freed_total_gb: gc_val
-                .get("freed_total_gb")
-                .and_then(|v| v.as_f64())
-                .unwrap_or(26.37),
-            items_cleaned: gc_val.get("items").and_then(|v| v.as_u64()).unwrap_or(0) as usize
-                + oa_scrubbed,
-            logs_rotated: gc_val
-                .get("logs_rotated")
-                .and_then(|v| v.as_u64())
-                .unwrap_or(0) as usize,
+            freed_total_gb: gc_val.get("freed_total_gb").and_then(|v| v.as_f64()).unwrap_or(0.0),
+            items_cleaned: gc_val.get("items").and_then(|v| v.as_u64()).unwrap_or(0) as usize + oa_scrubbed,
+            logs_rotated: gc_val.get("logs_rotated").and_then(|v| v.as_u64()).unwrap_or(0) as usize,
             emulator_status: gc_val
                 .get("emulator")
                 .and_then(|v| v.as_str())
-                .unwrap_or("trim app caches (469 MB free)")
-                .to_string(),
-            orphans_status: gc_val
-                .get("orphans")
-                .and_then(|v| v.as_str())
-                .unwrap_or("0 orphaned render worker(s)")
-                .to_string(),
-            disk_pressure: gc_val.get("pressure").and_then(|v| v.as_bool()).unwrap_or(false),
-            openaccounts_buffers_scrubbed: oa_scrubbed + 4,
+                .map(str::to_string)
+                .unwrap_or_else(|| "not reported".into()),
+            orphans_status: match &script_error {
+                Some(e) => e.clone(),
+                None => gc_val
+                    .get("orphans")
+                    .and_then(|v| v.as_str())
+                    .map(str::to_string)
+                    .unwrap_or_else(|| "not reported".into()),
+            },
+            disk_pressure: gc_val
+                .get("pressure")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(free_gb > 0.0 && free_gb < 10.0),
+            openaccounts_buffers_scrubbed: oa_scrubbed,
         };
 
         let _ = self.send_message(
@@ -477,7 +542,16 @@ mod tests {
 
     #[test]
     fn test_stick_explainers_bridge_sync_and_send() {
-        let bridge = StickExplainersBridge::new();
+        let root = std::env::temp_dir().join(format!("oa-stick-{}", uuid::Uuid::new_v4()));
+        let missing = StickExplainersBridge::with_root(&root);
+        assert_eq!(missing.load_state().status, "NOT_FOUND");
+        assert!(missing
+            .send_message("a", "b", "c", "d", "e", "openaccounts_to_stick", false)
+            .is_err());
+        assert!(missing.run_garbage_collection(false).is_err());
+
+        std::fs::create_dir_all(&root).unwrap();
+        let bridge = StickExplainersBridge::with_root(&root);
         let state = bridge.load_state();
         assert_eq!(state.status, "CONNECTED");
         assert!(!state.pairings.is_empty());
@@ -493,6 +567,12 @@ mod tests {
                 false,
             )
             .expect("should write bridge message");
-        assert_eq!(msg.status, "delivered");
+        assert_eq!(msg.status, "written");
+        assert_eq!(bridge.load_state().messages.len(), 1);
+
+        let report = bridge.run_garbage_collection(false).unwrap();
+        assert!(!report.applied);
+        assert!(report.orphans_status.contains("retention.py"));
+        std::fs::remove_dir_all(&root).ok();
     }
 }

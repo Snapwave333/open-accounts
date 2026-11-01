@@ -4,7 +4,6 @@ use openaccounts_lm_gateway::{
 
 #[tokio::test]
 async fn test_stickexplainers_nim_cascade_loaded_and_configured() {
-    // 1. Load live StickExplainers cascade.json
     let text_cascade = load_stick_nim_cascade(None, "text");
     assert!(
         text_cascade.len() >= 10,
@@ -20,16 +19,13 @@ async fn test_stickexplainers_nim_cascade_loaded_and_configured() {
     assert!(!vision_cascade.is_empty());
     assert_eq!(vision_cascade[0], "nvidia/nemotron-3.5-super-vl-120b-a12b");
 
-    // 2. Verify <think> tag stripping matches StickExplainers/stickfx/llm.py
     let raw = "<think>\nLet me analyze the prompt...\n</think>\nCDN OK";
     assert_eq!(strip_think(raw), "CDN OK");
 
-    // 3. Verify circuit breaker failover ordering
     let adapter = NvidiaNimCascadeAdapter::new(None, "text", None);
     let initial_order = adapter.ordered_models().await;
     let first = initial_order[0].clone();
 
-    // Open breaker on first model
     adapter.record_health(&first, false, 1.2, "HTTP 429", Some(60)).await;
     let next_order = adapter.ordered_models().await;
     assert_ne!(
@@ -37,7 +33,6 @@ async fn test_stickexplainers_nim_cascade_loaded_and_configured() {
         "Model with open breaker must be skipped in cascade order"
     );
 
-    // 4. Verify LMGateway pre-registers nim-cascade and nim-vision-cascade
     let gw = LMGateway::new();
     let profiles = gw.list_profiles().await;
     assert!(profiles.iter().any(|p| p.id == "nim-cascade" && p.provider_type == ModelProviderType::NvidiaNim));

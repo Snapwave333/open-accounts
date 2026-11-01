@@ -41,6 +41,9 @@ openaccounts-publishing-engine = { path = "../../../crates/publishing-engine" }
 openaccounts-engagement-agent = { path = "../../../crates/engagement-agent" }
 openaccounts-social-analytics = { path = "../../../crates/social-analytics" }
 openaccounts-social-media-manager = { path = "../../../crates/social-media-manager" }
+openaccounts-platform-connectors = { path = "../../../crates/platform-connectors" }
+openaccounts-embedded-browser-adapter = { path = "../../../crates/embedded-browser-adapter" }
+async-trait.workspace = true
 
 serde.workspace = true
 serde_json.workspace = true
@@ -51,4 +54,3 @@ tracing.workspace = true
 tracing-subscriber.workspace = true
 tauri.workspace = true
 tauri-plugin-opener.workspace = true
-tauri-plugin-stronghold.workspace = true

@@ -12,6 +12,12 @@ pub struct EventBus {
     sender: broadcast::Sender<SystemEvent>,
 }
 
+impl Default for EventBus {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl EventBus {
     pub fn new() -> Self {
         let (sender, _) = broadcast::channel(1000);

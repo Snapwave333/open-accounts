@@ -7,9 +7,13 @@ license.workspace = true
 
 [dependencies]
 openaccounts-core = { path = "../core" }
+openaccounts-platform-connectors = { path = "../platform-connectors" }
 serde.workspace = true
 serde_json.workspace = true
 chrono.workspace = true
 uuid.workspace = true
 tokio.workspace = true
 tracing.workspace = true
+
+[dev-dependencies]
+async-trait.workspace = true

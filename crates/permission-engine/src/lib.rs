@@ -22,6 +22,12 @@ pub struct PermissionEngine {
     policies: Arc<RwLock<HashMap<AccountId, AccountPolicy>>>,
 }
 
+impl Default for PermissionEngine {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PermissionEngine {
     pub fn new() -> Self {
         Self {
@@ -50,7 +56,6 @@ impl PermissionEngine {
             }
         }
 
-        // Default secure fallbacks:
         match action {
             ActionType::ExportCredentials => PermissionDecision::Denied,
             ActionType::ChangePassword | ActionType::DeleteComment => PermissionDecision::ApprovalRequired,

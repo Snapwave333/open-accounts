@@ -39,34 +39,46 @@ impl EmailIdentityManager {
         info!("Registered email provider: {}", provider_id);
     }
 
+    pub async fn list_providers(&self) -> Vec<String> {
+        let mut ids: Vec<String> = self.providers.read().await.keys().cloned().collect();
+        ids.sort();
+        ids
+    }
+
+    pub async fn provider(&self, provider_id: &str) -> Option<Arc<dyn EmailProviderAdapter>> {
+        self.providers.read().await.get(provider_id).cloned()
+    }
+
     pub async fn allocate_identity(
         &self,
         provider_id: &str,
         prefix: &str,
         platform: Option<String>,
     ) -> Result<EmailIdentity> {
-        let providers = self.providers.read().await;
-        let adapter = providers
-            .get(provider_id)
-            .ok_or_else(|| OpenAccountsError::Internal(format!("Provider {provider_id} not configured")))?;
+        let adapter = self.provider(provider_id).await.ok_or_else(|| {
+            OpenAccountsError::Internal(format!(
+                "Email provider '{provider_id}' is not configured. Connect a Gmail or Outlook mailbox first."
+            ))
+        })?;
 
         let email_address = adapter.create_alias_or_mailbox(prefix).await?;
-        let identity_id = Uuid::new_v4().to_string();
+        let normalized_platform = platform.map(|p| p.trim().to_lowercase()).filter(|p| !p.is_empty());
+
+        let mut identities = self.identities.write().await;
+        let is_primary = !identities
+            .values()
+            .any(|i| i.is_primary && i.platform == normalized_platform);
 
         let identity = EmailIdentity {
-            identity_id: identity_id.clone(),
+            identity_id: Uuid::new_v4().to_string(),
             email_address,
-            provider_type: EmailProviderType::CustomDomainApi,
+            provider_type: adapter.provider_type(),
             assigned_account_id: None,
-            platform,
-            is_primary: true,
+            platform: normalized_platform,
+            is_primary,
             created_at: Utc::now(),
         };
-
-        self.identities
-            .write()
-            .await
-            .insert(identity_id.clone(), identity.clone());
+        identities.insert(identity.identity_id.clone(), identity.clone());
 
         info!("Allocated new email identity: {}", identity.email_address);
         Ok(identity)
@@ -83,7 +95,9 @@ impl EmailIdentityManager {
     }
 
     pub async fn list_identities(&self) -> Vec<EmailIdentity> {
-        self.identities.read().await.values().cloned().collect()
+        let mut list: Vec<EmailIdentity> = self.identities.read().await.values().cloned().collect();
+        list.sort_by(|a, b| b.created_at.cmp(&a.created_at).then_with(|| a.identity_id.cmp(&b.identity_id)));
+        list
     }
 }
 

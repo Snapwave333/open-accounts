@@ -49,7 +49,7 @@ pub struct MultipleAccountPolicy {
     pub official_url: String,
     pub allowed: bool,
     pub max_accounts_per_identity: Option<u32>,
-    pub allowed_purposes: Vec<String>, // e.g. "Personal", "Business", "Brand", "Testing"
+    pub allowed_purposes: Vec<String>,
     pub prohibits_ban_evasion: bool,
     pub requires_distinct_emails: bool,
     pub requires_identity_linking: bool,
@@ -61,7 +61,7 @@ pub struct AuthVerificationPolicy {
     pub official_url: String,
     pub supports_2fa: bool,
     pub supports_oauth: bool,
-    pub supported_2fa_types: Vec<String>, // "TOTP", "SMS", "EmailOTP", "SecurityKey"
+    pub supported_2fa_types: Vec<String>,
     pub session_duration_days: Option<u32>,
 }
 

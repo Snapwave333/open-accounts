@@ -15,7 +15,7 @@ pub struct AutomationRule {
     pub id: AutomationId,
     pub account_id: AccountId,
     pub name: String,
-    pub module: String, // e.g. "instagram_comments"
+    pub module: String,
     pub config: serde_json::Value,
     pub enabled: bool,
 }
@@ -89,10 +89,10 @@ impl AutomationEngine {
                         "Denied",
                     )
                     .await?;
-                return Err(OpenAccountsError::PermissionDenied(format!(
+                Err(OpenAccountsError::PermissionDenied(format!(
                     "Action {:?} denied by account policy",
                     action
-                )));
+                )))
             }
             PermissionDecision::ApprovalRequired => {
                 self.human_controller
@@ -118,12 +118,12 @@ impl AutomationEngine {
                     )
                     .await?;
 
-                return Err(OpenAccountsError::HumanInterventionRequired(
+                Err(OpenAccountsError::HumanInterventionRequired(
                     "Approval required before execution".into(),
-                ));
+                ))
             }
             PermissionDecision::Allowed => {
-                info!("Executing action {:?} for account {}", action, account_id);
+                info!("Authorized action {:?} for account {}", action, account_id);
                 self.audit_engine
                     .log_action(
                         execution_id,
@@ -132,7 +132,7 @@ impl AutomationEngine {
                         action,
                         risk,
                         payload,
-                        "Completed",
+                        "Authorized",
                     )
                     .await?;
                 Ok(())

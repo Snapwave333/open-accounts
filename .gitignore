@@ -28,3 +28,6 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
+
+*.sqlite-wal
+*.sqlite-shm

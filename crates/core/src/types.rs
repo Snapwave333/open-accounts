@@ -87,7 +87,7 @@ impl std::fmt::Display for SecretId {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[serde(into = "String", from = "String")]
 pub enum Platform {
     Instagram,
     Reddit,
@@ -109,6 +109,32 @@ impl std::fmt::Display for Platform {
             Platform::Email => write!(f, "email"),
             Platform::Custom(s) => write!(f, "{}", s),
         }
+    }
+}
+
+impl From<&str> for Platform {
+    fn from(value: &str) -> Self {
+        match value.trim().to_lowercase().as_str() {
+            "instagram" => Platform::Instagram,
+            "reddit" => Platform::Reddit,
+            "youtube" => Platform::YouTube,
+            "discord" => Platform::Discord,
+            "x" | "twitter" => Platform::X,
+            "email" => Platform::Email,
+            other => Platform::Custom(other.to_string()),
+        }
+    }
+}
+
+impl From<String> for Platform {
+    fn from(value: String) -> Self {
+        Platform::from(value.as_str())
+    }
+}
+
+impl From<Platform> for String {
+    fn from(value: Platform) -> Self {
+        value.to_string()
     }
 }
 
@@ -155,4 +181,19 @@ pub struct SystemStats {
     pub pending_human_tasks: u64,
     pub system_status: String,
     pub updated_at: DateTime<Utc>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Platform;
+
+    #[test]
+    fn platform_serializes_as_plain_string() {
+        assert_eq!(serde_json::to_string(&Platform::Custom("tiktok".into())).unwrap(), "\"tiktok\"");
+        assert_eq!(serde_json::to_string(&Platform::YouTube).unwrap(), "\"youtube\"");
+        let parsed: Platform = serde_json::from_str("\"Twitter\"").unwrap();
+        assert_eq!(parsed, Platform::X);
+        let legacy: Platform = serde_json::from_str("\"shopify\"").unwrap();
+        assert_eq!(legacy, Platform::Custom("shopify".into()));
+    }
 }
