@@ -208,6 +208,22 @@ export interface CreativeJob {
   warnings?: string[];
 }
 
+export interface AuditEntry {
+  id: string;
+  execution_id: string;
+  account_id?: string | null;
+  action_type: string;
+  risk_level: string;
+  status: string;
+  created_at: string;
+}
+
+export interface ChainVerification {
+  entries_checked: number;
+  is_intact: boolean;
+  first_broken_id?: string | null;
+}
+
 export interface AgentChatReply {
   reply: string;
   model: string;
@@ -257,6 +273,8 @@ export class TauriService {
   connections = signal<ConnectionStatus[]>([]);
   lmProfiles = signal<LmProfile[]>([]);
   metrics = signal<AccountMetric[]>([]);
+  auditLog = signal<AuditEntry[]>([]);
+  auditCheck = signal<ChainVerification | null>(null);
   chatProfile = signal<string>('nim-cascade');
   inbox = signal<InboxMessage[]>([]);
   registrations = signal<RegistrationReport[]>([]);
@@ -580,6 +598,13 @@ export class TauriService {
 
   deleteSlot(slotId: string) {
     return this.act('delete_calendar_slot', { slot_id: slotId });
+  }
+
+  async refreshAudit(verify: boolean): Promise<void> {
+    await this.load<AuditEntry[]>('list_audit_log', (v) => this.setIfChanged(this.auditLog, v), { limit: 25 });
+    if (verify) {
+      await this.load<ChainVerification>('verify_audit_chain', (v) => this.auditCheck.set(v));
+    }
   }
 
   resolveTask(id: string) {

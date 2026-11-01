@@ -1826,3 +1826,8 @@
   border: 1px solid var(--accent-border);
   color: var(--accent);
 }
+
+.audit-status.broken {
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #f87171;
+}

@@ -225,6 +225,17 @@ fn ui_payloads_round_trip_through_real_ipc() {
     assert_eq!(h.ok("get_last_garbage_collection", json!({})), Value::Null);
     assert_eq!(h.ok("get_stick_bridge_state", json!({}))["status"], "NOT_FOUND");
     assert!(h.err("run_garbage_collection", json!({ "apply": true })).contains("not found"));
+    let journal = h.ok("list_audit_log", json!({ "limit": 500 }));
+    let actions: Vec<String> = journal
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| e["action_type"].as_str().unwrap_or_default().to_string())
+        .collect();
+    for expected in ["AccountCreated", "VaultUnlock", "VaultSecretStored", "VaultSecretRevealed", "KillSwitchTriggered", "AutopilotResumed", "AgentAction"] {
+        assert!(actions.iter().any(|a| a == expected), "missing audit entry {expected}: {actions:?}");
+    }
+    assert!(!journal.to_string().contains("tok-ipc"), "secret values must never reach the audit log");
     assert_eq!(h.ok("verify_audit_chain", json!({}))["is_intact"], true);
 
     let x_id = h.ok("create_account", json!({ "platform": "x", "username": "@e2e_x", "email": null }));
@@ -284,6 +295,11 @@ fn ui_payloads_round_trip_through_real_ipc() {
 
     assert_eq!(h.ok("delete_account", json!({ "account_id": id })), true);
     assert_eq!(h.ok("get_system_stats", json!({}))["total_accounts"].as_u64().unwrap(), seeded);
+    let journal = h.ok("list_audit_log", json!({ "limit": 1000 })).to_string();
+    for expected in ["PostScheduled", "PostApproved", "PostDeleted", "AccountDeleted"] {
+        assert!(journal.contains(expected), "missing audit entry {expected}");
+    }
+    assert_eq!(h.ok("verify_audit_chain", json!({}))["is_intact"], true);
 
     drop(h);
     std::fs::remove_dir_all(&root).ok();

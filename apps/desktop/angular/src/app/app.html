@@ -898,6 +898,45 @@
           </table>
           <div *ngIf="tauri.vaultSecrets().length === 0" class="flow-empty">The vault is empty.</div>
         </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <h3>Audit Journal</h3>
+              <span class="panel-header-subtitle">Every action, approval and compliance check is SHA-256 hash-chained to the previous entry</span>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <span
+                *ngIf="tauri.auditCheck() as check"
+                class="badge audit-status"
+                [class.accent]="check.is_intact"
+                [class.broken]="!check.is_intact"
+              >
+                {{ check.is_intact ? 'INTACT · ' + check.entries_checked + ' ENTRIES' : 'TAMPERED AT ' + check.first_broken_id }}
+              </span>
+              <button class="btn btn-secondary" (click)="tauri.refreshAudit(true)">Verify chain</button>
+            </div>
+          </div>
+          <table class="data-table" *ngIf="tauri.auditLog().length > 0">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Action</th>
+                <th>Outcome</th>
+                <th>Risk</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let entry of tauri.auditLog(); trackBy: trackById">
+                <td class="mono" style="color: var(--text-muted);">{{ formatTime(entry.created_at) }}</td>
+                <td>{{ labelize(entry.action_type) }}</td>
+                <td><span class="badge">{{ entry.status }}</span></td>
+                <td class="mono" style="color: var(--text-muted);">{{ entry.risk_level }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div *ngIf="tauri.auditLog().length === 0" class="flow-empty">No audit entries yet.</div>
+        </div>
       </section>
 
     </main>

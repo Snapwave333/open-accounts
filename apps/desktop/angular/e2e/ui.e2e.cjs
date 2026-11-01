@@ -178,6 +178,19 @@ const check = (cond, message) => {
     await page.getByRole('button', { name: 'Unlock Vault' }).click();
     await page.locator('td', { hasText: 'e2e:note' }).waitFor();
 
+    await page.getByRole('button', { name: 'Verify chain' }).click();
+    await page.locator('.audit-status', { hasText: 'INTACT' }).waitFor();
+    check(
+      (await page.locator('.data-table', { hasText: 'Outcome' }).locator('tbody tr').count()) > 0,
+      'audit journal is empty',
+    );
+    check(
+      (await page.locator('.data-table', { hasText: 'Outcome' }).textContent()).includes(
+        'Engagement Reply',
+      ),
+      'sent reply missing from the audit journal',
+    );
+
     await tab('Activity Flow');
     const jobCard = page.locator('.flow-card', { hasText: 'Autopilot marketing cycle' });
     await jobCard.waitFor();

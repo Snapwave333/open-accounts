@@ -49,6 +49,26 @@ impl EngagementStore for SqliteEngagementStore {
             .execute(self.db.pool())
             .await
             .map_err(db_err)?;
+        let action_type = format!("Engagement{:?}", action.action_type);
+        let details = serde_json::json!({
+            "platform": action.platform,
+            "target": action.target_id.chars().take(200).collect::<String>(),
+            "remote_id": action.remote_id,
+            "error": action.error_message,
+        })
+        .to_string();
+        let account = action.account_id.0.to_string();
+        self.db
+            .append_audit(openaccounts_database::AuditInsert {
+                execution_id: "ENGAGEMENT",
+                account_id: Some(&account),
+                automation_id: None,
+                action_type: &action_type,
+                risk_level: "Medium",
+                details: &details,
+                status: if action.success { "Completed" } else { "Failed" },
+            })
+            .await?;
         Ok(())
     }
 

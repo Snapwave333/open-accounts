@@ -264,6 +264,7 @@ export class App {
 
   setTab(tab: NavTab) {
     this.activeTab.set(tab);
+    if (tab === 'vault') void this.tauri.refreshAudit(false);
   }
 
   @HostListener('window:keydown', ['$event'])

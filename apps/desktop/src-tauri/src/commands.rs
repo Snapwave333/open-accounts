@@ -41,6 +41,25 @@ fn err(e: impl std::fmt::Display) -> String {
     e.to_string()
 }
 
+async fn audit(state: &AppState, action: &str, account_id: Option<&str>, status: &str, details: serde_json::Value) {
+    let details = details.to_string();
+    if let Err(e) = state
+        .db
+        .append_audit(openaccounts_database::AuditInsert {
+            execution_id: "OPERATOR",
+            account_id,
+            automation_id: None,
+            action_type: action,
+            risk_level: "Low",
+            details: &details,
+            status,
+        })
+        .await
+    {
+        warn!("Audit write failed for {}: {}", action, e);
+    }
+}
+
 fn parse_uuid(id: &str, what: &str) -> CmdResult<uuid::Uuid> {
     uuid::Uuid::parse_str(id.trim()).map_err(|_| format!("Invalid {what} id: {id}"))
 }
@@ -156,14 +175,22 @@ pub async fn create_account(
         updated_at: now,
         last_active: None,
     };
+    let platform_label = record.platform.to_string();
+    let username_label = record.username.clone();
     let id = state.account_registry.create_account(record).await.map_err(err)?;
-    Ok(id.0.to_string())
+    let id_str = id.0.to_string();
+    audit(&state, "AccountCreated", Some(&id_str), "Completed", serde_json::json!({ "platform": platform_label, "username": username_label })).await;
+    Ok(id_str)
 }
 
 #[tauri::command(rename_all = "snake_case")]
 pub async fn delete_account(state: State<'_, AppState>, account_id: String) -> CmdResult<bool> {
     let id = AccountId(parse_uuid(&account_id, "account")?);
-    state.account_registry.delete_account(&id).await.map_err(err)
+    let deleted = state.account_registry.delete_account(&id).await.map_err(err)?;
+    if deleted {
+        audit(&state, "AccountDeleted", Some(&account_id), "Completed", serde_json::json!({})).await;
+    }
+    Ok(deleted)
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -217,7 +244,9 @@ pub async fn is_vault_unlocked(state: State<'_, AppState>) -> CmdResult<bool> {
 
 #[tauri::command(rename_all = "snake_case")]
 pub async fn unlock_vault(state: State<'_, AppState>, password: String) -> CmdResult<()> {
-    state.vault.unlock(&password).await.map_err(err)
+    let result = state.vault.unlock(&password).await.map_err(err);
+    audit(&state, "VaultUnlock", None, if result.is_ok() { "Completed" } else { "Denied" }, serde_json::json!({})).await;
+    result
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -228,7 +257,9 @@ pub async fn lock_vault(state: State<'_, AppState>) -> CmdResult<()> {
 
 #[tauri::command(rename_all = "snake_case")]
 pub async fn change_vault_password(state: State<'_, AppState>, current: String, new_password: String) -> CmdResult<()> {
-    state.vault.change_master_password(&current, &new_password).await.map_err(err)
+    let result = state.vault.change_master_password(&current, &new_password).await.map_err(err);
+    audit(&state, "VaultPasswordRotated", None, if result.is_ok() { "Completed" } else { "Denied" }, serde_json::json!({})).await;
+    result
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -255,9 +286,11 @@ pub async fn store_vault_secret(
         serde_json::from_value(serde_json::Value::String(secret_type.clone())).map_err(|_| format!("Unknown secret type {secret_type}"))?;
     let id = state
         .vault
-        .store_secret(account_id.filter(|a| !a.is_empty()), secret_type, label, SecretPayload { value, metadata: None })
+        .store_secret(account_id.filter(|a| !a.is_empty()), secret_type, label.clone(), SecretPayload { value, metadata: None })
         .await
         .map_err(err)?;
+    *state.connection_cache.write().await = None;
+    audit(&state, "VaultSecretStored", None, "Completed", serde_json::json!({ "label": label })).await;
     Ok(id.0.to_string())
 }
 
@@ -265,13 +298,17 @@ pub async fn store_vault_secret(
 pub async fn reveal_vault_secret(state: State<'_, AppState>, secret_id: String) -> CmdResult<String> {
     let id = SecretId(parse_uuid(&secret_id, "secret")?);
     let payload = state.vault.get_secret(&id).await.map_err(err)?;
+    audit(&state, "VaultSecretRevealed", None, "Completed", serde_json::json!({ "secret_id": secret_id })).await;
     Ok(payload.value.clone())
 }
 
 #[tauri::command(rename_all = "snake_case")]
 pub async fn delete_vault_secret(state: State<'_, AppState>, secret_id: String) -> CmdResult<()> {
     let id = SecretId(parse_uuid(&secret_id, "secret")?);
-    state.vault.delete_secret(&id).await.map_err(err)
+    state.vault.delete_secret(&id).await.map_err(err)?;
+    *state.connection_cache.write().await = None;
+    audit(&state, "VaultSecretDeleted", None, "Completed", serde_json::json!({ "secret_id": secret_id })).await;
+    Ok(())
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -374,12 +411,14 @@ pub async fn execute_agent_action(state: State<'_, AppState>, action: agent::Age
 pub async fn trigger_kill_switch(state: State<'_, AppState>) -> CmdResult<()> {
     state.automation_engine.trigger_kill_switch();
     state.social_media_manager.pause_autonomous_loop();
+    audit(&state, "KillSwitchTriggered", None, "Completed", serde_json::json!({})).await;
     state.db.set_setting(AUTOPILOT_SETTING, "false").await.map_err(err)
 }
 
 #[tauri::command(rename_all = "snake_case")]
 pub async fn reset_kill_switch(state: State<'_, AppState>) -> CmdResult<()> {
     state.automation_engine.reset_kill_switch();
+    audit(&state, "KillSwitchReset", None, "Completed", serde_json::json!({})).await;
     Ok(())
 }
 
@@ -625,12 +664,14 @@ pub async fn schedule_post(
         published_at: None,
     };
     state.content_strategy.schedule_post_slot(slot.clone()).await;
+    audit(&state, "PostScheduled", slot.account_id.as_deref(), "Completed", serde_json::json!({ "slot_id": slot.slot_id, "platform": slot.target_platform, "approved": slot.is_approved })).await;
     Ok(slot)
 }
 
 #[tauri::command(rename_all = "snake_case")]
 pub async fn approve_calendar_slot(state: State<'_, AppState>, slot_id: String) -> CmdResult<()> {
     if state.content_strategy.approve_slot(&slot_id).await {
+        audit(&state, "PostApproved", None, "Completed", serde_json::json!({ "slot_id": slot_id })).await;
         Ok(())
     } else {
         Err(format!("Slot {slot_id} not found"))
@@ -640,7 +681,10 @@ pub async fn approve_calendar_slot(state: State<'_, AppState>, slot_id: String) 
 #[tauri::command(rename_all = "snake_case")]
 pub async fn delete_calendar_slot(state: State<'_, AppState>, slot_id: String) -> CmdResult<()> {
     match state.content_strategy.remove_slot(&slot_id).await.map_err(err)? {
-        true => Ok(()),
+        true => {
+            audit(&state, "PostDeleted", None, "Completed", serde_json::json!({ "slot_id": slot_id })).await;
+            Ok(())
+        }
         false => Err(format!("Slot {slot_id} not found")),
     }
 }
@@ -790,11 +834,9 @@ pub async fn approve_and_send_inbox_reply(
     if state.automation_engine.is_kill_switch_active() {
         return Err("Kill switch is active".into());
     }
-    state
-        .engagement_agent
-        .approve_and_send_reply(&message_id, &final_reply)
-        .await
-        .map_err(err)
+    let result = state.engagement_agent.approve_and_send_reply(&message_id, &final_reply).await.map_err(err);
+    audit(&state, "InboxReplyApproved", None, if result.is_ok() { "Completed" } else { "Failed" }, serde_json::json!({ "message_id": message_id })).await;
+    result
 }
 
 #[tauri::command(rename_all = "snake_case")]
@@ -880,12 +922,14 @@ pub async fn start_autonomous_marketing_loop(state: State<'_, AppState>) -> CmdR
         return Err("Reset the kill switch before resuming autopilot".into());
     }
     state.social_media_manager.start_autonomous_loop();
+    audit(&state, "AutopilotResumed", None, "Completed", serde_json::json!({})).await;
     state.db.set_setting(AUTOPILOT_SETTING, "true").await.map_err(err)
 }
 
 #[tauri::command(rename_all = "snake_case")]
 pub async fn pause_autonomous_marketing_loop(state: State<'_, AppState>) -> CmdResult<()> {
     state.social_media_manager.pause_autonomous_loop();
+    audit(&state, "AutopilotPaused", None, "Completed", serde_json::json!({})).await;
     state.db.set_setting(AUTOPILOT_SETTING, "false").await.map_err(err)
 }
 
