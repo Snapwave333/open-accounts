@@ -481,6 +481,18 @@
                 </div>
 
                 <p class="bubble-text" *ngIf="msg.text">{{ msg.text }}</p>
+                <div class="bubble-actions" *ngIf="msg.actions?.length">
+                  <button
+                    *ngFor="let action of msg.actions; let i = index"
+                    class="action-chip"
+                    [class.done]="action.state === 'done'"
+                    [class.failed]="action.state === 'failed'"
+                    [disabled]="action.state === 'running' || action.state === 'done'"
+                    (click)="tauri.runAgentAction(msg.id, i)"
+                  >
+                    {{ action.state === 'running' ? 'Running…' : action.state === 'done' ? '✓ ' + action.label : action.label }}
+                  </button>
+                </div>
 
                 <div class="bubble-attachments" *ngIf="msg.attachments && msg.attachments.length > 0">
                   <div *ngFor="let att of msg.attachments" class="attachment-card">

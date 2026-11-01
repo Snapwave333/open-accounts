@@ -1,6 +1,7 @@
 const { chromium } = require('playwright');
 
 const base = process.argv[2];
+const llmUrl = process.argv[3];
 if (!base) {
   console.error('usage: node ui.e2e.cjs <bridge-url>');
   process.exit(2);
@@ -153,6 +154,52 @@ const check = (cond, message) => {
       ),
       'chat did not surface the missing-model error',
     );
+    check(
+      (await page.locator('.chat-bubble-row.error').textContent()).includes('ollama-llama3.2'),
+      'chat did not try the selected model first',
+    );
+    await page.getByRole('button', { name: 'Remove' }).click();
+    await page.waitForTimeout(400);
+    check(
+      (await page.locator('.model-bar select').inputValue()) === 'nim-cascade',
+      'removing the model did not fall back to the default',
+    );
+
+    if (llmUrl) {
+      await page.getByRole('button', { name: '+ Model' }).click();
+      await page.locator('.model-form select').selectOption('openaicompatible');
+      await page.getByPlaceholder('Model id (e.g. claude-sonnet-5-5)').fill('e2e-llm');
+      await page.getByPlaceholder('Endpoint (optional)').fill(llmUrl);
+      await page.getByRole('button', { name: 'Save model' }).click();
+      await page
+        .locator('.model-bar select option[value="openaicompatible-e2e-llm"]')
+        .waitFor({ state: 'attached' });
+      await page.locator('.model-bar select').selectOption('openaicompatible-e2e-llm');
+      await page.waitForTimeout(300);
+      await page.getByRole('button', { name: 'Resume' }).click();
+      await page.locator('.status-label', { hasText: 'AUTOPILOT' }).waitFor();
+      await page.getByPlaceholder(/Message the in-app LM agent/).fill('Give me a status update');
+      await page.getByRole('button', { name: 'Send' }).click();
+      const reply = page.locator('.chat-bubble-row', { hasText: 'You have 7 accounts' });
+      await reply.waitFor({ timeout: 15000 });
+      check(
+        !(await reply.textContent()).includes('```action'),
+        'action block leaked into the chat bubble',
+      );
+      check(
+        (await reply.textContent()).includes('e2e-scripted-llm'),
+        'reply is not attributed to the model that answered',
+      );
+      await reply.getByRole('button', { name: 'Pause autopilot' }).click();
+      await page.locator('.chat-bubble-row', { hasText: 'Autopilot paused.' }).waitFor();
+      await page.locator('.status-label', { hasText: 'PAUSED' }).waitFor();
+      check(
+        await reply.getByRole('button', { name: '✓ Pause autopilot' }).isDisabled(),
+        'executed action can be clicked again',
+      );
+    } else {
+      check(false, 'no scripted LLM url supplied');
+    }
   } catch (e) {
     failures.push(`step failed: ${e.message}`);
     await page.screenshot({ path: 'e2e-failure.png' }).catch(() => {});

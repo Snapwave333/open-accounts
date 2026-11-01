@@ -179,10 +179,25 @@ fn ui_payloads_round_trip_through_real_ipc() {
     h.ok("set_chat_lm_profile", json!({ "profile_id": "local-llama" }));
     assert_eq!(h.ok("get_chat_lm_profile", json!({})), "local-llama");
     let chat_err = h.err("agent_chat", json!({ "message": "hi", "scope": "All accounts" }));
-    assert!(chat_err.contains("local-llama") || chat_err.contains("nim-cascade"), "{chat_err}");
+    let first = chat_err.find("local-llama:").expect("selected profile reported");
+    let fallback = chat_err.find("nim-cascade:").expect("fallback profile reported");
+    assert!(first < fallback, "selected profile must be tried first: {chat_err}");
     h.ok("remove_lm_profile", json!({ "profile_id": "local-llama" }));
     assert_eq!(h.ok("get_chat_lm_profile", json!({})), "nim-cascade");
     assert!(h.err("remove_lm_profile", json!({ "profile_id": "nim-cascade" })).contains("cannot be removed"));
+
+    let act = |kind: &str, args: Value| json!({ "action": { "kind": kind, "label": kind, "args": args } });
+    assert_eq!(h.ok("execute_agent_action", act("resume_autopilot", json!({}))), "Autopilot resumed.");
+    assert_eq!(h.ok("is_autonomous_marketing_loop_running", json!({})), true);
+    assert_eq!(h.ok("execute_agent_action", act("pause_autopilot", json!({}))), "Autopilot paused.");
+    assert!(h
+        .ok("execute_agent_action", act("run_job", json!({ "name": "autopilot" })))
+        .as_str()
+        .unwrap()
+        .contains("skipped: autopilot paused"));
+    assert!(h.err("execute_agent_action", act("sync_inbox", json!({ "account": "@snapwave" }))).contains("not connected"));
+    assert!(h.err("execute_agent_action", act("sync_inbox", json!({ "account": "@ghost" }))).contains("No account matches"));
+    assert!(h.err("execute_agent_action", act("drop_tables", json!({}))).contains("not an allowed"));
 
     assert!(h.err("resolve_human_task", json!({ "task_id": "not-a-uuid" })).contains("Invalid task id"));
     assert!(h
@@ -283,6 +298,48 @@ async fn serve_bridge(
     }
 }
 
+async fn serve_scripted_llm(listener: tokio::net::TcpListener) {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    loop {
+        let Ok((mut sock, _)) = listener.accept().await else { break };
+        tokio::spawn(async move {
+            let mut buf = vec![0u8; 65536];
+            let mut read = 0;
+            loop {
+                let Ok(n) = sock.read(&mut buf[read..]).await else { return };
+                if n == 0 {
+                    break;
+                }
+                read += n;
+                let text = String::from_utf8_lossy(&buf[..read]).to_string();
+                if let Some(pos) = text.find("\r\n\r\n") {
+                    let len = text[..pos]
+                        .to_lowercase()
+                        .lines()
+                        .find_map(|l| l.strip_prefix("content-length:").map(|v| v.trim().parse::<usize>().unwrap_or(0)))
+                        .unwrap_or(0);
+                    if read >= pos + 4 + len {
+                        break;
+                    }
+                }
+            }
+            let content = "You have 7 accounts and autopilot is paused.\n```action\n{\"action\": \"pause_autopilot\", \"args\": {}}\n```";
+            let body = json!({
+                "model": "e2e-scripted-llm",
+                "choices": [{ "message": { "role": "assistant", "content": content } }],
+                "usage": { "total_tokens": 42 }
+            })
+            .to_string();
+            let resp = format!(
+                "HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{}",
+                body.len(),
+                body
+            );
+            let _ = sock.write_all(resp.as_bytes()).await;
+        });
+    }
+}
+
 #[test]
 #[ignore = "drives the real Angular UI in headless Chromium; run with --ignored after `npm run build`"]
 fn ui_end_to_end_in_real_browser() {
@@ -295,6 +352,9 @@ fn ui_end_to_end_in_real_browser() {
     let listener = rt.block_on(tokio::net::TcpListener::bind("127.0.0.1:0")).unwrap();
     let url = format!("http://{}/", listener.local_addr().unwrap());
     rt.spawn(serve_bridge(listener, dist, h.window.clone()));
+    let llm = rt.block_on(tokio::net::TcpListener::bind("127.0.0.1:0")).unwrap();
+    let llm_url = format!("http://{}/v1", llm.local_addr().unwrap());
+    rt.spawn(serve_scripted_llm(llm));
 
     let node_path = std::process::Command::new("npm")
         .args(["root", "-g"])
@@ -305,6 +365,7 @@ fn ui_end_to_end_in_real_browser() {
     let output = std::process::Command::new("node")
         .arg(&script)
         .arg(&url)
+        .arg(&llm_url)
         .env("NODE_PATH", node_path)
         .output()
         .expect("node is required for the UI end-to-end test");

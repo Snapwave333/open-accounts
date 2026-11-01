@@ -1667,3 +1667,30 @@
     width: 210px;
   }
 }
+
+.bubble-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.action-chip {
+  padding: 5px 10px;
+  font-size: 12px;
+  border-radius: 999px;
+  border: 1px solid var(--accent-border);
+  background: rgba(16, 185, 129, 0.06);
+  color: var(--accent);
+  cursor: pointer;
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.75;
+  }
+
+  &.failed {
+    border-color: rgba(239, 68, 68, 0.45);
+    color: #fca5a5;
+  }
+}

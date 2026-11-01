@@ -351,6 +351,26 @@ pub async fn agent_chat(
 }
 
 #[tauri::command(rename_all = "snake_case")]
+pub async fn execute_agent_action(state: State<'_, AppState>, action: agent::AgentAction) -> CmdResult<String> {
+    let result = agent::execute_action(&state, &action).await;
+    let status = if result.is_ok() { "Completed" } else { "Failed" };
+    let details = serde_json::json!({ "kind": action.kind, "args": action.args, "result": result.clone().unwrap_or_else(|e| e) }).to_string();
+    let _ = state
+        .db
+        .append_audit(openaccounts_database::AuditInsert {
+            execution_id: "AGENT_CHAT",
+            account_id: None,
+            automation_id: None,
+            action_type: "AgentAction",
+            risk_level: "Low",
+            details: &details,
+            status,
+        })
+        .await;
+    result
+}
+
+#[tauri::command(rename_all = "snake_case")]
 pub async fn trigger_kill_switch(state: State<'_, AppState>) -> CmdResult<()> {
     state.automation_engine.trigger_kill_switch();
     state.social_media_manager.pause_autonomous_loop();

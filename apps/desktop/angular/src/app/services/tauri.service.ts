@@ -113,6 +113,13 @@ export interface ChatAttachment {
   text_content?: string;
 }
 
+export interface AgentAction {
+  kind: string;
+  label: string;
+  args: Record<string, unknown>;
+  state?: 'idle' | 'running' | 'done' | 'failed';
+}
+
 export interface AgentChatMessage {
   id: string;
   sender: 'human' | 'agent' | 'error';
@@ -121,6 +128,7 @@ export interface AgentChatMessage {
   text: string;
   target_scope?: string;
   attachments: ChatAttachment[];
+  actions?: AgentAction[];
 }
 
 export interface ConnectionStatus {
@@ -182,6 +190,7 @@ export interface AgentChatReply {
   model: string;
   profile_id: string;
   tokens_used?: number | null;
+  proposed_actions: AgentAction[];
 }
 
 export class BackendUnavailableError extends Error {
@@ -592,6 +601,7 @@ export class TauriService {
           text: reply.reply,
           target_scope: targetScope,
           attachments: [],
+          actions: (reply.proposed_actions ?? []).map((a) => ({ ...a, state: 'idle' as const })),
         },
       ]);
     } catch (err) {
@@ -609,5 +619,41 @@ export class TauriService {
     } finally {
       this.chatPending.set(false);
     }
+  }
+
+  async runAgentAction(messageId: string, index: number): Promise<void> {
+    const msg = this.agentChatMessages().find((m) => m.id === messageId);
+    const action = msg?.actions?.[index];
+    if (!action || action.state === 'running' || action.state === 'done') return;
+    const setState = (state: AgentAction['state']) =>
+      this.agentChatMessages.update((list) =>
+        list.map((m) =>
+          m.id === messageId ? { ...m, actions: m.actions?.map((a, i) => (i === index ? { ...a, state } : a)) } : m
+        )
+      );
+    setState('running');
+    let text: string;
+    let ok = true;
+    try {
+      text = await this.invoke<string>('execute_agent_action', {
+        action: { kind: action.kind, label: action.label, args: action.args ?? {} },
+      });
+    } catch (err) {
+      ok = false;
+      text = errorMessage(err);
+    }
+    setState(ok ? 'done' : 'failed');
+    this.agentChatMessages.update((prev) => [
+      ...prev,
+      {
+        id: `chat-action-${Date.now()}`,
+        sender: ok ? 'agent' : 'error',
+        author_label: `Action · ${action.label}`,
+        timestamp: timeLabel(),
+        text,
+        attachments: [],
+      },
+    ]);
+    await this.refreshLive();
   }
 }

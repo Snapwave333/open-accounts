@@ -30,6 +30,7 @@ macro_rules! app_commands {
             remove_lm_profile,
             get_lm_usage,
             agent_chat,
+            execute_agent_action,
             trigger_kill_switch,
             reset_kill_switch,
             is_kill_switch_active,
