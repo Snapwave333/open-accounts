@@ -88,6 +88,17 @@ OpenAccounts is a desktop application designed to create, manage, secure, and au
 
 ---
 
+## 🤖 What The Agents Do
+
+| Capability | How it works |
+| :--- | :--- |
+| **Agent Chat** | Answers from your chosen LM profile using live app state (accounts, tasks, inbox, jobs, audit log). It can propose whitelisted actions (sync inbox, refresh metrics, policy check, run a job, pause/resume autopilot, research trends) that run only when you click them, respect the kill switch, and are audit-logged. |
+| **Models** | Pick the chat model in Agent Chat or add Anthropic, OpenAI-compatible, Gemini, OpenRouter, Ollama or NIM profiles; profiles persist across restarts and failures list every model tried. |
+| **Compose & Autopilot** | Draft captions in your brand voice, schedule posts, and approve them from Activity Flow or Needs You. The autopilot publishes only approved, due posts, never twice, and defers posts once an account hits its rolling 24h post cap. |
+| **Engagement** | Inbox sync from connected platforms, LM triage with fixed legal/security escalation, reply drafting, per-account daily action caps and duplicate suppression; history and inbox persist so caps survive restarts. |
+| **Guided Sign-up** | Real policy checks, vaulted generated password, real sign-up page in a DevTools-driven browser, human checkpoint, then verification-email confirmation. |
+| **Needs You** | One place for CAPTCHAs, consent screens, replies to review, posts to approve and sign-ups in progress; the window title shows the waiting count. |
+
 ## 🧪 Testing
 
 | Command | Covers |
