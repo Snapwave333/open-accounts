@@ -1,74 +1,40 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-  /* Dark charcoal and near-black visual foundation */
-  --bg-canvas: #0b0d12;
-  --bg-sidebar: #0f1219;
-  --bg-topbar: #0f1219;
-  --bg-panel: #131722;
-  --bg-panel-elevated: #171c2b;
-  --bg-panel-hover: #1c2234;
-  --bg-input: #0e111a;
-  --bg-pill: #1a2030;
+  /* Pure Black Visual Foundation */
+  --bg-canvas: #000000;
+  --bg-topbar: #000000;
+  --bg-panel: #070707;
+  --bg-panel-elevated: #0d0d0d;
+  --bg-panel-hover: #141414;
+  --bg-input: #050505;
+  --bg-pill: #0c0c0c;
 
-  /* Thin understated borders */
-  --border-subtle: #1e2436;
-  --border-medium: #273047;
-  --border-light: #323d5a;
+  /* Crisp Monochrome Borders */
+  --border-subtle: #181818;
+  --border-medium: #262626;
+  --border-light: #363636;
 
-  /* Restrained Fuchsia/Magenta Accent */
-  --magenta-primary: #d946ef;
-  --magenta-hover: #c026d3;
-  --magenta-active: #a21caf;
-  --magenta-subtle: rgba(217, 70, 239, 0.09);
-  --magenta-border: rgba(217, 70, 239, 0.32);
-  --magenta-glow: rgba(217, 70, 239, 0.18);
+  /* Single Unified Accent Color (Emerald — Zero Purple) */
+  --accent: #10b981;
+  --accent-hover: #059669;
+  --accent-subtle: rgba(16, 185, 129, 0.10);
+  --accent-border: rgba(16, 185, 129, 0.32);
 
-  /* Subtle Blue Secondary Accent */
-  --blue-secondary: #38bdf8;
-  --blue-hover: #0ea5e9;
-  --blue-subtle: rgba(56, 189, 248, 0.09);
-  --blue-border: rgba(56, 189, 248, 0.28);
-
-  /* Quiet functional status colors */
-  --emerald: #10b981;
-  --emerald-subtle: rgba(16, 185, 129, 0.1);
-  --emerald-border: rgba(16, 185, 129, 0.25);
-  
-  --amber: #f59e0b;
-  --amber-subtle: rgba(245, 158, 11, 0.1);
-  --amber-border: rgba(245, 158, 11, 0.25);
-
-  --rose: #f43f5e;
-  --rose-subtle: rgba(244, 63, 94, 0.1);
-  --rose-border: rgba(244, 63, 94, 0.25);
-
-  /* Typography */
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --text-dim: #475569;
+  /* Neutral Monochrome Typography */
+  --text-primary: #ffffff;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+  --text-dim: #52525b;
 
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', 'Segoe UI Mono', monospace;
 
-  /* Geometry & Spacing defaults */
-  --radius-sm: 4px;
-  --radius-md: 7px;
-  --radius-lg: 10px;
-
-  --space-unit: 8px;
-  --panel-padding: 22px;
-  --panel-gap: 20px;
-  --topbar-height: 48px;
-  --sidebar-width: 232px;
-}
-
-[data-density="compact"] {
-  --panel-padding: 14px;
-  --panel-gap: 12px;
-  --topbar-height: 42px;
-  --sidebar-width: 220px;
+  /* Geometry & Spacing */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --topbar-height: 56px;
 }
 
 * {
@@ -90,13 +56,12 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Custom understated scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: #000000;
 }
 ::-webkit-scrollbar-thumb {
   background: var(--border-medium);
@@ -106,14 +71,13 @@ html, body {
   background: var(--border-light);
 }
 
-/* Base button and interactive resets */
 button {
   font-family: inherit;
   font-size: 13px;
   cursor: pointer;
   border: 1px solid transparent;
   outline: none;
-  transition: all 0.15s ease-in-out;
+  transition: all 0.15s ease;
   border-radius: var(--radius-md);
   display: inline-flex;
   align-items: center;
@@ -123,7 +87,7 @@ button {
 }
 
 button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
-  outline: 2px solid var(--magenta-primary);
+  outline: 1px solid var(--accent);
   outline-offset: 1px;
 }
 
@@ -131,7 +95,7 @@ input, select, textarea {
   font-family: inherit;
   font-size: 13px;
   background-color: var(--bg-input);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border-medium);
   border-radius: var(--radius-md);
   color: var(--text-primary);
   padding: 8px 12px;
@@ -139,7 +103,7 @@ input, select, textarea {
 }
 
 input:focus, select:focus, textarea:focus {
-  border-color: var(--magenta-border);
+  border-color: var(--accent);
 }
 
 .mono {

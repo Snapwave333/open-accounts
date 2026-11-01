@@ -1,150 +1,135 @@
 <div class="desktop-app">
-  <!-- MINIMAL TOP BAR -->
+  <!-- PURE BLACK MINIMAL TOP BAR -->
   <header class="topbar">
     <div class="topbar-left">
       <div class="brand-badge">
         <div class="brand-icon">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
             <rect width="18" height="18" x="3" y="3" rx="4"/>
             <circle cx="12" cy="12" r="3" fill="currentColor"/>
           </svg>
         </div>
-        <div class="brand-titles">
-          <span class="product-name">OpenAccounts</span>
-          <span class="build-tag">Clearly Drawn Studios</span>
-        </div>
+        <span class="product-name">OpenAccounts</span>
       </div>
 
       <div class="system-status-indicator" [class.halted]="tauri.killSwitchActive() || !tauri.isAutonomousLoopRunning()">
         <span class="status-dot"></span>
         <span class="status-label">
-          {{ tauri.killSwitchActive() ? 'HALTED' : (tauri.isAutonomousLoopRunning() ? 'RUNNING IN BACKGROUND' : 'PAUSED') }}
+          {{ tauri.killSwitchActive() ? 'HALTED' : (tauri.isAutonomousLoopRunning() ? 'AUTOPILOT' : 'PAUSED') }}
         </span>
       </div>
     </div>
 
-    <!-- Clean 4-Tab Switcher right in the Top Bar -->
+    <!-- Clean 4-Tab Switcher in Center -->
     <div class="topbar-center">
-      <div style="display: flex; gap: 6px; background: #121622; padding: 4px; border-radius: 8px; border: 1px solid #23293a;">
+      <nav class="tab-pill-group">
         <button
+          class="tab-pill"
+          [class.active]="activeTab() === 'home'"
           (click)="setTab('home')"
-          [style.background]="activeTab() === 'home' ? '#d946ef' : 'transparent'"
-          [style.color]="activeTab() === 'home' ? '#fff' : '#94a3b8'"
-          style="border: none; padding: 6px 14px; border-radius: 6px; font-weight: 600; font-size: 13px; cursor: pointer;"
         >
-          Needs You ({{ tauri.humanTasks().length }})
+          <span>Needs You</span>
+          <span class="tab-count">{{ tauri.humanTasks().length }}</span>
         </button>
         <button
+          class="tab-pill"
+          [class.active]="activeTab() === 'flow'"
           (click)="setTab('flow')"
-          [style.background]="activeTab() === 'flow' ? '#d946ef' : 'transparent'"
-          [style.color]="activeTab() === 'flow' ? '#fff' : '#94a3b8'"
-          style="border: none; padding: 6px 14px; border-radius: 6px; font-weight: 600; font-size: 13px; cursor: pointer;"
         >
-          Activity Flow
+          <span>Activity Flow</span>
         </button>
         <button
+          class="tab-pill"
+          [class.active]="activeTab() === 'accounts'"
           (click)="setTab('accounts')"
-          [style.background]="activeTab() === 'accounts' ? '#d946ef' : 'transparent'"
-          [style.color]="activeTab() === 'accounts' ? '#fff' : '#94a3b8'"
-          style="border: none; padding: 6px 14px; border-radius: 6px; font-weight: 600; font-size: 13px; cursor: pointer;"
         >
-          Accounts ({{ tauri.accounts().length }})
+          <span>Accounts</span>
+          <span class="tab-count">{{ tauri.accounts().length }}</span>
         </button>
         <button
+          class="tab-pill"
+          [class.active]="activeTab() === 'vault'"
           (click)="setTab('vault')"
-          [style.background]="activeTab() === 'vault' ? '#d946ef' : 'transparent'"
-          [style.color]="activeTab() === 'vault' ? '#fff' : '#94a3b8'"
-          style="border: none; padding: 6px 14px; border-radius: 6px; font-weight: 600; font-size: 13px; cursor: pointer;"
         >
-          Vault ({{ tauri.vaultUnlocked() ? 'Unlocked' : 'Locked' }})
+          <span>Vault</span>
+          <span class="tab-count">{{ tauri.vaultUnlocked() ? 'Open' : 'Locked' }}</span>
         </button>
-      </div>
+      </nav>
     </div>
 
-    <!-- Right: Pause/Resume + Emergency Stop + Window Controls -->
+    <!-- Right Controls -->
     <div class="topbar-right">
       <button class="btn-micro" (click)="toggleMarketingLoop()">
-        <span>{{ tauri.isAutonomousLoopRunning() ? 'Pause Autopilot' : 'Resume Autopilot' }}</span>
+        <span>{{ tauri.isAutonomousLoopRunning() ? 'Pause' : 'Resume' }}</span>
       </button>
 
-      <button class="btn-micro" [class.btn-danger]="!tauri.killSwitchActive()" (click)="toggleKillSwitch()">
+      <button class="btn-micro" (click)="toggleKillSwitch()">
         <span>{{ tauri.killSwitchActive() ? 'Reset Stop' : 'Kill Switch' }}</span>
       </button>
-
-      <div class="window-controls-divider"></div>
-
-      <div class="window-controls">
-        <button class="win-btn win-minimize" (click)="minimizeWindow()" title="Minimize">
-          <svg width="10" height="1" viewBox="0 0 10 1"><rect width="10" height="1" fill="currentColor"/></svg>
-        </button>
-        <button class="win-btn win-maximize" (click)="maximizeWindow()" title="Maximize">
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><rect width="9" height="9" x="0.5" y="0.5" stroke="currentColor" stroke-width="1"/></svg>
-        </button>
-        <button class="win-btn win-close" (click)="closeWindow()" title="Close">
-          <svg width="10" height="10" viewBox="0 0 10 10"><path d="M1 1L9 9M9 1L1 9" stroke="currentColor" stroke-width="1.2"/></svg>
-        </button>
-      </div>
     </div>
   </header>
 
-  <!-- SINGLE CLEAN WORKSPACE (NO CLUTTER SIDEBAR) -->
-  <div class="app-body" style="grid-template-columns: 1fr;">
-    <main class="main-canvas" style="max-width: 1220px; margin: 0 auto; width: 100%; padding: 28px 24px;">
+  <!-- PURE BLACK WORKSPACE -->
+  <div class="app-body">
+    <main class="main-canvas">
 
       <!-- TAB 1: NEEDS YOU & SILENT BACKGROUND PULSE -->
       <section *ngIf="activeTab() === 'home'" class="workspace-view">
-        <!-- Compact 4-Card Background Pulse -->
-        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px;">
-          <div class="panel" style="padding: 16px;">
-            <div style="font-size: 11px; color: #94a3b8; font-weight: 600; letter-spacing: 0.05em;">MANAGED ACCOUNTS</div>
-            <div style="font-size: 26px; font-weight: 700; color: #fff; margin: 6px 0 4px;">{{ tauri.accounts().length }}</div>
-            <div style="font-size: 12px; color: #64748b;">IG · TikTok · YouTube · Shopify</div>
+        <div class="pulse-grid">
+          <div class="pulse-card">
+            <span class="pulse-label">Managed Accounts</span>
+            <span class="pulse-value">{{ tauri.accounts().length }}</span>
+            <span class="pulse-sub">IG · TikTok · YouTube · Shopify</span>
           </div>
 
-          <div class="panel" style="padding: 16px;">
-            <div style="font-size: 11px; color: #94a3b8; font-weight: 600; letter-spacing: 0.05em;">SOCIAL & ENGAGEMENT</div>
-            <div style="font-size: 22px; font-weight: 700; color: #10b981; margin: 6px 0 4px;">ACTIVE</div>
-            <div style="font-size: 12px; color: #64748b;">Running in background</div>
+          <div class="pulse-card">
+            <span class="pulse-label">Social & Engagement</span>
+            <span class="pulse-value accent">ACTIVE</span>
+            <span class="pulse-sub">Running in background</span>
           </div>
 
-          <div class="panel" style="padding: 16px;">
-            <div style="font-size: 11px; color: #94a3b8; font-weight: 600; letter-spacing: 0.05em;">STUDIO BRIDGE</div>
-            <div style="font-size: 22px; font-weight: 700; color: #10b981; margin: 6px 0 4px;">SYNCED</div>
-            <div style="font-size: 12px; color: #64748b;">Zero duplicate actions</div>
+          <div class="pulse-card">
+            <span class="pulse-label">Studio Bridge</span>
+            <span class="pulse-value accent">SYNCED</span>
+            <span class="pulse-sub">Zero duplicate actions</span>
           </div>
 
-          <div class="panel" style="padding: 16px;">
-            <div style="font-size: 11px; color: #94a3b8; font-weight: 600; letter-spacing: 0.05em;">GARBAGE COLLECTOR</div>
-            <div style="font-size: 22px; font-weight: 700; color: #fff; margin: 6px 0 4px;">{{ tauri.gcReport().free_gb }} GB Free</div>
-            <div style="font-size: 12px; color: #64748b;">{{ tauri.gcReport().freed_total_gb }} GB reclaimed</div>
+          <div class="pulse-card">
+            <span class="pulse-label">Garbage Collector</span>
+            <span class="pulse-value">{{ tauri.gcReport().free_gb }} GB Free</span>
+            <span class="pulse-sub">{{ tauri.gcReport().freed_total_gb }} GB reclaimed</span>
           </div>
         </div>
 
-        <!-- HUMAN GATE: ONLY SHOWS WHAT NEEDS A HUMAN -->
-        <div class="panel" style="margin-bottom: 20px;">
+        <!-- HUMAN GATE -->
+        <div class="panel">
           <div class="panel-header">
             <div>
               <h3>Needs Your Attention</h3>
               <span class="panel-header-subtitle">Everything else runs silently in the background</span>
             </div>
-            <span class="badge" [class.warning]="tauri.humanTasks().length > 0" [class.green]="tauri.humanTasks().length === 0">
-              {{ tauri.humanTasks().length === 0 ? 'All Clear' : tauri.humanTasks().length + ' Waiting' }}
+            <span class="badge accent">
+              {{ tauri.humanTasks().length === 0 ? 'ALL CLEAR' : tauri.humanTasks().length + ' WAITING' }}
             </span>
           </div>
 
-          <div *ngIf="tauri.humanTasks().length === 0" style="padding: 24px 8px; text-align: center; color: #10b981; font-weight: 500;">
-            ✓ Nothing needs you right now. All accounts, comments, engagement, and cleanup are running on autopilot.
+          <div *ngIf="tauri.humanTasks().length === 0" class="empty-clear-state">
+            <div class="check-badge">✓</div>
+            <div class="clear-text">
+              <strong>Nothing needs you right now</strong>
+              <span>All accounts, comments, engagement, and disk cleanup are running on autopilot.</span>
+            </div>
           </div>
 
           <div class="tasks-list" *ngIf="tauri.humanTasks().length > 0">
             <div *ngFor="let task of tauri.humanTasks()" class="task-card">
               <div class="task-title-row">
-                <span class="badge amber">{{ task.challenge_type }}</span>
+                <span class="badge accent">{{ task.challenge_type }}</span>
                 <strong>{{ task.title }}</strong>
               </div>
               <p class="task-instructions">{{ task.instructions }}</p>
               <div class="task-actions">
-                <span class="mono text-muted">{{ task.page_url }}</span>
+                <span class="mono" style="color: var(--text-muted); font-size: 12px;">{{ task.page_url }}</span>
                 <button class="btn btn-primary" (click)="tauri.resolveTask(task.id)">
                   <span>Approve & Continue</span>
                 </button>
@@ -156,67 +141,79 @@
 
       <!-- TAB 2: 3-PANEL ACTIVITY FLOW (JUST DID / ACTIVELY DOING / PLAN TO DO NEXT) -->
       <section *ngIf="activeTab() === 'flow'" class="workspace-view">
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; align-items: start;">
+        <div class="flow-board">
 
           <!-- PANEL 1: JUST DID -->
-          <div class="panel" style="border-top: 3px solid #10b981;">
-            <div class="panel-header">
+          <div class="flow-column">
+            <div class="flow-column-header">
               <div>
-                <h3>Just Did</h3>
-                <span class="panel-header-subtitle">Completed automatically</span>
-              </div>
-              <span class="status-pill green">{{ tauri.justDidItems().length }} DONE</span>
-            </div>
-            <div class="operations-list" style="margin-top: 12px;">
-              <div *ngFor="let item of tauri.justDidItems()" class="operation-item" style="padding: 12px;">
-                <div class="op-top-row" style="margin-bottom: 6px;">
-                  <span class="badge green">{{ item.tag }}</span>
-                  <span class="mono text-muted" style="font-size: 11px;">{{ item.time_label }}</span>
+                <div class="col-title-wrap">
+                  <span class="col-dot"></span>
+                  <h3>Just Did</h3>
                 </div>
-                <div style="font-weight: 600; color: #f8fafc; font-size: 14px;">{{ item.title }}</div>
-                <p class="op-desc" style="margin-top: 4px; font-size: 12.5px;">{{ item.detail }}</p>
+                <div class="col-subtitle">Completed automatically</div>
+              </div>
+              <span class="badge">{{ tauri.justDidItems().length }} DONE</span>
+            </div>
+
+            <div class="flow-cards-list">
+              <div *ngFor="let item of tauri.justDidItems()" class="flow-card">
+                <div class="flow-card-top">
+                  <span class="badge">{{ item.tag }}</span>
+                  <span class="mono flow-time">{{ item.time_label }}</span>
+                </div>
+                <div class="flow-card-title">{{ item.title }}</div>
+                <p class="flow-card-detail">{{ item.detail }}</p>
               </div>
             </div>
           </div>
 
-          <!-- PANEL 2: ACTIVELY DOING -->
-          <div class="panel" style="border-top: 3px solid #d946ef;">
-            <div class="panel-header">
+          <!-- PANEL 2: ACTIVELY DOING (SINGLE EMERALD ACCENT FOCUS) -->
+          <div class="flow-column active-column">
+            <div class="flow-column-header">
               <div>
-                <h3>Actively Doing</h3>
-                <span class="panel-header-subtitle">Running right now</span>
-              </div>
-              <span class="badge fuchsia">{{ tauri.activelyDoingItems().length }} LIVE</span>
-            </div>
-            <div class="operations-list" style="margin-top: 12px;">
-              <div *ngFor="let item of tauri.activelyDoingItems()" class="operation-item" style="padding: 12px; border-color: rgba(217, 70, 239, 0.35);">
-                <div class="op-top-row" style="margin-bottom: 6px;">
-                  <span class="badge fuchsia">{{ item.tag }}</span>
-                  <span class="mono text-muted" style="font-size: 11px;">{{ item.time_label }}</span>
+                <div class="col-title-wrap">
+                  <span class="col-dot live"></span>
+                  <h3>Actively Doing</h3>
                 </div>
-                <div style="font-weight: 600; color: #f8fafc; font-size: 14px;">{{ item.title }}</div>
-                <p class="op-desc" style="margin-top: 4px; font-size: 12.5px;">{{ item.detail }}</p>
+                <div class="col-subtitle">Running right now</div>
+              </div>
+              <span class="badge accent">{{ tauri.activelyDoingItems().length }} LIVE</span>
+            </div>
+
+            <div class="flow-cards-list">
+              <div *ngFor="let item of tauri.activelyDoingItems()" class="flow-card live-card">
+                <div class="flow-card-top">
+                  <span class="badge accent">{{ item.tag }}</span>
+                  <span class="mono flow-time accent-text">{{ item.time_label }}</span>
+                </div>
+                <div class="flow-card-title">{{ item.title }}</div>
+                <p class="flow-card-detail">{{ item.detail }}</p>
               </div>
             </div>
           </div>
 
           <!-- PANEL 3: PLAN TO DO NEXT -->
-          <div class="panel" style="border-top: 3px solid #38bdf8;">
-            <div class="panel-header">
+          <div class="flow-column">
+            <div class="flow-column-header">
               <div>
-                <h3>Plan To Do Next</h3>
-                <span class="panel-header-subtitle">Up next in queue</span>
-              </div>
-              <span class="badge blue">{{ tauri.planToDoNextItems().length }} QUEUED</span>
-            </div>
-            <div class="operations-list" style="margin-top: 12px;">
-              <div *ngFor="let item of tauri.planToDoNextItems()" class="operation-item" style="padding: 12px;">
-                <div class="op-top-row" style="margin-bottom: 6px;">
-                  <span class="badge blue">{{ item.tag }}</span>
-                  <span class="mono text-muted" style="font-size: 11px;">{{ item.time_label }}</span>
+                <div class="col-title-wrap">
+                  <span class="col-dot"></span>
+                  <h3>Plan To Do Next</h3>
                 </div>
-                <div style="font-weight: 600; color: #f8fafc; font-size: 14px;">{{ item.title }}</div>
-                <p class="op-desc" style="margin-top: 4px; font-size: 12.5px;">{{ item.detail }}</p>
+                <div class="col-subtitle">Up next in queue</div>
+              </div>
+              <span class="badge">{{ tauri.planToDoNextItems().length }} NEXT</span>
+            </div>
+
+            <div class="flow-cards-list">
+              <div *ngFor="let item of tauri.planToDoNextItems()" class="flow-card">
+                <div class="flow-card-top">
+                  <span class="badge">{{ item.tag }}</span>
+                  <span class="mono flow-time">{{ item.time_label }}</span>
+                </div>
+                <div class="flow-card-title">{{ item.title }}</div>
+                <p class="flow-card-detail">{{ item.detail }}</p>
               </div>
             </div>
           </div>
@@ -224,21 +221,23 @@
         </div>
       </section>
 
-      <!-- TAB 3: ACCOUNTS (SIMPLE LIST + ADD) -->
+      <!-- TAB 3: ACCOUNTS -->
       <section *ngIf="activeTab() === 'accounts'" class="workspace-view">
-        <div class="panel table-panel">
+        <div class="panel">
           <div class="panel-header">
-            <h3>Managed Accounts ({{ tauri.accounts().length }})</h3>
+            <div>
+              <h3>Managed Accounts ({{ tauri.accounts().length }})</h3>
+              <span class="panel-header-subtitle">Connected studio accounts managed in background</span>
+            </div>
             <div style="display: flex; gap: 8px;">
               <input
                 type="text"
                 placeholder="New handle (e.g. @myaccount)"
-                style="padding: 6px 10px; border-radius: 6px; background: #0f131d; border: 1px solid #262c3a; color: #fff;"
+                style="width: 210px;"
                 [ngModel]="newAccountUsername()"
                 (ngModelChange)="newAccountUsername.set($event)"
               />
               <select
-                style="padding: 6px 10px; border-radius: 6px; background: #0f131d; border: 1px solid #262c3a; color: #fff;"
                 [ngModel]="newAccountPlatform()"
                 (ngModelChange)="newAccountPlatform.set($event)"
               >
@@ -263,40 +262,47 @@
             </thead>
             <tbody>
               <tr *ngFor="let acc of tauri.accounts()">
-                <td><span class="platform-chip" [attr.data-platform]="acc.platform">{{ acc.platform | uppercase }}</span></td>
+                <td><span class="badge">{{ acc.platform | uppercase }}</span></td>
                 <td><strong>{{ acc.username }}</strong></td>
-                <td class="mono text-muted">{{ acc.email || '—' }}</td>
-                <td><span class="status-pill green">AUTOPILOT</span></td>
+                <td class="mono" style="color: var(--text-muted);">{{ acc.email || '—' }}</td>
+                <td><span class="badge accent">AUTOPILOT</span></td>
               </tr>
             </tbody>
           </table>
         </div>
       </section>
 
-      <!-- TAB 4: VAULT (SIMPLE UNLOCK / LOCK) -->
+      <!-- TAB 4: VAULT -->
       <section *ngIf="activeTab() === 'vault'" class="workspace-view">
         <div class="panel" *ngIf="!tauri.vaultUnlocked()">
-          <h3>Encrypted Credential Vault</h3>
-          <p class="text-muted" style="margin-bottom: 14px;">Background agents use isolated tokens automatically. Unlock only if you want to view or edit raw credentials.</p>
+          <div class="panel-header">
+            <div>
+              <h3>Encrypted Credential Vault</h3>
+              <span class="panel-header-subtitle">Background agents use isolated tokens automatically. Unlock only to view or edit raw credentials.</span>
+            </div>
+            <span class="badge">LOCKED</span>
+          </div>
           <div style="display: flex; gap: 10px; max-width: 420px;">
             <input
               type="password"
               placeholder="Master password..."
-              style="flex: 1; padding: 8px 12px; border-radius: 6px; background: #0f131d; border: 1px solid #262c3a; color: #fff;"
+              style="flex: 1;"
               [ngModel]="vaultPasswordInput()"
               (ngModelChange)="vaultPasswordInput.set($event)"
               (keyup.enter)="unlockVault()"
             />
-            <button class="btn btn-primary" (click)="unlockVault()">Unlock</button>
+            <button class="btn btn-primary" (click)="unlockVault()">Unlock Vault</button>
           </div>
         </div>
 
         <div class="panel" *ngIf="tauri.vaultUnlocked()">
           <div class="panel-header">
-            <h3>Vault Unlocked</h3>
+            <div>
+              <h3>Vault Unlocked</h3>
+              <span class="panel-header-subtitle">All 7 StickExplainers account credentials and OAuth tokens are encrypted with Argon2id + AES-256-GCM.</span>
+            </div>
             <button class="btn btn-secondary" (click)="lockVault()">Lock Vault</button>
           </div>
-          <p class="text-muted">All 7 StickExplainers account credentials and OAuth tokens are encrypted with Argon2id + AES-256-GCM.</p>
         </div>
       </section>
 
