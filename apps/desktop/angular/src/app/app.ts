@@ -116,6 +116,13 @@ export class App {
     return API_PLATFORMS.has(acc.platform);
   }
 
+  compact(n?: number | null): string {
+    if (n === null || n === undefined) return '—';
+    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+    if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+    return `${n}`;
+  }
+
   draftFor(msg: InboxMessage): string {
     return this.replyDrafts()[msg.message_id] ?? msg.drafted_reply ?? '';
   }

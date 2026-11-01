@@ -86,13 +86,18 @@ const check = (cond, message) => {
       'only the connected YouTube account should show as connected',
     );
 
-    const ytRow = page.locator('tr', { hasText: '@ClearlyDrawnLessons' });
+    const ytRow = page.locator('tr', { hasText: /@ClearlyDrawnLessons/ });
     await ytRow.getByRole('button', { name: 'Sync inbox' }).click();
     await page.waitForTimeout(800);
     check((await banner()) === null, `inbox sync raised: ${await banner()}`);
     await ytRow.getByRole('button', { name: 'Metrics' }).click();
     await page.waitForTimeout(500);
     check((await banner()) === null, `metrics refresh raised: ${await banner()}`);
+    await ytRow.locator('.audience-cell', { hasText: '1.2K followers' }).waitFor();
+    check(
+      (await ytRow.locator('.audience-cell').textContent()).includes('98.8K views'),
+      'refreshed metrics not shown',
+    );
 
     await tab('Needs You');
     const fanCard = page.locator('.task-card', { hasText: '@viewer' });

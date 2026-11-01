@@ -186,6 +186,17 @@ export interface LmProfile {
   temperature?: number | null;
 }
 
+export interface AccountMetric {
+  account_id: string;
+  platform: string;
+  views: number;
+  followers?: number | null;
+  posts?: number | null;
+  likes?: number | null;
+  is_verified_by_api: boolean;
+  captured_at: string;
+}
+
 export interface AgentChatReply {
   reply: string;
   model: string;
@@ -234,6 +245,7 @@ export class TauriService {
   vaultSecrets = signal<SecretMetadata[]>([]);
   connections = signal<ConnectionStatus[]>([]);
   lmProfiles = signal<LmProfile[]>([]);
+  metrics = signal<AccountMetric[]>([]);
   chatProfile = signal<string>('nim-cascade');
   inbox = signal<InboxMessage[]>([]);
   registrations = signal<RegistrationReport[]>([]);
@@ -248,6 +260,14 @@ export class TauriService {
   inboxNeedingReview = computed(() =>
     this.inbox().filter((m) => (m.status === 'New' || m.status === 'PendingApproval') && (m.requires_human_approval || !!m.drafted_reply))
   );
+  latestMetrics = computed(() => {
+    const map = new Map<string, AccountMetric>();
+    for (const m of this.metrics()) {
+      const current = map.get(m.account_id);
+      if (!current || current.captured_at < m.captured_at) map.set(m.account_id, m);
+    }
+    return map;
+  });
   connectedPlatforms = computed(() => new Set(this.connections().filter((c) => c.kind === 'social' && c.connected).map((c) => c.id)));
   justDidItems = computed(() => this.flow().just_did);
   activelyDoingItems = computed(() => this.flow().actively_doing);
@@ -347,6 +367,7 @@ export class TauriService {
         this.refreshVault(),
         this.refreshConnections(false),
         this.refreshProfiles(),
+        this.load<AccountMetric[]>('list_social_analytics', (v) => this.setIfChanged(this.metrics, v)),
       ]);
     } finally {
       this.loading.set(false);
@@ -447,7 +468,11 @@ export class TauriService {
   }
 
   refreshMetrics(accountId: string) {
-    return this.withBusy(`metrics-${accountId}`, () => this.act('refresh_social_metrics', { account_id: accountId }));
+    return this.withBusy(`metrics-${accountId}`, () =>
+      this.act('refresh_social_metrics', { account_id: accountId }, () =>
+        this.load<AccountMetric[]>('list_social_analytics', (v) => this.setIfChanged(this.metrics, v))
+      )
+    );
   }
 
   deleteAccount(accountId: string) {

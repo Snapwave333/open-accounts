@@ -747,6 +747,7 @@
                 <th>Account</th>
                 <th>Email</th>
                 <th>Status</th>
+                <th>Audience</th>
                 <th>Last Active</th>
                 <th></th>
               </tr>
@@ -762,6 +763,12 @@
                 <td><strong>{{ acc.username }}</strong></td>
                 <td class="mono" style="color: var(--text-muted);">{{ acc.email || '—' }}</td>
                 <td><span class="badge" [class.accent]="acc.status === 'active'">{{ acc.status | uppercase }}</span></td>
+                <td class="mono audience-cell">
+                  <ng-container *ngIf="tauri.latestMetrics().get(acc.id) as m; else noMetrics">
+                    <span [title]="'Captured ' + formatTime(m.captured_at)">{{ compact(m.followers) }} followers · {{ compact(m.views) }} views</span>
+                  </ng-container>
+                  <ng-template #noMetrics><span style="color: var(--text-muted);">—</span></ng-template>
+                </td>
                 <td class="mono" style="color: var(--text-muted);">{{ formatTime(acc.last_active) }}</td>
                 <td style="text-align: right; white-space: nowrap;">
                   <ng-container *ngIf="supportsApi(acc)">
