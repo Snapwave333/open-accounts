@@ -143,9 +143,10 @@ pub async fn execute_action(state: &AppState, action: &AgentAction) -> Result<St
         }
         "run_policy_check" => {
             let r = state.policy_monitor.run_policy_check_cycle_report().await;
+            let tasks = crate::escalation::escalate_policy_changes(&state.human_controller, &r).await;
             Ok(format!(
-                "Checked {} documents across {} platforms: {} changed, {} unreachable, {} new baselines.",
-                r.documents_checked, r.platforms_checked, r.changes_detected, r.unreachable, r.baselines_recorded
+                "Checked {} documents across {} platforms: {} changed, {} unreachable, {} new baselines; {} review task(s) added to Needs You.",
+                r.documents_checked, r.platforms_checked, r.changes_detected, r.unreachable, r.baselines_recorded, tasks
             ))
         }
         "run_job" => {

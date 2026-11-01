@@ -429,7 +429,9 @@ pub async fn check_multi_account_policy(
 
 #[tauri::command(rename_all = "snake_case")]
 pub async fn run_policy_monitor_cycle(state: State<'_, AppState>) -> CmdResult<PolicyCycleReport> {
-    Ok(state.policy_monitor.run_policy_check_cycle_report().await)
+    let report = state.policy_monitor.run_policy_check_cycle_report().await;
+    crate::escalation::escalate_policy_changes(&state.human_controller, &report).await;
+    Ok(report)
 }
 
 #[tauri::command(rename_all = "snake_case")]

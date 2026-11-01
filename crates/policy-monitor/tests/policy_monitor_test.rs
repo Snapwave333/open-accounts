@@ -90,7 +90,7 @@ async fn detects_real_document_changes_between_cycles() {
     assert!(third
         .alerts
         .iter()
-        .any(|a| a.platform_id == "reddit" && a.severity == SEVERITY_CRITICAL));
+        .any(|a| a.platform_id == "reddit" && a.severity == SEVERITY_CRITICAL && a.kind == "document_changed" && a.urls == vec![url.clone()]));
     assert_eq!(versioning.get_history("reddit").await.len(), 1);
     assert_eq!(hits.load(Ordering::SeqCst), 3);
 }

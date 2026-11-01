@@ -25,6 +25,10 @@ const FETCH_TIMEOUT: Duration = Duration::from_secs(20);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PolicyMonitorAlert {
+    #[serde(default)]
+    pub kind: String,
+    #[serde(default)]
+    pub urls: Vec<String>,
     pub alert_id: String,
     pub platform_id: String,
     pub severity: String,
@@ -105,8 +109,15 @@ pub fn official_urls(profile: &PlatformKnowledgeProfile) -> Vec<(String, String)
     urls
 }
 
+pub const ALERT_DOCUMENT_CHANGED: &str = "document_changed";
+pub const ALERT_UNREACHABLE: &str = "unreachable";
+pub const ALERT_LOW_CONFIDENCE: &str = "low_confidence";
+pub const ALERT_MANUAL_UPDATE: &str = "manual_update";
+
 fn alert(platform_id: &str, severity: &str, message: String) -> PolicyMonitorAlert {
     PolicyMonitorAlert {
+        kind: String::new(),
+        urls: Vec::new(),
         alert_id: Uuid::new_v4().to_string(),
         platform_id: platform_id.to_string(),
         severity: severity.to_string(),
@@ -255,16 +266,20 @@ impl PolicyMonitor {
             .await;
 
         let mut changed_by_platform: HashMap<String, (PlatformKnowledgeProfile, Vec<PolicyDiff>)> = HashMap::new();
+        let mut changed_urls: HashMap<String, Vec<String>> = HashMap::new();
         for (profile, section, url, outcome) in fetched {
             report.documents_checked += 1;
             match outcome {
                 FetchOutcome::Unreachable { reason } => {
                     report.unreachable += 1;
-                    report.alerts.push(alert(
+                    let mut a = alert(
                         &profile.id,
                         SEVERITY_INFO,
                         format!("Could not verify {} {} ({}): {}", profile.name, section, url, reason),
-                    ));
+                    );
+                    a.kind = ALERT_UNREACHABLE.into();
+                    a.urls = vec![url.clone()];
+                    report.alerts.push(a);
                 }
                 FetchOutcome::Fetched { status, hash } => {
                     let key = (profile.id.clone(), url.clone());
@@ -280,6 +295,7 @@ impl PolicyMonitor {
                         None => report.baselines_recorded += 1,
                         Some(prev) if prev.content_hash != hash => {
                             report.changes_detected += 1;
+                            changed_urls.entry(profile.id.clone()).or_default().push(url.clone());
                             let entry = changed_by_platform
                                 .entry(profile.id.clone())
                                 .or_insert_with(|| (profile.clone(), Vec::new()));
@@ -306,7 +322,7 @@ impl PolicyMonitor {
             profile.last_verified = Utc::now();
             self.versioning.record_version(&platform_id, profile.clone(), diffs).await;
             self.platform_intelligence.update_profile(profile.clone()).await;
-            report.alerts.push(alert(
+            let mut a = alert(
                 &platform_id,
                 SEVERITY_CRITICAL,
                 format!(
@@ -314,16 +330,21 @@ impl PolicyMonitor {
                     profile.name,
                     sections.join(", ")
                 ),
-            ));
+            );
+            a.kind = ALERT_DOCUMENT_CHANGED.into();
+            a.urls = changed_urls.remove(&platform_id).unwrap_or_default();
+            report.alerts.push(a);
         }
 
         for profile in &profiles {
             if profile.confidence_level == ConfidenceLevel::Low {
-                report.alerts.push(alert(
+                let mut a = alert(
                     &profile.id,
                     SEVERITY_CRITICAL,
                     format!("Compliance uncertainty: {} policy confidence is Low and needs human re-validation.", profile.name),
-                ));
+                );
+                a.kind = ALERT_LOW_CONFIDENCE.into();
+                report.alerts.push(a);
             }
         }
 
@@ -372,11 +393,13 @@ impl PolicyMonitor {
         self.platform_intelligence.update_profile(profile).await;
 
         if requires_pause {
-            let _ = self.alert_sender.send(alert(
+            let mut a = alert(
                 platform_id,
                 SEVERITY_CRITICAL,
-                format!("Operator recorded a policy update for {} in {}. Workflows paused for review.", platform_id, section_name),
-            ));
+                format!("Operator recorded a policy update for {} in {}.", platform_id, section_name),
+            );
+            a.kind = ALERT_MANUAL_UPDATE.into();
+            let _ = self.alert_sender.send(a);
         }
         Ok(())
     }

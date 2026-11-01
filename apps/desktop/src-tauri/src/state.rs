@@ -408,17 +408,18 @@ impl AppState {
         )
         .await;
 
-        let monitor = self.policy_monitor.clone();
+        let (monitor, gate) = (self.policy_monitor.clone(), self.human_controller.clone());
         register(
             "Policy document monitor",
             "@daily",
             handler(move || {
-                let monitor = monitor.clone();
+                let (monitor, gate) = (monitor.clone(), gate.clone());
                 async move {
                     let r = monitor.run_policy_check_cycle_report().await;
+                    let tasks = crate::escalation::escalate_policy_changes(&gate, &r).await;
                     Ok(format!(
-                        "{} documents · {} changes · {} unreachable",
-                        r.documents_checked, r.changes_detected, r.unreachable
+                        "{} documents · {} changes · {} unreachable · {} review tasks",
+                        r.documents_checked, r.changes_detected, r.unreachable, tasks
                     ))
                 }
             }),

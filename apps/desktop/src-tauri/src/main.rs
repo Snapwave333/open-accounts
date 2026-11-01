@@ -90,6 +90,7 @@ macro_rules! app_commands {
 mod agent;
 mod commands;
 mod connections;
+mod escalation;
 mod flow;
 mod profiles;
 mod state;
