@@ -1,0 +1,16 @@
+[package]
+name = "openaccounts-email-verification"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+openaccounts-core = { path = "../core" }
+openaccounts-email-provider-gateway = { path = "../email-provider-gateway" }
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+regex.workspace = true
+tokio.workspace = true
+tracing.workspace = true

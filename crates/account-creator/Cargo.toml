@@ -11,6 +11,12 @@ openaccounts-browser-abstraction = { path = "../browser-abstraction" }
 openaccounts-credential-vault = { path = "../credential-vault" }
 openaccounts-human-intervention = { path = "../human-intervention" }
 openaccounts-account-registry = { path = "../account-registry" }
+openaccounts-policy-engine = { path = "../policy-engine" }
+openaccounts-platform-intelligence = { path = "../platform-intelligence" }
+openaccounts-email-identity = { path = "../email-identity" }
+openaccounts-email-verification = { path = "../email-verification" }
+openaccounts-compliance-audit = { path = "../compliance-audit" }
+openaccounts-account-identity-manager = { path = "../account-identity-manager" }
 serde.workspace = true
 serde_json.workspace = true
 uuid.workspace = true

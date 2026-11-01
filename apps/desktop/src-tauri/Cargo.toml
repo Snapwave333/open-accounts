@@ -23,6 +23,17 @@ openaccounts-account-creator = { path = "../../../crates/account-creator" }
 openaccounts-automation-engine = { path = "../../../crates/automation-engine" }
 openaccounts-scheduler = { path = "../../../crates/scheduler" }
 openaccounts-event-bus = { path = "../../../crates/event-bus" }
+openaccounts-platform-intelligence = { path = "../../../crates/platform-intelligence" }
+openaccounts-policy-engine = { path = "../../../crates/policy-engine" }
+openaccounts-policy-monitor = { path = "../../../crates/policy-monitor" }
+openaccounts-policy-versioning = { path = "../../../crates/policy-versioning" }
+openaccounts-email-identity = { path = "../../../crates/email-identity" }
+openaccounts-email-provider-gateway = { path = "../../../crates/email-provider-gateway" }
+openaccounts-email-verification = { path = "../../../crates/email-verification" }
+openaccounts-authentication-engine = { path = "../../../crates/authentication-engine" }
+openaccounts-account-identity-manager = { path = "../../../crates/account-identity-manager" }
+openaccounts-multi-account-registry = { path = "../../../crates/multi-account-registry" }
+openaccounts-compliance-audit = { path = "../../../crates/compliance-audit" }
 
 serde.workspace = true
 serde_json.workspace = true

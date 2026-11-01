@@ -18,6 +18,17 @@ members = [
     "crates/automation-engine",
     "crates/workflow-runtime",
     "crates/scheduler",
+    "crates/platform-intelligence",
+    "crates/policy-engine",
+    "crates/policy-monitor",
+    "crates/policy-versioning",
+    "crates/email-identity",
+    "crates/email-provider-gateway",
+    "crates/email-verification",
+    "crates/authentication-engine",
+    "crates/account-identity-manager",
+    "crates/multi-account-registry",
+    "crates/compliance-audit",
     "apps/desktop/src-tauri",
 ]
 
@@ -51,3 +62,4 @@ tauri = { version = "2", features = [] }
 tauri-build = { version = "2", features = [] }
 tauri-plugin-opener = "2"
 tauri-plugin-stronghold = "2"
+regex = "1.10"

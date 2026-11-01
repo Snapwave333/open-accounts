@@ -1,12 +1,20 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { TauriService } from './services/tauri.service';
+import {
+  AccountCreationPreflightReport,
+  PlatformKnowledgeProfile,
+  TauriService,
+} from './services/tauri.service';
 
 export type NavTab =
   | 'dashboard'
   | 'accounts'
-  | 'creator'
+  | 'multi-accounts'
+  | 'preflight'
+  | 'platform-intelligence'
+  | 'policy-monitor'
+  | 'email-identity'
   | 'automations'
   | 'human-tasks'
   | 'browser'
@@ -26,59 +34,97 @@ export class App {
   tauri = inject(TauriService);
   activeTab = signal<NavTab>('dashboard');
 
-  // Account Creator State
-  creatorMode = signal<'guided' | 'autonomous'>('guided');
-  creatorPlatform = signal<string>('instagram');
-  creatorUsername = signal<string>('brand_ambassador_01');
-  creatorEmail = signal<string>('ops@brand.io');
-  generatedPassword = signal<string>('k8$Nm9#Lq2!Vx7@Z');
-  creationProgress = signal<string>('Ready to initialize');
-  isCreating = signal<boolean>(false);
+  // Platform Intelligence state
+  selectedPlatformId = signal<string>('instagram');
+  platformSearch = signal<string>('');
+  platformsList = signal<PlatformKnowledgeProfile[]>([]);
 
-  // Automations Filter/Config
-  selectedAutomation = signal<string>('instagram-comments');
-  personalityPrompt = signal<string>(
-    'Professional, helpful, and concise brand representative. Escalates negative sentiment or customer complaints to human supervisor immediately.'
-  );
-  autoReplyThreshold = signal<number>(85);
+  // 10-Step Preflight State
+  preflightPlatform = signal<string>('instagram');
+  preflightCategory = signal<string>('Brand');
+  preflightUsername = signal<string>('nova_brand_official');
+  preflightEmail = signal<string>('nova_ops@openaccounts.io');
+  isPreflightRunning = signal<boolean>(false);
+  preflightReport = signal<AccountCreationPreflightReport | null>(null);
 
-  // Vault master password input
+  // Email Identity Form
+  newEmailPrefix = signal<string>('brand_actor');
+  newEmailPlatform = signal<string>('instagram');
+
+  // Vault Master Password
   vaultPasswordInput = signal<string>('');
   vaultError = signal<string>('');
 
-  // New Account modal
+  // Add Account Modal
   showAddAccountModal = signal<boolean>(false);
   newAccPlatform = signal<string>('instagram');
   newAccUsername = signal<string>('');
   newAccEmail = signal<string>('');
 
+  constructor() {
+    this.loadPlatformProfiles();
+  }
+
+  async loadPlatformProfiles() {
+    const list = await this.tauri.invoke<PlatformKnowledgeProfile[]>('list_platform_profiles');
+    if (list && list.length > 0) {
+      this.platformsList.set(list);
+    }
+  }
+
   setTab(tab: NavTab) {
     this.activeTab.set(tab);
   }
 
-  generateNewPassword() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=';
-    let result = '';
-    for (let i = 0; i < 20; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    this.generatedPassword.set(result);
+  get selectedPlatform(): PlatformKnowledgeProfile | undefined {
+    return this.platformsList().find((p) => p.id === this.selectedPlatformId());
   }
 
-  async runAccountCreation() {
-    this.isCreating.set(true);
-    this.creationProgress.set('1. Connecting to Chrome Relay browser session...');
-    setTimeout(() => {
-      this.creationProgress.set('2. Navigating to registration portal...');
-      setTimeout(() => {
-        this.creationProgress.set('3. Filling credentials and checking fields...');
-        setTimeout(() => {
-          this.creationProgress.set('4. PAUSED: Human verification required (CAPTCHA/TOS)');
-          this.isCreating.set(false);
-          this.activeTab.set('human-tasks');
-        }, 1500);
-      }, 1200);
-    }, 1000);
+  get filteredPlatforms(): PlatformKnowledgeProfile[] {
+    const term = this.platformSearch().toLowerCase();
+    if (!term) return this.platformsList();
+    return this.platformsList().filter(
+      (p) => p.name.toLowerCase().includes(term) || p.id.toLowerCase().includes(term)
+    );
+  }
+
+  async runPreflightWorkflow() {
+    this.isPreflightRunning.set(true);
+    try {
+      const report = await this.tauri.invoke<AccountCreationPreflightReport>(
+        'execute_10_step_account_preflight',
+        {
+          platform: this.preflightPlatform(),
+          category_str: this.preflightCategory(),
+          desired_username: this.preflightUsername() || undefined,
+          preferred_email: this.preflightEmail() || undefined,
+        }
+      );
+      this.preflightReport.set(report);
+    } catch (err: any) {
+      console.error('Preflight error:', err);
+    } finally {
+      this.isPreflightRunning.set(false);
+    }
+  }
+
+  async runPolicyCheckCycle() {
+    await this.tauri.invoke('run_policy_monitor_cycle');
+  }
+
+  async simulatePolicyChangeAlert() {
+    await this.tauri.invoke('simulate_policy_change', {
+      platform_id: this.selectedPlatformId(),
+      section: 'Bot & Automation Policy',
+      new_summary: 'Third-party browser automation requires immediate human credential approval.',
+    });
+  }
+
+  async allocateNewEmailIdentity() {
+    await this.tauri.invoke('allocate_email_identity', {
+      prefix: this.newEmailPrefix(),
+      platform: this.newEmailPlatform(),
+    });
   }
 
   async handleAddAccount() {

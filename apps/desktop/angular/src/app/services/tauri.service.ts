@@ -31,20 +31,88 @@ export interface HumanTask {
   created_at: string;
 }
 
-export interface SecretMetadata {
+export interface PlatformKnowledgeProfile {
   id: string;
-  account_id?: string;
-  secret_type: string;
-  label: string;
+  name: string;
+  version: string;
+  confidence_level: 'high' | 'medium' | 'low';
+  last_verified: string;
+  community_guidelines: {
+    title: string;
+    official_url: string;
+    summary: string;
+    key_rules: string[];
+  };
+  terms_of_service: {
+    title: string;
+    official_url: string;
+    summary: string;
+    key_rules: string[];
+  };
+  bot_and_automation_policy: {
+    official_url: string;
+    is_automation_permitted: boolean;
+    allowed_automation_types: string[];
+    prohibited_automation_types: string[];
+    requires_official_api: boolean;
+    notes: string;
+  };
+  multiple_account_policy: {
+    official_url: string;
+    allowed: boolean;
+    max_accounts_per_identity?: number;
+    allowed_purposes: string[];
+    prohibits_ban_evasion: boolean;
+    notes: string;
+  };
+  account_creation_requirements: {
+    official_url: string;
+    requires_email: boolean;
+    allows_email_aliases: boolean;
+    requires_phone: boolean;
+    minimum_age: number;
+    captcha_enforced: boolean;
+  };
+  rate_limits: Array<{
+    action: string;
+    limit_per_hour?: number;
+    limit_per_day?: number;
+    official_doc_url: string;
+  }>;
+}
+
+export interface EmailIdentity {
+  identity_id: string;
+  email_address: string;
+  provider_type: string;
+  assigned_account_id?: string;
+  platform?: string;
+  is_primary: boolean;
   created_at: string;
 }
 
-export interface LMProfile {
-  id: string;
+export interface PreflightStepResult {
+  step: number;
   name: string;
-  provider_type: string;
-  model_id: string;
-  endpoint?: string;
+  passed: boolean;
+  details: string;
+}
+
+export interface AccountCreationPreflightReport {
+  account_id: string;
+  platform: string;
+  allocated_email: string;
+  username: string;
+  step_results: PreflightStepResult[];
+  is_ready_for_automation: boolean;
+}
+
+export interface PolicyAlert {
+  alert_id: string;
+  platform_id: string;
+  severity: string;
+  message: string;
+  created_at: string;
 }
 
 @Injectable({
@@ -53,7 +121,6 @@ export interface LMProfile {
 export class TauriService {
   private isTauriAvailable = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 
-  // Local state signals
   stats = signal<SystemStats>({
     total_accounts: 24,
     active_automations: 6,
@@ -67,7 +134,7 @@ export class TauriService {
       id: 'acc-1',
       platform: 'instagram',
       username: 'growth_brand_ai',
-      email: 'ops@brand.io',
+      email: 'instagram_01@openaccounts.local',
       status: 'active',
       created_at: '2026-10-15T10:00:00Z',
       last_active: '2 mins ago',
@@ -76,7 +143,7 @@ export class TauriService {
       id: 'acc-2',
       platform: 'reddit',
       username: 'u/AutoDevDesk',
-      email: 'dev@brand.io',
+      email: 'reddit_dev@openaccounts.local',
       status: 'active',
       created_at: '2026-10-18T14:30:00Z',
       last_active: '5 mins ago',
@@ -85,7 +152,7 @@ export class TauriService {
       id: 'acc-3',
       platform: 'youtube',
       username: 'StudioContentSync',
-      email: 'yt@brand.io',
+      email: 'yt_sync@openaccounts.local',
       status: 'active',
       created_at: '2026-10-20T08:00:00Z',
       last_active: '1 hour ago',
@@ -94,7 +161,7 @@ export class TauriService {
       id: 'acc-4',
       platform: 'discord',
       username: 'CommunityBot#9921',
-      email: 'bot@brand.io',
+      email: 'discord_mod@openaccounts.local',
       status: 'idle',
       created_at: '2026-10-22T19:00:00Z',
       last_active: '12 mins ago',
@@ -103,7 +170,7 @@ export class TauriService {
       id: 'acc-5',
       platform: 'x',
       username: '@OpenAccountsCore',
-      email: 'social@brand.io',
+      email: 'x_brand@openaccounts.local',
       status: 'active',
       created_at: '2026-10-25T11:20:00Z',
       last_active: 'Just now',
@@ -133,6 +200,50 @@ export class TauriService {
     },
   ]);
 
+  emailIdentities = signal<EmailIdentity[]>([
+    {
+      identity_id: 'eid-01',
+      email_address: 'instagram_brand_01@openaccounts.io',
+      provider_type: 'custom_domain_api',
+      platform: 'instagram',
+      is_primary: true,
+      created_at: '2026-10-28T09:00:00Z',
+    },
+    {
+      identity_id: 'eid-02',
+      email_address: 'reddit_eng_02@openaccounts.io',
+      provider_type: 'custom_domain_api',
+      platform: 'reddit',
+      is_primary: true,
+      created_at: '2026-10-29T11:30:00Z',
+    },
+    {
+      identity_id: 'eid-03',
+      email_address: 'discord_lead_bot@openaccounts.io',
+      provider_type: 'microsoft_graph',
+      platform: 'discord',
+      is_primary: true,
+      created_at: '2026-10-30T14:15:00Z',
+    },
+  ]);
+
+  policyAlerts = signal<PolicyAlert[]>([
+    {
+      alert_id: 'palert-01',
+      platform_id: 'reddit',
+      severity: 'Info',
+      message: 'Reddit API v2 Data Policy verified current. No action required.',
+      created_at: '2026-10-31 20:10:00',
+    },
+    {
+      alert_id: 'palert-02',
+      platform_id: 'x',
+      severity: 'Warning',
+      message: 'X developer tier endpoint rate limit update detected. Auto-throttling active.',
+      created_at: '2026-10-31 19:40:00',
+    },
+  ]);
+
   vaultUnlocked = signal<boolean>(false);
   killSwitchActive = signal<boolean>(false);
 
@@ -154,20 +265,6 @@ export class TauriService {
         return this.stats() as unknown as T;
       case 'list_accounts':
         return this.accounts() as unknown as T;
-      case 'create_account': {
-        const newAcc: AccountRecord = {
-          id: `acc-${Date.now()}`,
-          platform: (args?.['platform'] as string) || 'custom',
-          username: (args?.['username'] as string) || 'new_account',
-          email: args?.['email'] as string,
-          status: 'active',
-          created_at: new Date().toISOString(),
-          last_active: 'Just now',
-        };
-        this.accounts.update((prev) => [newAcc, ...prev]);
-        this.stats.update((s) => ({ ...s, total_accounts: s.total_accounts + 1 }));
-        return newAcc.id as unknown as T;
-      }
       case 'list_human_tasks':
         return this.humanTasks() as unknown as T;
       case 'resolve_human_task': {
@@ -178,6 +275,78 @@ export class TauriService {
           pending_human_tasks: Math.max(0, s.pending_human_tasks - 1),
         }));
         return undefined as unknown as T;
+      }
+      case 'list_email_identities':
+        return this.emailIdentities() as unknown as T;
+      case 'allocate_email_identity': {
+        const newIdent: EmailIdentity = {
+          identity_id: `eid-${Date.now()}`,
+          email_address: `${args?.['prefix'] || 'account'}_${Math.random().toString(36).substring(7)}@openaccounts.io`,
+          provider_type: 'custom_domain_api',
+          platform: args?.['platform'] as string,
+          is_primary: true,
+          created_at: new Date().toISOString(),
+        };
+        this.emailIdentities.update((prev) => [newIdent, ...prev]);
+        return newIdent as unknown as T;
+      }
+      case 'run_policy_monitor_cycle': {
+        const alert: PolicyAlert = {
+          alert_id: `palert-${Date.now()}`,
+          platform_id: 'all_platforms',
+          severity: 'Info',
+          message: 'Continuous Policy Intelligence Monitor verified all 22 official platform sources.',
+          created_at: new Date().toISOString().replace('T', ' ').substring(0, 19),
+        };
+        this.policyAlerts.update((prev) => [alert, ...prev]);
+        return [alert] as unknown as T;
+      }
+      case 'simulate_policy_change': {
+        const alert: PolicyAlert = {
+          alert_id: `palert-${Date.now()}`,
+          platform_id: (args?.['platform_id'] as string) || 'instagram',
+          severity: 'Critical_Pause',
+          message: `Policy Change Alert: ${args?.['platform_id']} updated terms. Affected automations safely paused.`,
+          created_at: new Date().toISOString().replace('T', ' ').substring(0, 19),
+        };
+        this.policyAlerts.update((prev) => [alert, ...prev]);
+        return undefined as unknown as T;
+      }
+      case 'execute_10_step_account_preflight': {
+        const plat = (args?.['platform'] as string) || 'instagram';
+        const report: AccountCreationPreflightReport = {
+          account_id: `acc-${Date.now()}`,
+          platform: plat,
+          allocated_email: `${plat}_${Date.now()}@openaccounts.io`,
+          username: (args?.['desired_username'] as string) || `auto_${plat}_user`,
+          is_ready_for_automation: true,
+          step_results: [
+            { step: 1, name: 'Official Platform Policy Verification', passed: true, details: `Verified community guidelines and API terms for ${plat}.` },
+            { step: 2, name: 'Account Eligibility & Multi-Account Checks', passed: true, details: `Authorized under ${plat} multiple account rules.` },
+            { step: 3, name: 'Authorized Email Identity Allocation', passed: true, details: `Allocated isolated mailbox via custom domain provisioner.` },
+            { step: 4, name: 'Secure Credential Preparation', passed: true, details: `Generated 24-character high-entropy password.` },
+            { step: 5, name: 'Registration Execution via Approved Provider', passed: true, details: `Dispatched registration form payload to Chrome Relay session.` },
+            { step: 6, name: 'Human Intervention Gate Checkpoint', passed: true, details: `User confirmed legal consent & completed Turnstile challenge.` },
+            { step: 7, name: 'Email Verification & Ownership Confirmation', passed: true, details: `Extracted verification OTP code and confirmed ownership.` },
+            { step: 8, name: 'Secure Credential Vaulting', passed: true, details: `Credentials encrypted in offline vault with Argon2id key derivation.` },
+            { step: 9, name: 'Account Registry Creation', passed: true, details: `Account entity registered and isolated in database.` },
+            { step: 10, name: 'Final Compliance & Audit Verification', passed: true, details: `Audit log committed with execution hash.` },
+          ],
+        };
+        this.accounts.update((prev) => [
+          {
+            id: report.account_id,
+            platform: plat,
+            username: report.username,
+            email: report.allocated_email,
+            status: 'active',
+            created_at: new Date().toISOString(),
+            last_active: 'Just now',
+          },
+          ...prev,
+        ]);
+        this.stats.update((s) => ({ ...s, total_accounts: s.total_accounts + 1 }));
+        return report as unknown as T;
       }
       case 'is_vault_unlocked':
         return this.vaultUnlocked() as unknown as T;

@@ -1,0 +1,19 @@
+[package]
+name = "openaccounts-email-provider-gateway"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+openaccounts-core = { path = "../core" }
+openaccounts-credential-vault = { path = "../credential-vault" }
+async-trait.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+tokio.workspace = true
+reqwest.workspace = true
+tracing.workspace = true
+regex.workspace = true
+uuid.workspace = true

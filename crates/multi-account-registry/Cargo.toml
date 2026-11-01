@@ -1,0 +1,18 @@
+[package]
+name = "openaccounts-multi-account-registry"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+openaccounts-core = { path = "../core" }
+openaccounts-account-registry = { path = "../account-registry" }
+openaccounts-account-identity-manager = { path = "../account-identity-manager" }
+openaccounts-policy-engine = { path = "../policy-engine" }
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+uuid.workspace = true

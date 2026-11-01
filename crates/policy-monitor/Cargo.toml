@@ -1,0 +1,18 @@
+[package]
+name = "openaccounts-policy-monitor"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+openaccounts-core = { path = "../core" }
+openaccounts-platform-intelligence = { path = "../platform-intelligence" }
+openaccounts-policy-versioning = { path = "../policy-versioning" }
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+uuid.workspace = true
+tokio.workspace = true
+reqwest.workspace = true
+tracing.workspace = true

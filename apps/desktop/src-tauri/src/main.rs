@@ -36,6 +36,16 @@ async fn main() {
             trigger_kill_switch,
             reset_kill_switch,
             is_kill_switch_active,
+            list_platform_profiles,
+            get_platform_profile,
+            check_multi_account_policy,
+            run_policy_monitor_cycle,
+            simulate_policy_change,
+            get_policy_version_history,
+            list_email_identities,
+            allocate_email_identity,
+            list_managed_multi_accounts,
+            execute_10_step_account_preflight,
         ])
         .run(tauri::generate_context!())
         .expect("error while running OpenAccounts application");
