@@ -31,3 +31,9 @@ impl EventBus {
         self.sender.subscribe()
     }
 }
+
+impl Default for EventBus {
+    fn default() -> Self {
+        Self::new()
+    }
+}

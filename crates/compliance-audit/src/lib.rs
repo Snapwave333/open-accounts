@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use openaccounts_core::Result;
+use openaccounts_core::{OpenAccountsError, Result};
 use openaccounts_database::Database;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -55,9 +55,9 @@ impl ComplianceAuditEngine {
         if let Some(obj) = details.as_object_mut() {
             obj.insert("platform".into(), serde_json::json!(platform));
         }
-        let details_str = serde_json::to_string(&details).unwrap_or_default();
+        let details_str = serde_json::to_string(&details)?;
 
-        let _ = sqlx::query(
+        sqlx::query(
             r#"
             INSERT INTO audit_logs (id, execution_id, account_id, automation_id, action_type, risk_level, details, status, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -73,7 +73,8 @@ impl ComplianceAuditEngine {
         .bind(outcome)
         .bind(&now)
         .execute(self.db.pool())
-        .await;
+        .await
+        .map_err(|e| OpenAccountsError::Database(e.to_string()))?;
 
         Ok(entry_id)
     }

@@ -13,7 +13,14 @@ use tracing::{info, warn};
 
 pub const NIM_URL: &str = "https://integrate.api.nvidia.com/v1/chat/completions";
 pub const NIM_MODELS_URL: &str = "https://integrate.api.nvidia.com/v1/models";
-pub const STICK_CASCADE_PATH: &str = r"C:\Users\chrom\Desktop\StickExplainers\insights\models\cascade.json";
+
+/// `insights/models/cascade.json` under the studio root (`OPENACCOUNTS_STUDIO_ROOT`).
+pub fn stick_cascade_path() -> PathBuf {
+    openaccounts_core::studio_root()
+        .join("insights")
+        .join("models")
+        .join("cascade.json")
+}
 
 pub const NIM_TEXT_BUILTIN: &[&str] = &[
     "nvidia/nemotron-3.5-super-vl-120b-a12b",
@@ -185,7 +192,7 @@ pub fn load_stick_nim_cascade(cascade_path: Option<&Path>, kind: &str) -> Vec<St
 
     let path = cascade_path
         .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from(STICK_CASCADE_PATH));
+        .unwrap_or_else(stick_cascade_path);
 
     let Ok(raw) = std::fs::read_to_string(&path) else {
         return builtin;
@@ -476,15 +483,26 @@ impl ModelAdapter for OllamaAdapter {
             .await
             .map_err(|e| OpenAccountsError::LMGateway(format!("Ollama connection error: {e}")))?;
 
+        if !res.status().is_success() {
+            return Err(OpenAccountsError::LMGateway(format!(
+                "Ollama returned HTTP {} for model {}",
+                res.status().as_u16(),
+                self.model
+            )));
+        }
+
         let val: serde_json::Value = res
             .json()
             .await
             .map_err(|e| OpenAccountsError::LMGateway(format!("Ollama response parse error: {e}")))?;
 
-        let content = val["message"]["content"]
-            .as_str()
-            .unwrap_or_default()
-            .to_string();
+        let content = strip_think(val["message"]["content"].as_str().unwrap_or_default());
+        if content.is_empty() {
+            return Err(OpenAccountsError::LMGateway(format!(
+                "Ollama model {} returned an empty reply",
+                self.model
+            )));
+        }
 
         Ok(CompletionResponse {
             content,
@@ -533,15 +551,26 @@ impl ModelAdapter for OpenAICompatibleAdapter {
             .await
             .map_err(|e| OpenAccountsError::LMGateway(format!("OpenAI adapter error: {e}")))?;
 
+        if !res.status().is_success() {
+            return Err(OpenAccountsError::LMGateway(format!(
+                "{url} returned HTTP {} for model {}",
+                res.status().as_u16(),
+                self.model
+            )));
+        }
+
         let val: serde_json::Value = res
             .json()
             .await
             .map_err(|e| OpenAccountsError::LMGateway(format!("OpenAI response parse error: {e}")))?;
 
-        let content = val["choices"][0]["message"]["content"]
-            .as_str()
-            .unwrap_or_default()
-            .to_string();
+        let content = strip_think(val["choices"][0]["message"]["content"].as_str().unwrap_or_default());
+        if content.is_empty() {
+            return Err(OpenAccountsError::LMGateway(format!(
+                "Model {} returned an empty reply",
+                self.model
+            )));
+        }
 
         Ok(CompletionResponse {
             content,
@@ -622,8 +651,18 @@ impl LMGateway {
         self.nim_cascade.clone()
     }
 
-    pub async fn register_profile(&self, profile: ModelProfile) {
+    /// Registers a profile with a real adapter. Providers without a known
+    /// public endpoint must supply one; CLI providers have no adapter yet.
+    pub async fn register_profile(&self, profile: ModelProfile) -> Result<()> {
         let id = profile.id.clone();
+        let require_endpoint = || {
+            profile.endpoint.clone().ok_or_else(|| {
+                OpenAccountsError::NotConfigured(format!(
+                    "Profile '{}' ({:?}) needs an endpoint URL",
+                    profile.id, profile.provider_type
+                ))
+            })
+        };
         let adapter: Arc<dyn ModelAdapter> = match profile.provider_type {
             ModelProviderType::NvidiaNim => {
                 let kind = if profile.id.contains("vision") || profile.model_id.contains("vl") {
@@ -634,26 +673,35 @@ impl LMGateway {
                 Arc::new(NvidiaNimCascadeAdapter::new(profile.endpoint.clone(), kind, None))
             }
             ModelProviderType::Ollama => {
+                // Ollama's documented default local address.
                 let endpoint = profile.endpoint.clone().unwrap_or_else(|| "http://localhost:11434".into());
                 Arc::new(OllamaAdapter::new(endpoint, profile.model_id.clone()))
             }
+            ModelProviderType::OpenRouter => {
+                let endpoint = profile
+                    .endpoint
+                    .clone()
+                    .unwrap_or_else(|| "https://openrouter.ai/api/v1".into());
+                Arc::new(OpenAICompatibleAdapter::new(endpoint, profile.model_id.clone()))
+            }
             ModelProviderType::OpenAICompatible
-            | ModelProviderType::OpenRouter
             | ModelProviderType::Gemini
             | ModelProviderType::Anthropic
             | ModelProviderType::CustomHttp => {
-                let endpoint = profile.endpoint.clone().unwrap_or_else(|| "https://api.openai.com/v1".into());
-                Arc::new(OpenAICompatibleAdapter::new(endpoint, profile.model_id.clone()))
+                Arc::new(OpenAICompatibleAdapter::new(require_endpoint()?, profile.model_id.clone()))
             }
             ModelProviderType::OpenCodeCli | ModelProviderType::ClaudeCodeCli => {
-                let endpoint = "http://localhost:8000".into();
-                Arc::new(OpenAICompatibleAdapter::new(endpoint, profile.model_id.clone()))
+                return Err(OpenAccountsError::NotConfigured(format!(
+                    "No adapter exists for {:?} profiles",
+                    profile.provider_type
+                )));
             }
         };
 
         self.profiles.write().await.insert(id.clone(), profile);
         self.adapters.write().await.insert(id, adapter);
         info!("Registered LM Profile");
+        Ok(())
     }
 
     pub async fn generate(
@@ -662,11 +710,15 @@ impl LMGateway {
         request: CompletionRequest,
         api_key: Option<String>,
     ) -> Result<CompletionResponse> {
-        let adapters = self.adapters.read().await;
-        let adapter = adapters
+        let adapter = self
+            .adapters
+            .read()
+            .await
             .get(profile_id)
             .cloned()
-            .unwrap_or_else(|| self.nim_cascade.clone());
+            .ok_or_else(|| {
+                OpenAccountsError::NotConfigured(format!("No LM profile '{profile_id}' is registered"))
+            })?;
 
         adapter.complete(request, api_key).await
     }

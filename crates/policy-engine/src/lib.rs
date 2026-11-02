@@ -1,5 +1,7 @@
 use openaccounts_core::{OpenAccountsError, Result};
-use openaccounts_platform_intelligence::{ConfidenceLevel, PlatformIntelligence};
+use openaccounts_platform_intelligence::{
+    ConfidenceLevel, PlatformIntelligence, PlatformKnowledgeProfile,
+};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tracing::info;
@@ -22,6 +24,10 @@ impl PolicyEngine {
         Self {
             platform_intelligence,
         }
+    }
+
+    pub async fn platform_profile(&self, platform_id: &str) -> Option<PlatformKnowledgeProfile> {
+        self.platform_intelligence.get_profile(platform_id).await
     }
 
     pub async fn check_multi_account_eligibility(

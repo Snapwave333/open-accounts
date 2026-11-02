@@ -48,7 +48,9 @@ impl EmailIdentityManager {
         let providers = self.providers.read().await;
         let adapter = providers
             .get(provider_id)
-            .ok_or_else(|| OpenAccountsError::Internal(format!("Provider {provider_id} not configured")))?;
+            .ok_or_else(|| OpenAccountsError::NotConfigured(format!(
+                "Email provider '{provider_id}' is not configured; no mailbox can be allocated"
+            )))?;
 
         let email_address = adapter.create_alias_or_mailbox(prefix).await?;
         let identity_id = Uuid::new_v4().to_string();
@@ -56,7 +58,7 @@ impl EmailIdentityManager {
         let identity = EmailIdentity {
             identity_id: identity_id.clone(),
             email_address,
-            provider_type: EmailProviderType::CustomDomainApi,
+            provider_type: adapter.provider_type(),
             assigned_account_id: None,
             platform,
             is_primary: true,

@@ -38,8 +38,8 @@ impl AccountRegistry {
 
         sqlx::query(
             r#"
-            INSERT INTO accounts (id, platform, username, email, phone, status, profile_metadata, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO accounts (id, platform, username, email, phone, status, profile_metadata, created_at, updated_at, last_active)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             "#,
         )
         .bind(&id_str)
@@ -51,6 +51,7 @@ impl AccountRegistry {
         .bind(&metadata_str)
         .bind(&created_at_str)
         .bind(&updated_at_str)
+        .bind(account.last_active.map(|t| t.to_rfc3339()))
         .execute(self.db.pool())
         .await
         .map_err(|e| OpenAccountsError::Database(e.to_string()))?;
@@ -68,7 +69,9 @@ impl AccountRegistry {
         let mut list = Vec::new();
         for r in rows {
             let id_str: String = r.get("id");
-            let id = AccountId(uuid::Uuid::parse_str(&id_str).unwrap_or_default());
+            let id = AccountId(uuid::Uuid::parse_str(&id_str).map_err(|e| {
+                OpenAccountsError::Database(format!("Account row has invalid id '{id_str}': {e}"))
+            })?);
             let platform_str: String = r.get("platform");
             let username: String = r.get("username");
             let email: Option<String> = r.get("email");
@@ -77,6 +80,7 @@ impl AccountRegistry {
             let meta_str: String = r.get("profile_metadata");
             let created_str: String = r.get("created_at");
             let updated_str: String = r.get("updated_at");
+            let last_active_str: Option<String> = r.get("last_active");
 
             let platform = match platform_str.as_str() {
                 "instagram" => Platform::Instagram,
@@ -95,13 +99,19 @@ impl AccountRegistry {
                 email,
                 phone,
                 status,
-                profile_metadata: serde_json::from_str(&meta_str).unwrap_or_default(),
-                created_at: DateTime::parse_from_rfc3339(&created_str).map(|d| d.with_timezone(&Utc)).unwrap_or_else(|_| Utc::now()),
-                updated_at: DateTime::parse_from_rfc3339(&updated_str).map(|d| d.with_timezone(&Utc)).unwrap_or_else(|_| Utc::now()),
-                last_active: None,
+                profile_metadata: serde_json::from_str(&meta_str)?,
+                created_at: parse_time(&created_str)?,
+                updated_at: parse_time(&updated_str)?,
+                last_active: last_active_str.as_deref().map(parse_time).transpose()?,
             });
         }
 
         Ok(list)
     }
+}
+
+fn parse_time(raw: &str) -> Result<DateTime<Utc>> {
+    DateTime::parse_from_rfc3339(raw)
+        .map(|d| d.with_timezone(&Utc))
+        .map_err(|e| OpenAccountsError::Database(format!("Invalid timestamp '{raw}': {e}")))
 }

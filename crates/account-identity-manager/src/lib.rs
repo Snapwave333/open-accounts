@@ -50,7 +50,8 @@ impl AccountIdentityManager {
             identity_name,
             email_identity_id,
             platform,
-            is_isolated_session: true,
+            // No per-account browser/session isolation exists yet.
+            is_isolated_session: false,
             created_at: Utc::now(),
         };
 

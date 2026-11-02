@@ -54,37 +54,31 @@ impl PublishingEngine {
         }
     }
 
+    /// OpenAccounts holds no platform OAuth tokens, so it cannot vouch for any
+    /// account's publishing scopes. Publishing runs through the studio's own
+    /// supervised jobs, which use their own credentials.
     pub async fn verify_platform_auth(
         &self,
         platform: &str,
         account_id: &AccountId,
     ) -> Result<PlatformAuthStatus> {
-        let scopes = match platform {
-            "instagram" => vec!["instagram_basic".into(), "instagram_content_publish".into(), "instagram_manage_comments".into()],
-            "tiktok" => vec!["video.publish".into(), "video.upload".into(), "user.info.basic".into()],
-            "youtube" => vec!["https://www.googleapis.com/auth/youtube.upload".into(), "https://www.googleapis.com/auth/youtube.force-ssl".into()],
-            "x" => vec!["tweet.read".into(), "tweet.write".into(), "users.read".into(), "dm.read".into(), "dm.write".into()],
-            "reddit" => vec!["submit".into(), "identity".into(), "read".into()],
-            _ => vec!["basic".into()],
-        };
-
-        Ok(PlatformAuthStatus {
-            platform: platform.to_string(),
-            account_id: account_id.clone(),
-            is_authenticated: true,
-            scopes,
-            token_expires_at: Some(Utc::now() + chrono::Duration::days(60)),
-            error_message: None,
-        })
+        Err(OpenAccountsError::NotConfigured(format!(
+            "No {platform} API credentials are connected for account {account_id}; \
+             publishing authorization cannot be verified"
+        )))
     }
 
+    /// Queues a post. Approved posts are marked "Approved", never "Published":
+    /// nothing in this engine sends posts to a platform.
     pub async fn queue_post(&self, mut post: SocialPostPayload) -> Result<String> {
         let post_id = post.post_id.clone();
 
-        // 1. Check idempotency: prevent duplicates
+        // 1. Idempotency: one post per key, whatever its state.
         let posts = self.posts.read().await;
-        if posts.values().any(|p| p.idempotency_key == post.idempotency_key && p.status == "Published") {
-            return Err(OpenAccountsError::Internal("Duplicate post prevented by idempotency key".into()));
+        if posts.values().any(|p| p.idempotency_key == post.idempotency_key) {
+            return Err(OpenAccountsError::Internal(
+                "Duplicate post prevented by idempotency key".into(),
+            ));
         }
         drop(posts);
 
@@ -98,34 +92,30 @@ impl PublishingEngine {
             return Err(OpenAccountsError::PermissionDenied(check.reason));
         }
 
-        if post.requires_human_approval && !post.is_approved {
-            post.status = "AwaitingApproval".into();
+        post.status = if post.requires_human_approval && !post.is_approved {
+            "AwaitingApproval".into()
         } else {
-            post.status = "Published".into();
-            info!("Published post {} successfully to {}", post_id, post.platform);
-        }
+            "Approved".into()
+        };
+        info!("Queued post {} for {} ({})", post_id, post.platform, post.status);
 
         self.posts.write().await.insert(post_id.clone(), post);
         Ok(post_id)
     }
 
+    /// No direct platform publisher is connected, so this refuses rather than
+    /// marking the post published with an invented permalink.
     pub async fn approve_and_publish(&self, post_id: &str) -> Result<PlatformPublishResult> {
-        let mut posts = self.posts.write().await;
+        let posts = self.posts.read().await;
         let post = posts
-            .get_mut(post_id)
-            .ok_or_else(|| OpenAccountsError::Internal("Post not found".into()))?;
+            .get(post_id)
+            .ok_or_else(|| OpenAccountsError::Internal(format!("Post {post_id} not found")))?;
 
-        post.is_approved = true;
-        post.status = "Published".into();
-        info!("Approved and published post {} to {}", post_id, post.platform);
-
-        Ok(PlatformPublishResult {
-            post_id: post_id.to_string(),
-            platform: post.platform.clone(),
-            remote_media_id: format!("remote-media-{}", post_id),
-            remote_permalink: format!("https://{}.com/p/{}", post.platform, post_id),
-            published_at: Utc::now(),
-        })
+        Err(OpenAccountsError::NotConfigured(format!(
+            "No direct {} publisher is connected; post {post_id} was not published. \
+             Studio posts are published by the supervised 'Social publish' job.",
+            post.platform
+        )))
     }
 
     pub async fn list_posts(&self) -> Vec<SocialPostPayload> {

@@ -1,9 +1,10 @@
+use crate::autonomy::{AutonomyCycleReport, AutonomyStatus};
 use crate::state::AppState;
 use openaccounts_account_creator::{AccountCreationPreflightReport, AccountCreationPreflightRequest};
 use openaccounts_account_identity_manager::AccountCategory;
 use openaccounts_account_registry::AccountRecord;
 use openaccounts_brand_manager::BrandProfile;
-use openaccounts_chrome_relay_adapter::{ChromeRelayAdapter, ChromeRelayConfig};
+use openaccounts_chrome_relay_adapter::{ChromeRelayAdapter, ChromeRelayConfig, ChromeRelayStatus};
 use openaccounts_content_strategy::{CalendarPostSlot, CampaignBrief, TrendTopic};
 use openaccounts_core::{AccountId, Platform, SystemStats, TaskId};
 use openaccounts_creative_pipeline::{CreativeAssetSpec, CreativeJobStatus, ToolCapability};
@@ -21,9 +22,8 @@ use openaccounts_publishing_engine::SocialPostPayload;
 use openaccounts_social_analytics::VerifiedPlatformMetric;
 use openaccounts_social_media_manager::{
     bridge::{GarbageCollectionReport, StickBridgeMessage, StickBridgeState},
-    SubAgentAssignment,
+    SubAgentAssignment, SubAgentRole,
 };
-use std::sync::Arc;
 use tauri::State;
 
 #[tauri::command]
@@ -31,15 +31,27 @@ pub async fn get_system_stats(state: State<'_, AppState>) -> Result<SystemStats,
     let accounts = state.account_registry.list_accounts().await.unwrap_or_default();
     let tasks = state.human_controller.list_pending_tasks().await;
     let is_kill_active = state.automation_engine.is_kill_switch_active();
+    let autonomy = state.autonomy.status().await;
+
+    // Only count a genuinely running supervised loop as an active automation.
+    let active_automations = if autonomy.loop_running && !autonomy.paused && !is_kill_active {
+        1
+    } else {
+        0
+    };
 
     Ok(SystemStats {
         total_accounts: accounts.len() as u64,
-        active_automations: 6,
+        active_automations,
         pending_human_tasks: tasks.len() as u64,
         system_status: if is_kill_active {
             "EMERGENCY_HALTED".into()
-        } else {
+        } else if autonomy.paused {
+            "PAUSED".into()
+        } else if autonomy.loop_running {
             "ONLINE".into()
+        } else {
+            "STOPPED".into()
         },
         updated_at: chrono::Utc::now(),
     })
@@ -80,7 +92,7 @@ pub async fn create_account(
         profile_metadata: serde_json::json!({}),
         created_at: chrono::Utc::now(),
         updated_at: chrono::Utc::now(),
-        last_active: Some(chrono::Utc::now()),
+        last_active: None,
     };
 
     let id = state
@@ -146,8 +158,11 @@ pub async fn register_lm_profile(
     state: State<'_, AppState>,
     profile: ModelProfile,
 ) -> Result<(), String> {
-    state.lm_gateway.register_profile(profile).await;
-    Ok(())
+    state
+        .lm_gateway
+        .register_profile(profile)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -203,20 +218,6 @@ pub async fn run_policy_monitor_cycle(
     state: State<'_, AppState>,
 ) -> Result<Vec<PolicyMonitorAlert>, String> {
     Ok(state.policy_monitor.run_policy_check_cycle().await)
-}
-
-#[tauri::command]
-pub async fn simulate_policy_change(
-    state: State<'_, AppState>,
-    platform_id: String,
-    section: String,
-    new_summary: String,
-) -> Result<(), String> {
-    state
-        .policy_monitor
-        .simulate_policy_update(&platform_id, &section, &new_summary, true)
-        .await;
-    Ok(())
 }
 
 #[tauri::command]
@@ -280,23 +281,17 @@ pub async fn execute_10_step_account_preflight(
         _ => AccountCategory::Personal,
     };
 
-    let browser = Arc::new(ChromeRelayAdapter::new(ChromeRelayConfig {
-        endpoint: "ws://localhost:9222".into(),
-        tab_lease_id: Some("tab_lease_preflight".into()),
-        origin_fence: vec![format!("{}.com", platform)],
-    }));
-
     let req = AccountCreationPreflightRequest {
         platform,
         category,
         desired_username,
         preferred_email,
-        email_provider_id: Some("primary_domain".into()),
+        email_provider_id: None,
     };
 
     state
         .account_creator
-        .execute_10_step_preflight(browser, req)
+        .execute_10_step_preflight(req)
         .await
         .map_err(|e| e.to_string())
 }
@@ -325,7 +320,11 @@ pub async fn research_trends(
     state: State<'_, AppState>,
     platform: String,
 ) -> Result<Vec<TrendTopic>, String> {
-    Ok(state.content_strategy.research_trends(&platform).await)
+    state
+        .content_strategy
+        .research_trends(&platform)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -379,7 +378,11 @@ pub async fn approve_and_publish_post(
 pub async fn list_unified_inbox(
     state: State<'_, AppState>,
 ) -> Result<Vec<UnifiedInboxMessage>, String> {
-    Ok(state.engagement_agent.list_inbox().await)
+    state
+        .engagement_agent
+        .list_inbox()
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -406,7 +409,8 @@ pub async fn list_social_analytics(
 pub async fn start_autonomous_marketing_loop(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    state.social_media_manager.start_autonomous_loop();
+    state.autonomy.resume();
+    state.autonomy.start(None);
     Ok(())
 }
 
@@ -414,7 +418,7 @@ pub async fn start_autonomous_marketing_loop(
 pub async fn pause_autonomous_marketing_loop(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    state.social_media_manager.pause_autonomous_loop();
+    state.autonomy.pause();
     Ok(())
 }
 
@@ -422,14 +426,92 @@ pub async fn pause_autonomous_marketing_loop(
 pub async fn is_autonomous_marketing_loop_running(
     state: State<'_, AppState>,
 ) -> Result<bool, String> {
-    Ok(state.social_media_manager.is_loop_running())
+    Ok(state.autonomy.is_running() && !state.autonomy.is_paused())
 }
 
 #[tauri::command]
 pub async fn list_collaborating_agents(
     state: State<'_, AppState>,
 ) -> Result<Vec<SubAgentAssignment>, String> {
-    Ok(state.social_media_manager.list_collaborating_agents())
+    let status = state.autonomy.status().await;
+    let last = status.last_cycle.clone();
+    let loop_active = status.loop_running && !status.paused;
+
+    let job_summary = |job_name: &str| -> Option<String> {
+        last.as_ref().and_then(|cycle| {
+            cycle
+                .jobs
+                .iter()
+                .find(|j| j.name == job_name)
+                .map(|j| {
+                    format!(
+                        "{} ({})",
+                        j.summary,
+                        if j.success { "ok" } else { "failed" }
+                    )
+                })
+        })
+    };
+
+    let assignment = |role: SubAgentRole, title: &str, task: String, active: bool| SubAgentAssignment {
+        role,
+        title: title.into(),
+        current_task: task,
+        assigned_model_profile: status.python.clone(),
+        is_active: active,
+    };
+
+    let mut agents = Vec::new();
+
+    agents.push(assignment(
+        SubAgentRole::CommunityManager,
+        "Comment & Reply Agent",
+        job_summary("Comment sweep").unwrap_or_else(|| {
+            if loop_active {
+                "Queued — no completed cycle yet".into()
+            } else {
+                "Idle — autonomy loop is not running".into()
+            }
+        }),
+        loop_active,
+    ));
+
+    agents.push(assignment(
+        SubAgentRole::Publisher,
+        "Social Publishing Agent",
+        job_summary("Social publish").or_else(|| job_summary("Social plan")).unwrap_or_else(|| {
+            if loop_active {
+                "Queued — no completed cycle yet".into()
+            } else {
+                "Idle — autonomy loop is not running".into()
+            }
+        }),
+        loop_active,
+    ));
+
+    agents.push(assignment(
+        SubAgentRole::EngagementAgent,
+        "Engagement Agent",
+        job_summary("Engagement run").or_else(|| job_summary("Engagement stats")).unwrap_or_else(|| {
+            if loop_active {
+                "Queued — no completed cycle yet".into()
+            } else {
+                "Idle — autonomy loop is not running".into()
+            }
+        }),
+        loop_active,
+    ));
+
+    agents.push(assignment(
+        SubAgentRole::ComplianceAgent,
+        "Retention / GC Agent",
+        job_summary("Retention GC").unwrap_or_else(|| {
+            "Idle — no garbage-collection cycle yet".into()
+        }),
+        loop_active,
+    ));
+
+    Ok(agents)
 }
 
 #[tauri::command]
@@ -444,10 +526,19 @@ pub async fn run_garbage_collection(
     state: State<'_, AppState>,
     apply: bool,
 ) -> Result<GarbageCollectionReport, String> {
-    state
-        .social_media_manager
-        .run_garbage_collection(apply)
+    // retention.py can take minutes; keep it off the async runtime threads.
+    let manager = state.social_media_manager.clone();
+    tauri::async_runtime::spawn_blocking(move || manager.run_garbage_collection(apply))
+        .await
+        .map_err(|e| e.to_string())?
         .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn get_gc_report(
+    state: State<'_, AppState>,
+) -> Result<Option<GarbageCollectionReport>, String> {
+    Ok(state.social_media_manager.read_gc_report())
 }
 
 #[tauri::command]
@@ -471,4 +562,37 @@ pub async fn send_stick_bridge_message(
             create_ceo_directive,
         )
         .map_err(|e| e.to_string())
+}
+
+// --- AUTONOMY RUNTIME (real 24/7 job supervision) ---
+
+#[tauri::command]
+pub async fn get_autonomy_status(
+    state: State<'_, AppState>,
+) -> Result<AutonomyStatus, String> {
+    Ok(state.autonomy.status().await)
+}
+
+#[tauri::command]
+pub async fn run_autonomy_cycle_now(
+    state: State<'_, AppState>,
+) -> Result<AutonomyCycleReport, String> {
+    Ok(state.autonomy.run_cycle().await)
+}
+
+#[tauri::command]
+pub async fn list_autonomy_cycles(
+    state: State<'_, AppState>,
+    limit: Option<i64>,
+) -> Result<Vec<AutonomyCycleReport>, String> {
+    Ok(state.autonomy.recent_cycles(limit.unwrap_or(25)).await)
+}
+
+#[tauri::command]
+pub async fn get_chrome_relay_status(
+    state: State<'_, AppState>,
+) -> Result<ChromeRelayStatus, String> {
+    let _ = &state;
+    let adapter = ChromeRelayAdapter::new(ChromeRelayConfig::default());
+    Ok(adapter.probe().await)
 }

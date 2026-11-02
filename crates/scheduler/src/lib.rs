@@ -1,9 +1,8 @@
 use chrono::{DateTime, Utc};
-use openaccounts_core::TaskId;
+use openaccounts_core::{OpenAccountsError, Result, TaskId};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::RwLock;
-use tracing::info;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScheduleJob {
@@ -25,21 +24,22 @@ impl TaskScheduler {
         }
     }
 
-    pub async fn register_job(&self, name: String, cron_expression: String) -> TaskId {
-        let id = TaskId::new();
-        let job = ScheduleJob {
-            id: id.clone(),
-            name,
-            cron_expression,
-            next_run: Utc::now() + chrono::Duration::hours(1),
-            is_active: true,
-        };
-        self.jobs.write().await.insert(id.clone(), job);
-        info!("Scheduled job registered: id={}", id);
-        id
+    /// There is no cron evaluator or job runner behind this scheduler, so
+    /// registering a job would only record work that never runs. Recurring
+    /// work runs through the desktop app's autonomy runtime instead.
+    pub async fn register_job(&self, name: String, cron_expression: String) -> Result<TaskId> {
+        Err(OpenAccountsError::NotConfigured(format!(
+            "Cannot schedule '{name}' ({cron_expression}): no scheduler runner is connected"
+        )))
     }
 
     pub async fn list_jobs(&self) -> Vec<ScheduleJob> {
         self.jobs.read().await.values().cloned().collect()
+    }
+}
+
+impl Default for TaskScheduler {
+    fn default() -> Self {
+        Self::new()
     }
 }

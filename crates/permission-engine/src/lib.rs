@@ -64,3 +64,9 @@ impl PermissionEngine {
         }
     }
 }
+
+impl Default for PermissionEngine {
+    fn default() -> Self {
+        Self::new()
+    }
+}

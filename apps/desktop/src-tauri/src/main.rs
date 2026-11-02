@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod autonomy;
 mod commands;
 mod state;
 
@@ -28,6 +29,11 @@ async fn main() {
                 let _ = window.unminimize();
                 let _ = window.set_focus();
             }
+
+            // Start the supervised autonomy loop with the real studio jobs.
+            let state = app.state::<AppState>();
+            state.autonomy.start(Some(app.handle().clone()));
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -49,7 +55,6 @@ async fn main() {
             get_platform_profile,
             check_multi_account_policy,
             run_policy_monitor_cycle,
-            simulate_policy_change,
             get_policy_version_history,
             list_email_identities,
             allocate_email_identity,
@@ -73,7 +78,12 @@ async fn main() {
             list_collaborating_agents,
             get_stick_bridge_state,
             run_garbage_collection,
+            get_gc_report,
             send_stick_bridge_message,
+            get_autonomy_status,
+            run_autonomy_cycle_now,
+            list_autonomy_cycles,
+            get_chrome_relay_status,
         ])
         .run(tauri::generate_context!())
         .expect("error while running OpenAccounts application");

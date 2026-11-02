@@ -26,44 +26,10 @@ pub struct SocialAnalyticsEngine {
 }
 
 impl SocialAnalyticsEngine {
+    /// No platform metrics source is connected yet, so there is no data.
     pub fn new() -> Self {
-        let default_metrics = vec![
-            VerifiedPlatformMetric {
-                metric_id: "m-01".into(),
-                platform: "instagram".into(),
-                account_id: "acc-1".into(),
-                post_id: Some("post-991".into()),
-                impressions: 48200,
-                reach: 39500,
-                views: 28400,
-                engagement_rate: 6.8,
-                comments: 312,
-                shares: 124,
-                saves: 840,
-                conversions: 45,
-                is_verified_by_api: true,
-                captured_at: Utc::now(),
-            },
-            VerifiedPlatformMetric {
-                metric_id: "m-02".into(),
-                platform: "youtube".into(),
-                account_id: "acc-3".into(),
-                post_id: Some("short-112".into()),
-                impressions: 112000,
-                reach: 89000,
-                views: 74200,
-                engagement_rate: 8.2,
-                comments: 540,
-                shares: 410,
-                saves: 1200,
-                conversions: 89,
-                is_verified_by_api: true,
-                captured_at: Utc::now(),
-            },
-        ];
-
         Self {
-            metrics: Arc::new(RwLock::new(default_metrics)),
+            metrics: Arc::new(RwLock::new(Vec::new())),
         }
     }
 

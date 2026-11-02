@@ -59,6 +59,16 @@ impl PlatformApiAdapter for GenericApiAdapter {
             .await
             .map_err(|e| OpenAccountsError::Internal(format!("API call failed: {e}")))?;
 
+        let status = res.status();
+        if !status.is_success() {
+            let body = res.text().await.unwrap_or_default();
+            return Err(OpenAccountsError::Internal(format!(
+                "API call to {url} returned HTTP {}: {}",
+                status.as_u16(),
+                body.chars().take(300).collect::<String>()
+            )));
+        }
+
         let data: serde_json::Value = res
             .json()
             .await

@@ -1,64 +1,65 @@
 use async_trait::async_trait;
 use openaccounts_browser_abstraction::{BrowserProvider, PageState};
-use openaccounts_core::Result;
-use std::sync::Arc;
-use tokio::sync::RwLock;
+use openaccounts_core::{OpenAccountsError, Result};
 
-pub struct EmbeddedBrowserAdapter {
-    state: Arc<RwLock<PageState>>,
-}
+/// In-app webview browser adapter. No embedded engine is wired up,
+/// so every operation fails instead of pretending a page was driven. Use the
+/// Chrome relay adapter for real browser work.
+pub struct EmbeddedBrowserAdapter;
 
 impl EmbeddedBrowserAdapter {
     pub fn new() -> Self {
-        Self {
-            state: Arc::new(RwLock::new(PageState {
-                url: "about:blank".into(),
-                title: "Embedded Session".into(),
-                text_content: "".into(),
-                is_ready: true,
-                pending_challenge: None,
-            })),
-        }
+        Self
     }
+}
+
+impl Default for EmbeddedBrowserAdapter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+fn unavailable(op: &str) -> OpenAccountsError {
+    OpenAccountsError::NotConfigured(format!(
+        "Embedded browser is not implemented ({op}); use the Chrome relay adapter"
+    ))
 }
 
 #[async_trait]
 impl BrowserProvider for EmbeddedBrowserAdapter {
-    async fn navigate(&self, url: &str) -> Result<()> {
-        let mut s = self.state.write().await;
-        s.url = url.to_string();
-        Ok(())
+    async fn navigate(&self, _url: &str) -> Result<()> {
+        Err(unavailable("navigate"))
     }
 
     async fn click(&self, _selector: &str) -> Result<()> {
-        Ok(())
+        Err(unavailable("click"))
     }
 
     async fn type_text(&self, _selector: &str, _text: &str, _is_secret: bool) -> Result<()> {
-        Ok(())
+        Err(unavailable("type_text"))
     }
 
     async fn get_page_state(&self) -> Result<PageState> {
-        Ok(self.state.read().await.clone())
+        Err(unavailable("get_page_state"))
     }
 
     async fn take_screenshot(&self) -> Result<Vec<u8>> {
-        Ok(vec![])
+        Err(unavailable("take_screenshot"))
     }
 
     async fn evaluate_script(&self, _script: &str) -> Result<serde_json::Value> {
-        Ok(serde_json::json!({}))
+        Err(unavailable("evaluate_script"))
     }
 
     async fn pause(&self) -> Result<()> {
-        Ok(())
+        Err(unavailable("pause"))
     }
 
     async fn resume(&self) -> Result<()> {
-        Ok(())
+        Err(unavailable("resume"))
     }
 
     async fn close(&self) -> Result<()> {
-        Ok(())
+        Err(unavailable("close"))
     }
 }

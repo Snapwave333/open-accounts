@@ -41,6 +41,9 @@ pub struct BrandManager {
 impl BrandManager {
     pub fn new() -> Self {
         let mut map = HashMap::new();
+        let authored_at = DateTime::parse_from_rfc3339("2026-11-01T03:43:32Z")
+            .map(|d| d.with_timezone(&Utc))
+            .unwrap_or(DateTime::<Utc>::MIN_UTC);
         let cdn_brand = BrandProfile {
             brand_id: "brand_cdn".into(),
             name: "Clearly Drawn News (StickExplainers)".into(),
@@ -50,7 +53,8 @@ impl BrandManager {
                 secondary_hex: "#0b0d12".into(),
                 accent_hex: "#d946ef".into(),
                 font_family: "Inter, sans-serif".into(),
-                logo_asset_path: Some(r"C:\Users\chrom\Desktop\StickExplainers\assets\cdn_logo.png".into()),
+                // No logo file exists in the studio assets yet.
+                logo_asset_path: None,
             },
             voice: BrandVoice {
                 tone_adjectives: vec![
@@ -81,15 +85,11 @@ impl BrandManager {
                     "copyright".into(),
                 ],
             },
-            linked_account_ids: vec![
-                "cdn-ig-snapwave".into(),
-                "cdn-tt-clearlydrawnlessons".into(),
-                "cdn-yt-clearlydrawnnews".into(),
-                "cdn-shopify-store".into(),
-                "cdn-paypal-snapwave333".into(),
-            ],
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
+            // Accounts are linked from the registry; none are linked by default.
+            linked_account_ids: Vec::new(),
+            // When this profile was written into OpenAccounts (commit eb04cfa).
+            created_at: authored_at,
+            updated_at: authored_at,
         };
         map.insert(cdn_brand.brand_id.clone(), cdn_brand);
 

@@ -1,5 +1,4 @@
 use chrono::Utc;
-use openaccounts_account_creator::AccountCreator;
 use openaccounts_account_identity_manager::AccountIdentityManager;
 use openaccounts_account_registry::{AccountRecord, AccountRegistry};
 use openaccounts_audit_engine::AuditEngine;
@@ -13,7 +12,6 @@ use openaccounts_creative_pipeline::CreativePipeline;
 use openaccounts_credential_vault::VaultManager;
 use openaccounts_database::Database;
 use openaccounts_email_identity::EmailIdentityManager;
-use openaccounts_email_provider_gateway::{EmailProviderType, MockEmailProviderAdapter};
 use openaccounts_email_verification::EmailVerificationEngine;
 use openaccounts_engagement_agent::EngagementAgent;
 use openaccounts_event_bus::EventBus;
@@ -26,11 +24,13 @@ use openaccounts_policy_engine::PolicyEngine;
 use openaccounts_policy_monitor::PolicyMonitor;
 use openaccounts_policy_versioning::PolicyVersioningRegistry;
 use openaccounts_publishing_engine::PublishingEngine;
-use openaccounts_scheduler::TaskScheduler;
 use openaccounts_social_analytics::SocialAnalyticsEngine;
 use openaccounts_social_media_manager::SocialMediaManagerAgent;
 use serde_json::json;
 use std::sync::Arc;
+use tracing::{info, warn};
+
+use crate::autonomy::AutonomyRuntime;
 
 #[allow(dead_code)]
 pub struct AppState {
@@ -42,7 +42,6 @@ pub struct AppState {
     pub audit_engine: Arc<AuditEngine>,
     pub account_registry: Arc<AccountRegistry>,
     pub automation_engine: Arc<AutomationEngine>,
-    pub scheduler: Arc<TaskScheduler>,
     pub event_bus: Arc<EventBus>,
     pub platform_intelligence: Arc<PlatformIntelligence>,
     pub policy_engine: Arc<PolicyEngine>,
@@ -54,7 +53,7 @@ pub struct AppState {
     pub identity_manager: Arc<AccountIdentityManager>,
     pub multi_account_registry: Arc<MultiAccountRegistry>,
     pub compliance_audit: Arc<ComplianceAuditEngine>,
-    pub account_creator: Arc<AccountCreator>,
+    pub account_creator: Arc<openaccounts_account_creator::AccountCreator>,
     pub brand_manager: Arc<BrandManager>,
     pub content_strategy: Arc<ContentStrategyEngine>,
     pub creative_pipeline: Arc<CreativePipeline>,
@@ -62,6 +61,7 @@ pub struct AppState {
     pub engagement_agent: Arc<EngagementAgent>,
     pub social_analytics: Arc<SocialAnalyticsEngine>,
     pub social_media_manager: Arc<SocialMediaManagerAgent>,
+    pub autonomy: Arc<AutonomyRuntime>,
 }
 
 impl AppState {
@@ -76,139 +76,23 @@ impl AppState {
         let permission_engine = Arc::new(PermissionEngine::new());
         let audit_engine = Arc::new(AuditEngine::new(db.clone()));
         let account_registry = Arc::new(AccountRegistry::new(db.clone()));
-        if account_registry.list_accounts().await.map(|a| a.is_empty()).unwrap_or(true) {
-            let now = Utc::now();
-            let stick_accounts = vec![
-                AccountRecord {
-                    id: AccountId::new(),
-                    platform: Platform::Instagram,
-                    username: "@snapwave".into(),
-                    email: Some("elikenny333@gmail.com".into()),
-                    phone: None,
-                    status: "active".into(),
-                    profile_metadata: json!({
-                        "source": "StickExplainers",
-                        "brand": "Clearly Drawn News (CDN)",
-                        "account_type": "Creator (Digital creator)",
-                        "integration": "chrome_relay",
-                        "daily_caps": { "likes": 12, "follows": 3, "comments": 2, "replies": 15, "feed_posts": 2 }
-                    }),
-                    created_at: now,
-                    updated_at: now,
-                    last_active: Some(now),
-                },
-                AccountRecord {
-                    id: AccountId::new(),
-                    platform: Platform::Custom("tiktok".into()),
-                    username: "@clearlydrawnlessons".into(),
-                    email: Some("elikenny333@gmail.com".into()),
-                    phone: None,
-                    status: "active".into(),
-                    profile_metadata: json!({
-                        "source": "StickExplainers",
-                        "brand": "Clearly Drawn News (CDN)",
-                        "integration": "chrome_relay",
-                        "daily_caps": { "likes": 12, "follows": 3, "comments": 2, "replies": 15 }
-                    }),
-                    created_at: now,
-                    updated_at: now,
-                    last_active: Some(now),
-                },
-                AccountRecord {
-                    id: AccountId::new(),
-                    platform: Platform::YouTube,
-                    username: "@ClearlyDrawnLessons".into(),
-                    email: Some("elikenny333@gmail.com".into()),
-                    phone: None,
-                    status: "active".into(),
-                    profile_metadata: json!({
-                        "source": "StickExplainers",
-                        "brand": "Clearly Drawn News (CDN)",
-                        "channel_id": "UC16fbSsDJcc6RVvNsH3Cbfg",
-                        "oauth_credentials": "~/.youtube-analytics-mcp/credentials.json",
-                        "daily_caps": { "uploads": 9, "comment_replies": 20, "likes": 5, "subs": 1, "comments": 2 }
-                    }),
-                    created_at: now,
-                    updated_at: now,
-                    last_active: Some(now),
-                },
-                AccountRecord {
-                    id: AccountId::new(),
-                    platform: Platform::Custom("shopify".into()),
-                    username: "zs56hs-fj.myshopify.com".into(),
-                    email: Some("elikenny333@gmail.com".into()),
-                    phone: None,
-                    status: "active".into(),
-                    profile_metadata: json!({
-                        "source": "StickExplainers",
-                        "brand": "Clearly Drawn News Merch (Printful)",
-                        "store_url": "https://zs56hs-fj.myshopify.com",
-                        "live": true
-                    }),
-                    created_at: now,
-                    updated_at: now,
-                    last_active: Some(now),
-                },
-                AccountRecord {
-                    id: AccountId::new(),
-                    platform: Platform::Custom("paypal".into()),
-                    username: "paypal.me/snapwave333".into(),
-                    email: Some("elikenny333@gmail.com".into()),
-                    phone: None,
-                    status: "active".into(),
-                    profile_metadata: json!({
-                        "source": "StickExplainers",
-                        "brand": "Clearly Drawn News CFO",
-                        "paypal_link": "https://paypal.me/snapwave333"
-                    }),
-                    created_at: now,
-                    updated_at: now,
-                    last_active: Some(now),
-                },
-                AccountRecord {
-                    id: AccountId::new(),
-                    platform: Platform::Email,
-                    username: "elikenny333@gmail.com".into(),
-                    email: Some("elikenny333@gmail.com".into()),
-                    phone: None,
-                    status: "active".into(),
-                    profile_metadata: json!({
-                        "source": "StickExplainers",
-                        "provider": "gmail",
-                        "role": "Primary Sponsor Outreach & Inbox Watch"
-                    }),
-                    created_at: now,
-                    updated_at: now,
-                    last_active: Some(now),
-                },
-                AccountRecord {
-                    id: AccountId::new(),
-                    platform: Platform::Email,
-                    username: "focogaming@outlook.com".into(),
-                    email: Some("focogaming@outlook.com".into()),
-                    phone: None,
-                    status: "active".into(),
-                    profile_metadata: json!({
-                        "source": "StickExplainers",
-                        "provider": "outlook",
-                        "role": "Secondary Inbox Watch"
-                    }),
-                    created_at: now,
-                    updated_at: now,
-                    last_active: Some(now),
-                },
-            ];
-            for acc in stick_accounts {
-                let _ = account_registry.create_account(acc).await;
-            }
-        }
+
         let automation_engine = Arc::new(AutomationEngine::new(
             permission_engine.clone(),
             audit_engine.clone(),
             lm_gateway.clone(),
             human_controller.clone(),
         ));
-        let scheduler = Arc::new(TaskScheduler::new());
+
+        let autonomy = Arc::new(AutonomyRuntime::new(
+            db.clone(),
+            automation_engine.clone(),
+        ));
+
+        // Import the studio's real, configured identities. Nothing is invented:
+        // every row below is derived from StickExplainers/config.json.
+        import_configured_accounts(&account_registry, autonomy.studio_root()).await;
+
         let event_bus = Arc::new(EventBus::new());
 
         let platform_intelligence = Arc::new(PlatformIntelligence::new());
@@ -219,14 +103,9 @@ impl AppState {
             policy_versioning.clone(),
         ));
 
+        // No email provider is registered because no live provider is configured.
+        // Allocation therefore fails loudly instead of returning a fake mailbox.
         let email_manager = Arc::new(EmailIdentityManager::new());
-        let mock_email_adapter = Arc::new(MockEmailProviderAdapter::new(
-            EmailProviderType::CustomDomainApi,
-            "openaccounts.io".into(),
-        ));
-        email_manager
-            .register_provider("primary_domain", mock_email_adapter)
-            .await;
         let email_verification = Arc::new(EmailVerificationEngine::new());
 
         let auth_engine = Arc::new(AuthenticationEngine::new(vault.clone()));
@@ -238,7 +117,7 @@ impl AppState {
         ));
         let compliance_audit = Arc::new(ComplianceAuditEngine::new(db.clone()));
 
-        let account_creator = Arc::new(AccountCreator::new(
+        let account_creator = Arc::new(openaccounts_account_creator::AccountCreator::new(
             vault.clone(),
             human_controller.clone(),
             policy_engine.clone(),
@@ -247,19 +126,23 @@ impl AppState {
             account_registry.clone(),
         ));
 
-        // Social Media Manager & Marketing Subsystems
         let brand_manager = Arc::new(BrandManager::new());
         let content_strategy = Arc::new(ContentStrategyEngine::new(
             brand_manager.clone(),
             lm_gateway.clone(),
         ));
         let creative_pipeline = Arc::new(CreativePipeline::new());
-        creative_pipeline.discover_tools().await;
+        // Probing runs each tool's version command; keep it off the startup path.
+        {
+            let pipeline = creative_pipeline.clone();
+            tokio::spawn(async move { pipeline.discover_tools().await });
+        }
 
         let publishing_engine = Arc::new(PublishingEngine::new(policy_engine.clone()));
         let engagement_agent = Arc::new(EngagementAgent::new(
             policy_engine.clone(),
             lm_gateway.clone(),
+            account_registry.clone(),
         ));
         let social_analytics = Arc::new(SocialAnalyticsEngine::new());
         let social_media_manager = Arc::new(SocialMediaManagerAgent::new(
@@ -270,16 +153,6 @@ impl AppState {
             engagement_agent.clone(),
             social_analytics.clone(),
         ));
-        social_media_manager.start_autonomous_loop();
-        let _ = social_media_manager.execute_autonomous_cycle().await;
-        let _ = social_media_manager.send_stick_bridge_message(
-            "OpenAccounts · SocialMediaManager & EngagementAgent",
-            "V. Sterling, C. Coral & E. Emerald",
-            "Delegated Social, Comments & Merch Replies",
-            "Social Media & Engagement Agents Started",
-            "Autonomous loop active for @snapwave (IG), @clearlydrawnlessons (TikTok), and @ClearlyDrawnLessons (YouTube).",
-            false,
-        );
 
         Self {
             db,
@@ -290,7 +163,6 @@ impl AppState {
             audit_engine,
             account_registry,
             automation_engine,
-            scheduler,
             event_bus,
             platform_intelligence,
             policy_engine,
@@ -310,6 +182,143 @@ impl AppState {
             engagement_agent,
             social_analytics,
             social_media_manager,
+            autonomy,
         }
+    }
+}
+
+/// Reads `StickExplainers/config.json` and imports only the identities that are
+/// actually configured there. Runs once, and is idempotent: an account whose
+/// platform + username already exists is left untouched.
+async fn import_configured_accounts(registry: &Arc<AccountRegistry>, studio_root: &std::path::Path) {
+    let config_path = studio_root.join("config.json");
+    let raw = match std::fs::read_to_string(&config_path) {
+        Ok(raw) => raw,
+        Err(e) => {
+            warn!(
+                "Studio config not readable at {}: {e}. No accounts imported.",
+                config_path.display()
+            );
+            return;
+        }
+    };
+    let cfg: serde_json::Value = match serde_json::from_str(&raw) {
+        Ok(v) => v,
+        Err(e) => {
+            warn!("Studio config is not valid JSON: {e}. No accounts imported.");
+            return;
+        }
+    };
+
+    let existing = registry.list_accounts().await.unwrap_or_default();
+    let already = |platform: &str, username: &str| {
+        existing
+            .iter()
+            .any(|a| a.platform.to_string() == platform && a.username == username)
+    };
+
+    let mut candidates: Vec<(Platform, String, Option<String>, serde_json::Value)> = Vec::new();
+
+    if let Some(handle) = cfg.get("instagram_account").and_then(|v| v.as_str()) {
+        if !handle.trim().is_empty() {
+            candidates.push((
+                Platform::Instagram,
+                format!("@{handle}"),
+                cfg.pointer("/email_watch/sources/0/name")
+                    .and_then(|v| v.as_str())
+                    .map(str::to_string),
+                json!({ "source": "StickExplainers/config.json", "integration": "chrome_relay" }),
+            ));
+        }
+    }
+
+    if cfg.get("tiktok").and_then(|v| v.as_bool()).unwrap_or(false) {
+        candidates.push((
+            Platform::Custom("tiktok".into()),
+            "@clearlydrawnlessons".to_string(),
+            cfg.pointer("/email_watch/sources/0/name")
+                .and_then(|v| v.as_str())
+                .map(str::to_string),
+            json!({
+                "source": "StickExplainers/config.json",
+                "integration": "chrome_relay",
+                "via": cfg.get("tiktok_via").and_then(|v| v.as_str()).unwrap_or("unknown")
+            }),
+        ));
+    }
+
+    if let Some(store) = cfg.pointer("/merch/store_url").and_then(|v| v.as_str()) {
+        candidates.push((
+            Platform::Custom("shopify".into()),
+            store.trim_start_matches("https://").trim_end_matches('/').to_string(),
+            None,
+            json!({
+                "source": "StickExplainers/config.json",
+                "store_url": store,
+                "live": cfg.pointer("/merch/live").and_then(|v| v.as_bool()).unwrap_or(false)
+            }),
+        ));
+    }
+
+    if let Some(paypal) = cfg.pointer("/cfo/paypal_me").and_then(|v| v.as_str()) {
+        candidates.push((
+            Platform::Custom("paypal".into()),
+            paypal.to_string(),
+            cfg.pointer("/sponsors/sender")
+                .and_then(|v| v.as_str())
+                .map(str::to_string),
+            json!({ "source": "StickExplainers/config.json", "paypal_link": format!("https://{paypal}") }),
+        ));
+    }
+
+    if let Some(sources) = cfg.pointer("/email_watch/sources").and_then(|v| v.as_array()) {
+        for source in sources {
+            let Some(name) = source.get("name").and_then(|v| v.as_str()) else {
+                continue;
+            };
+            let kind = source
+                .get("kind")
+                .and_then(|v| v.as_str())
+                .unwrap_or("email");
+            candidates.push((
+                Platform::Email,
+                name.to_string(),
+                Some(name.to_string()),
+                json!({
+                    "source": "StickExplainers/config.json",
+                    "provider": kind,
+                    "role": "inbox watch"
+                }),
+            ));
+        }
+    }
+
+    let mut imported = 0usize;
+    for (platform, username, email, metadata) in candidates {
+        let platform_key = platform.to_string();
+        if already(&platform_key, &username) {
+            continue;
+        }
+        let now = Utc::now();
+        let record = AccountRecord {
+            id: AccountId::new(),
+            platform,
+            username: username.clone(),
+            email,
+            phone: None,
+            status: "configured".into(),
+            profile_metadata: metadata,
+            created_at: now,
+            updated_at: now,
+            last_active: None,
+        };
+        match registry.create_account(record).await {
+            Ok(_) => imported += 1,
+            Err(e) => warn!("Failed to import {platform_key}:{username}: {e}"),
+        }
+    }
+
+    if imported > 0 {
+        info!("Imported {imported} configured studio accounts from config.json");
     }
 }

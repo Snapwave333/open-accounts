@@ -58,6 +58,9 @@ impl AutomationEngine {
         self.kill_switch.load(Ordering::SeqCst)
     }
 
+    /// Permission gate for an action: checks the kill switch and account
+    /// policy and audits the decision. It does not perform the action; an
+    /// allowed action is recorded as "Authorized" for the caller to carry out.
     pub async fn execute_action(
         &self,
         execution_id: &str,
@@ -89,10 +92,10 @@ impl AutomationEngine {
                         "Denied",
                     )
                     .await?;
-                return Err(OpenAccountsError::PermissionDenied(format!(
+                Err(OpenAccountsError::PermissionDenied(format!(
                     "Action {:?} denied by account policy",
                     action
-                )));
+                )))
             }
             PermissionDecision::ApprovalRequired => {
                 self.human_controller
@@ -118,12 +121,12 @@ impl AutomationEngine {
                     )
                     .await?;
 
-                return Err(OpenAccountsError::HumanInterventionRequired(
+                Err(OpenAccountsError::HumanInterventionRequired(
                     "Approval required before execution".into(),
-                ));
+                ))
             }
             PermissionDecision::Allowed => {
-                info!("Executing action {:?} for account {}", action, account_id);
+                info!("Authorized action {:?} for account {}", action, account_id);
                 self.audit_engine
                     .log_action(
                         execution_id,
@@ -132,7 +135,7 @@ impl AutomationEngine {
                         action,
                         risk,
                         payload,
-                        "Completed",
+                        "Authorized",
                     )
                     .await?;
                 Ok(())

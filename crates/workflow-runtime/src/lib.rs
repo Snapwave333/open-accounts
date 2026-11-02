@@ -28,18 +28,27 @@ impl WorkflowRuntime {
         Self
     }
 
-    pub fn save_checkpoint(
+    /// Builds a checkpoint value. It is not persisted anywhere; the caller
+    /// owns storing it.
+    pub fn build_checkpoint(
         &self,
         workflow_id: &str,
         step_index: usize,
         state: HashMap<String, serde_json::Value>,
+        status: ExecutionStatus,
     ) -> WorkflowCheckpoint {
         WorkflowCheckpoint {
             workflow_id: workflow_id.to_string(),
             current_step_index: step_index,
             state_data: state,
-            status: ExecutionStatus::Running,
+            status,
             saved_at: Utc::now(),
         }
+    }
+}
+
+impl Default for WorkflowRuntime {
+    fn default() -> Self {
+        Self::new()
     }
 }

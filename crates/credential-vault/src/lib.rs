@@ -159,6 +159,12 @@ impl VaultManager {
     }
 }
 
+impl Default for VaultManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct SecretMetadataView {
     pub id: SecretId,

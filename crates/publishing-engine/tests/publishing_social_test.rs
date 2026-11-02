@@ -1,4 +1,3 @@
-use chrono::Utc;
 use openaccounts_core::AccountId;
 use openaccounts_platform_intelligence::PlatformIntelligence;
 use openaccounts_policy_engine::PolicyEngine;
@@ -11,94 +10,59 @@ fn setup_engine() -> PublishingEngine {
     PublishingEngine::new(policy)
 }
 
-#[tokio::test]
-async fn test_platform_auth_verification() {
-    let engine = setup_engine();
-    let account_id = AccountId::new();
-
-    // Verify Instagram Auth Scopes
-    let ig_auth = engine
-        .verify_platform_auth("instagram", &account_id)
-        .await
-        .expect("Auth check failed");
-    assert!(ig_auth.is_authenticated);
-    assert!(ig_auth.scopes.contains(&"instagram_content_publish".into()));
-
-    // Verify TikTok Auth Scopes
-    let tt_auth = engine
-        .verify_platform_auth("tiktok", &account_id)
-        .await
-        .expect("Auth check failed");
-    assert!(tt_auth.is_authenticated);
-    assert!(tt_auth.scopes.contains(&"video.publish".into()));
-
-    // Verify YouTube Auth Scopes
-    let yt_auth = engine
-        .verify_platform_auth("youtube", &account_id)
-        .await
-        .expect("Auth check failed");
-    assert!(yt_auth.is_authenticated);
-    assert!(yt_auth.scopes.iter().any(|s| s.contains("youtube.upload")));
-
-    // Verify X Auth Scopes
-    let x_auth = engine
-        .verify_platform_auth("x", &account_id)
-        .await
-        .expect("Auth check failed");
-    assert!(x_auth.is_authenticated);
-    assert!(x_auth.scopes.contains(&"tweet.write".into()));
-}
-
-#[tokio::test]
-async fn test_publishing_with_idempotency_and_approval_gate() {
-    let engine = setup_engine();
-    let account_id = AccountId::new();
-
-    let post = SocialPostPayload {
-        post_id: "post-demo-01".into(),
-        account_id: account_id.clone(),
+fn post(post_id: &str, key: &str, requires_approval: bool) -> SocialPostPayload {
+    SocialPostPayload {
+        post_id: post_id.into(),
+        account_id: AccountId::new(),
         platform: "instagram".into(),
-        caption: "Protecting digital autonomy with local credentials.".into(),
-        hashtags: vec!["#security".into(), "#privacy".into()],
-        media_paths: vec!["/renders/reel_1080x1920.mp4".into()],
-        idempotency_key: "idem-key-991823".into(),
-        scheduled_at: Some(Utc::now()),
-        requires_human_approval: true,
+        caption: "caption".into(),
+        hashtags: vec![],
+        media_paths: vec![],
+        idempotency_key: key.into(),
+        scheduled_at: None,
+        requires_human_approval: requires_approval,
         is_approved: false,
         retry_count: 0,
         status: "Draft".into(),
-    };
+    }
+}
 
-    // 1. Queue post requiring approval
-    let post_id = engine.queue_post(post.clone()).await.expect("Queue failed");
-    let posts = engine.list_posts().await;
-    let queued = posts.iter().find(|p| p.post_id == post_id).unwrap();
-    assert_eq!(queued.status, "AwaitingApproval");
+#[tokio::test]
+async fn test_platform_auth_is_not_claimed_without_credentials() {
+    let engine = setup_engine();
+    let res = engine.verify_platform_auth("instagram", &AccountId::new()).await;
+    assert!(res.is_err(), "auth must not be reported without real tokens");
+}
 
-    // 2. Approve and publish
-    let pub_res = engine
-        .approve_and_publish(&post_id)
+#[tokio::test]
+async fn test_queue_approval_gate_idempotency_and_no_fake_publish() {
+    let engine = setup_engine();
+
+    let post_id = engine
+        .queue_post(post("post-01", "key-1", true))
         .await
-        .expect("Publish failed");
-    assert_eq!(pub_res.post_id, post_id);
-    assert!(pub_res.remote_permalink.contains("instagram.com"));
+        .expect("queue");
+    let queued = engine.list_posts().await;
+    assert_eq!(queued[0].status, "AwaitingApproval");
 
-    // 3. Attempt duplicate publish with same idempotency key -> Must fail!
-    let duplicate_post = SocialPostPayload {
-        post_id: "post-demo-02".into(),
-        account_id,
-        platform: "instagram".into(),
-        caption: "Duplicate attempt".into(),
-        hashtags: vec![],
-        media_paths: vec![],
-        idempotency_key: "idem-key-991823".into(),
-        scheduled_at: None,
-        requires_human_approval: false,
-        is_approved: true,
-        retry_count: 0,
-        status: "Draft".into(),
-    };
+    // Publishing is refused, and the post is not marked published.
+    let res = engine.approve_and_publish(&post_id).await;
+    assert!(res.is_err());
+    let after = engine.list_posts().await;
+    assert_eq!(after[0].status, "AwaitingApproval");
 
-    let dup_res = engine.queue_post(duplicate_post).await;
-    assert!(dup_res.is_err(), "Duplicate post must be blocked by idempotency key");
+    // An approved post is queued as Approved, never Published.
+    let mut approved = post("post-02", "key-2", false);
+    approved.is_approved = true;
+    engine.queue_post(approved).await.expect("queue");
+    let posts = engine.list_posts().await;
+    let p2 = posts.iter().find(|p| p.post_id == "post-02").unwrap();
+    assert_eq!(p2.status, "Approved");
+
+    // Same idempotency key is rejected.
+    let dup = engine.queue_post(post("post-03", "key-1", false)).await;
+    assert!(dup.is_err(), "duplicate idempotency key must be blocked");
+
+    // Unknown post id is an error.
+    assert!(engine.approve_and_publish("missing").await.is_err());
 }

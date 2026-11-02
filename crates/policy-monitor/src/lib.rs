@@ -1,6 +1,6 @@
 use chrono::Utc;
-use openaccounts_platform_intelligence::PlatformIntelligence;
-use openaccounts_policy_versioning::{PolicyDiff, PolicyVersioningRegistry};
+use openaccounts_platform_intelligence::{ConfidenceLevel, PlatformIntelligence};
+use openaccounts_policy_versioning::PolicyVersioningRegistry;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::broadcast;
@@ -19,6 +19,7 @@ pub struct PolicyMonitorAlert {
 
 pub struct PolicyMonitor {
     platform_intelligence: Arc<PlatformIntelligence>,
+    #[allow(dead_code)]
     versioning: Arc<PolicyVersioningRegistry>,
     alert_sender: broadcast::Sender<PolicyMonitorAlert>,
 }
@@ -40,21 +41,24 @@ impl PolicyMonitor {
         self.alert_sender.subscribe()
     }
 
+    /// Reviews the stored policy reference data. It does not fetch the live
+    /// policy pages (no fetcher is connected); it only flags profiles whose
+    /// stored data is marked Low confidence. The policy engine already refuses
+    /// multi-account checks for those platforms.
     pub async fn run_policy_check_cycle(&self) -> Vec<PolicyMonitorAlert> {
-        info!("Running Policy Intelligence Monitor verification cycle across all platforms...");
+        info!("Reviewing stored platform policy confidence levels");
         let profiles = self.platform_intelligence.list_profiles().await;
         let mut alerts = Vec::new();
 
         for profile in profiles {
-            // Simulated validation against official endpoint headers
-            if profile.confidence_level == openaccounts_platform_intelligence::ConfidenceLevel::Low {
+            if profile.confidence_level == ConfidenceLevel::Low {
                 let alert = PolicyMonitorAlert {
                     alert_id: Uuid::new_v4().to_string(),
                     platform_id: profile.id.clone(),
-                    severity: "Critical_Pause".into(),
+                    severity: "Warning".into(),
                     message: format!(
-                        "Compliance Uncertainty: {} policy requires re-validation. Automations paused.",
-                        profile.name
+                        "{} policy reference data has Low confidence and needs re-validation against {}.",
+                        profile.name, profile.terms_of_service.official_url
                     ),
                     affected_accounts: vec![],
                     created_at: Utc::now(),
@@ -66,47 +70,5 @@ impl PolicyMonitor {
         }
 
         alerts
-    }
-
-    pub async fn simulate_policy_update(
-        &self,
-        platform_id: &str,
-        section_name: &str,
-        new_summary: &str,
-        requires_pause: bool,
-    ) {
-        if let Some(mut profile) = self.platform_intelligence.get_profile(platform_id).await {
-            let diff = PolicyDiff {
-                change_id: Uuid::new_v4().to_string(),
-                platform_id: platform_id.to_string(),
-                section_modified: section_name.to_string(),
-                old_summary: profile.community_guidelines.summary.clone(),
-                new_summary: new_summary.to_string(),
-                requires_workflow_pause: requires_pause,
-                detected_at: Utc::now(),
-            };
-
-            profile.community_guidelines.summary = new_summary.to_string();
-            profile.last_verified = Utc::now();
-            self.versioning
-                .record_version(platform_id, profile.clone(), vec![diff.clone()])
-                .await;
-            self.platform_intelligence.update_profile(profile).await;
-
-            if requires_pause {
-                let alert = PolicyMonitorAlert {
-                    alert_id: Uuid::new_v4().to_string(),
-                    platform_id: platform_id.to_string(),
-                    severity: "Critical_Pause".into(),
-                    message: format!(
-                        "Policy update detected for {} in {}. Workflows paused for review.",
-                        platform_id, section_name
-                    ),
-                    affected_accounts: vec![],
-                    created_at: Utc::now(),
-                };
-                let _ = self.alert_sender.send(alert);
-            }
-        }
     }
 }

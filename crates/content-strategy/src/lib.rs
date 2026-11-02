@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use openaccounts_brand_manager::BrandManager;
+use openaccounts_core::{OpenAccountsError, Result};
 use openaccounts_lm_gateway::LMGateway;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
@@ -86,30 +87,11 @@ impl ContentStrategyEngine {
         self.campaigns.read().await.values().cloned().collect()
     }
 
-    pub async fn research_trends(&self, platform: &str) -> Vec<TrendTopic> {
-        // Platform trend discovery
-        vec![
-            TrendTopic {
-                topic: "#AIAutomation".into(),
-                platform: platform.to_string(),
-                volume_score: 95,
-                sentiment: "Positive".into(),
-                recommended_hashtags: vec!["#AIAutomation".into(), "#TechTrends".into(), "#OpenAccounts".into()],
-            },
-            TrendTopic {
-                topic: "#AutonomousAgents".into(),
-                platform: platform.to_string(),
-                volume_score: 88,
-                sentiment: "High Interest".into(),
-                recommended_hashtags: vec!["#AutonomousAgents".into(), "#ProductivityHacks".into()],
-            },
-            TrendTopic {
-                topic: "#SecurityFirst".into(),
-                platform: platform.to_string(),
-                volume_score: 79,
-                sentiment: "Educational".into(),
-                recommended_hashtags: vec!["#SecurityFirst".into(), "#DataPrivacy".into()],
-            },
-        ]
+    /// No trend data source (platform trend API or scraper) is connected, so
+    /// this fails instead of inventing hashtags and volume scores.
+    pub async fn research_trends(&self, platform: &str) -> Result<Vec<TrendTopic>> {
+        Err(OpenAccountsError::NotConfigured(format!(
+            "No trend data source is connected for '{platform}'; trend research is unavailable"
+        )))
     }
 }

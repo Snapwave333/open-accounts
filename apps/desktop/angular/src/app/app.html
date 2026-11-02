@@ -138,6 +138,10 @@
   <!-- PURE BLACK WORKSPACE -->
   <div class="app-body">
     <main class="main-canvas">
+      <div class="panel" *ngIf="tauri.backendError()" style="border-color: #e84a3f;">
+        <strong style="color: #e84a3f;">Backend error</strong>
+        <p class="mono" style="margin: 6px 0 0; white-space: pre-wrap;">{{ tauri.backendError() }}</p>
+      </div>
 
       <!-- TAB 1: NEEDS YOU & SILENT BACKGROUND PULSE -->
       <section *ngIf="activeTab() === 'home'" class="workspace-view">
@@ -145,25 +149,38 @@
           <div class="pulse-card">
             <span class="pulse-label">Managed Accounts</span>
             <span class="pulse-value">{{ tauri.accounts().length }}</span>
-            <span class="pulse-sub">IG · TikTok · YouTube · Shopify</span>
+            <span class="pulse-sub">Imported from the studio config</span>
           </div>
 
-          <div class="pulse-card">
-            <span class="pulse-label">Social & Engagement</span>
-            <span class="pulse-value accent">ACTIVE</span>
-            <span class="pulse-sub">Running in background</span>
+          <div class="pulse-card" *ngIf="tauri.autonomyStatus() as st">
+            <span class="pulse-label">Agent Cycles</span>
+            <span class="pulse-value" [class.accent]="st.loop_running && !st.paused">
+              {{ st.cycle_in_flight ? 'RUNNING' : (st.paused ? 'PAUSED' : (st.loop_running ? 'IDLE' : 'STOPPED')) }}
+            </span>
+            <span class="pulse-sub">
+              {{ st.cycles_completed }} run · {{ st.cycles_failed }} with failures · last {{ timeAgo(st.last_cycle?.finished_at) }}
+            </span>
           </div>
 
           <div class="pulse-card">
             <span class="pulse-label">Studio Bridge</span>
-            <span class="pulse-value accent">SYNCED</span>
-            <span class="pulse-sub">Zero duplicate actions</span>
+            <span class="pulse-value">{{ tauri.bridgeState()?.messages?.length ?? 0 }} msgs</span>
+            <span class="pulse-sub">Last write {{ timeAgo(tauri.bridgeState()?.last_synced_at) }}</span>
           </div>
 
           <div class="pulse-card">
             <span class="pulse-label">Garbage Collector</span>
-            <span class="pulse-value">{{ tauri.gcReport().free_gb }} GB Free</span>
-            <span class="pulse-sub">{{ tauri.gcReport().freed_total_gb }} GB reclaimed</span>
+            <ng-container *ngIf="tauri.gcReport() as gc; else noGc">
+              <span class="pulse-value">{{ gc.free_gb | number: '1.0-1' }} GB Free</span>
+              <span class="pulse-sub">{{ gc.freed_total_gb | number: '1.0-2' }} GB reclaimed · {{ timeAgo(gc.executed_at) }}</span>
+            </ng-container>
+            <ng-template #noGc>
+              <span class="pulse-value">—</span>
+              <span class="pulse-sub">No GC run recorded yet</span>
+            </ng-template>
+            <button class="btn-micro" style="margin-top: 8px;" [disabled]="gcRunning()" (click)="runGarbageCollection()">
+              {{ gcRunning() ? 'Running…' : 'Run GC now' }}
+            </button>
           </div>
         </div>
 
@@ -183,7 +200,7 @@
             <div class="check-badge">✓</div>
             <div class="clear-text">
               <strong>Nothing needs you right now</strong>
-              <span>All accounts, comments, engagement, and disk cleanup are running on autopilot.</span>
+              <span>No CAPTCHA, 2FA, or approval is waiting. Agent job results are on the Activity Flow tab.</span>
             </div>
           </div>
 
@@ -218,28 +235,32 @@
               <ng-container *ngTemplateOutlet="brandLogo; context: { brand: 'paypal', size: 20 }"></ng-container>
               <ng-container *ngTemplateOutlet="brandLogo; context: { brand: 'gmail', size: 20 }"></ng-container>
             </div>
-            <span class="telemetry-val">{{ tauri.accounts().length }} Accounts Active</span>
+            <span class="telemetry-val">{{ tauri.accounts().length }} accounts</span>
           </div>
 
           <div class="telemetry-divider"></div>
 
           <div class="telemetry-item">
-            <span class="telemetry-label">QUOTAS</span>
-            <span class="mono telemetry-val">IG 8/12 likes · 3/3 follows · YT 3/5 likes</span>
+            <span class="telemetry-label">ENGAGEMENT TODAY</span>
+            <span class="mono telemetry-val">{{ tauri.engagementToday() ?? 'no stats yet' }}</span>
           </div>
 
           <div class="telemetry-divider"></div>
 
           <div class="telemetry-item">
-            <span class="telemetry-label">BRIDGE</span>
-            <span class="telemetry-val accent-text">39 Studio Agents Synced</span>
+            <span class="telemetry-label">NEXT CYCLE</span>
+            <span class="telemetry-val">{{ tauri.autonomyStatus()?.next_cycle_at ? (tauri.autonomyStatus()!.next_cycle_at! | date: 'shortTime') : '—' }}</span>
+            <button class="run-now-btn" [disabled]="cycleRunning() || tauri.autonomyStatus()?.cycle_in_flight" (click)="runCycleNow()">
+              {{ tauri.autonomyStatus()?.cycle_in_flight ? 'Running…' : 'Run cycle now' }}
+            </button>
           </div>
 
           <div class="telemetry-divider"></div>
 
           <div class="telemetry-item">
             <span class="telemetry-label">DISK GC</span>
-            <span class="mono telemetry-val">{{ tauri.gcReport().free_gb }} GB free ({{ tauri.gcReport().freed_total_gb }} GB saved)</span>
+            <span class="mono telemetry-val" *ngIf="tauri.gcReport() as gc; else gcNone">{{ gc.free_gb | number: '1.0-1' }} GB free ({{ gc.freed_total_gb | number: '1.0-2' }} GB saved)</span>
+            <ng-template #gcNone><span class="mono telemetry-val">no run recorded</span></ng-template>
           </div>
         </div>
 
@@ -259,6 +280,7 @@
             </div>
 
             <div class="flow-cards-list">
+              <p class="flow-card-detail" *ngIf="tauri.loaded() && tauri.justDidItems().length === 0">No cycle has finished yet.</p>
               <div *ngFor="let item of tauri.justDidItems()" class="flow-card">
                 <div class="flow-card-top">
                   <div class="account-chip-inline">
@@ -287,6 +309,7 @@
             </div>
 
             <div class="flow-cards-list">
+              <p class="flow-card-detail" *ngIf="tauri.loaded() && tauri.activelyDoingItems().length === 0">Nothing is running right now.</p>
               <div *ngFor="let item of tauri.activelyDoingItems()" class="flow-card live-card">
                 <div class="flow-card-top">
                   <div class="account-chip-inline">
@@ -329,7 +352,7 @@
                   </div>
                   <div class="next-actions-right">
                     <span class="eta-pill">{{ item.eta }}</span>
-                    <button class="run-now-btn" (click)="tauri.runQueuedTaskNow(item.id)" title="Start this task immediately">
+                    <button class="run-now-btn" [disabled]="cycleRunning() || tauri.autonomyStatus()?.cycle_in_flight" (click)="runCycleNow()" title="Start a full agent cycle now">
                       Run
                     </button>
                   </div>
@@ -357,8 +380,8 @@
             <div class="chat-agent-identity">
               <span class="agent-online-dot"></span>
               <div>
-                <h3>OpenAccounts LM Agent</h3>
-                <span class="chat-subtitle">Direct bridge to your 7 accounts &amp; 39 StickExplainers studio agents · Drop or paste files to attach</span>
+                <h3>Studio Bridge</h3>
+                <span class="chat-subtitle">Messages are written to the StickExplainers bridge and filed as CEO directives</span>
               </div>
             </div>
 
@@ -445,11 +468,11 @@
               <button class="prompt-chip" (click)="sendQuickPrompt('Queue next Cartoon Kitchen recipe card on @snapwave')">
                 Queue next IG Kitchen card
               </button>
-              <button class="prompt-chip" (click)="sendQuickPrompt('Run outbound engagement batch on #animefood and #studioghibli')">
-                Run engagement batch
+              <button class="prompt-chip" [disabled]="gcRunning()" (click)="runGarbageCollection()">
+                Run GC sweep now
               </button>
-              <button class="prompt-chip" (click)="sendQuickPrompt('Run garbage collection sweep with G. Graphite')">
-                Run GC sweep
+              <button class="prompt-chip" [disabled]="cycleRunning()" (click)="runCycleNow()">
+                Run agent cycle now
               </button>
             </div>
 
@@ -485,7 +508,7 @@
               <input
                 type="text"
                 class="chat-text-input"
-                placeholder="Message the in-app LM agent, drop files, or paste an image..."
+                placeholder="Directive for the studio agents..."
                 [ngModel]="chatInput()"
                 (ngModelChange)="chatInput.set($event)"
                 (paste)="onChatPaste($event)"
@@ -506,15 +529,22 @@
           <div class="panel-header">
             <div>
               <h3>Managed Accounts ({{ tauri.accounts().length }})</h3>
-              <span class="panel-header-subtitle">Connected studio accounts managed in background</span>
+              <span class="panel-header-subtitle">Stored in the local OpenAccounts database</span>
             </div>
             <div style="display: flex; gap: 8px;">
               <input
                 type="text"
-                placeholder="New handle (e.g. @myaccount)"
-                style="width: 210px;"
+                placeholder="Handle (e.g. @myaccount)"
+                style="width: 180px;"
                 [ngModel]="newAccountUsername()"
                 (ngModelChange)="newAccountUsername.set($event)"
+              />
+              <input
+                type="email"
+                placeholder="Email (optional)"
+                style="width: 180px;"
+                [ngModel]="newAccountEmail()"
+                (ngModelChange)="newAccountEmail.set($event)"
               />
               <select
                 [ngModel]="newAccountPlatform()"
@@ -549,7 +579,10 @@
                 </td>
                 <td><strong>{{ acc.username }}</strong></td>
                 <td class="mono" style="color: var(--text-muted);">{{ acc.email || '—' }}</td>
-                <td><span class="badge accent">AUTOPILOT</span></td>
+                <td><span class="badge">{{ acc.status | uppercase }}</span></td>
+              </tr>
+              <tr *ngIf="tauri.loaded() && tauri.accounts().length === 0">
+                <td colspan="4" style="color: var(--text-muted);">No accounts in the database yet.</td>
               </tr>
             </tbody>
           </table>
@@ -577,16 +610,28 @@
             />
             <button class="btn btn-primary" (click)="unlockVault()">Unlock Vault</button>
           </div>
+          <p class="mono" *ngIf="vaultError()" style="color: #e84a3f; margin-top: 8px;">{{ vaultError() }}</p>
         </div>
 
         <div class="panel" *ngIf="tauri.vaultUnlocked()">
           <div class="panel-header">
             <div>
               <h3>Vault Unlocked</h3>
-              <span class="panel-header-subtitle">All 7 StickExplainers account credentials and OAuth tokens are encrypted with Argon2id + AES-256-GCM.</span>
+              <span class="panel-header-subtitle">{{ tauri.vaultSecrets().length }} secret(s) stored, encrypted with Argon2id + AES-256-GCM.</span>
             </div>
             <button class="btn btn-secondary" (click)="lockVault()">Lock Vault</button>
           </div>
+          <table class="data-table" *ngIf="tauri.vaultSecrets().length > 0">
+            <thead><tr><th>Label</th><th>Type</th><th>Account</th><th>Added</th></tr></thead>
+            <tbody>
+              <tr *ngFor="let sec of tauri.vaultSecrets()">
+                <td><strong>{{ sec.label }}</strong></td>
+                <td>{{ sec.secret_type }}</td>
+                <td class="mono">{{ sec.account_id || '—' }}</td>
+                <td class="mono">{{ sec.created_at | date: 'short' }}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </section>
 

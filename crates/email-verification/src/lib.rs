@@ -3,8 +3,10 @@ use openaccounts_core::{OpenAccountsError, Result};
 use openaccounts_email_provider_gateway::{EmailProviderAdapter, IncomingEmailMessage};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 use tracing::info;
+
+const POLL_INTERVAL: Duration = Duration::from_secs(5);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VerificationCodeExtraction {
@@ -45,25 +47,37 @@ impl EmailVerificationEngine {
         }
     }
 
+    /// Polls the provider until a matching verification email arrives or
+    /// `timeout_seconds` elapse.
     pub async fn wait_for_verification_email(
         &self,
         provider: Arc<dyn EmailProviderAdapter>,
         expected_sender_domain: &str,
-        _timeout_seconds: u64,
+        timeout_seconds: u64,
     ) -> Result<VerificationCodeExtraction> {
         info!("Listening for verification message from {}", expected_sender_domain);
         let start = Utc::now();
-        let messages = provider.fetch_recent_messages(5, Some(start)).await?;
+        let deadline = tokio::time::Instant::now() + Duration::from_secs(timeout_seconds);
 
-        for msg in messages {
-            if msg.sender.contains(expected_sender_domain) || msg.subject.to_lowercase().contains("verification") {
-                let extraction = self.extract_code_or_link(&msg);
-                info!("Successfully extracted verification token from email");
-                return Ok(extraction);
+        loop {
+            let messages = provider.fetch_recent_messages(5, Some(start)).await?;
+            for msg in messages {
+                if msg.sender.contains(expected_sender_domain)
+                    || msg.subject.to_lowercase().contains("verification")
+                {
+                    info!("Extracted verification token from email");
+                    return Ok(self.extract_code_or_link(&msg));
+                }
             }
+            if tokio::time::Instant::now() >= deadline {
+                break;
+            }
+            tokio::time::sleep(POLL_INTERVAL).await;
         }
 
-        Err(OpenAccountsError::Internal("Verification email timeout".into()))
+        Err(OpenAccountsError::Internal(format!(
+            "No verification email from {expected_sender_domain} within {timeout_seconds}s"
+        )))
     }
 }
 

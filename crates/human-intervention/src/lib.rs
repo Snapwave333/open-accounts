@@ -97,3 +97,9 @@ impl HumanInterventionController {
             .collect()
     }
 }
+
+impl Default for HumanInterventionController {
+    fn default() -> Self {
+        Self::new()
+    }
+}

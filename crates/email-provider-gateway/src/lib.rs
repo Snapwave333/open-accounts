@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use openaccounts_core::Result;
+use openaccounts_core::{OpenAccountsError, Result};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -26,6 +26,8 @@ pub struct IncomingEmailMessage {
 
 #[async_trait]
 pub trait EmailProviderAdapter: Send + Sync {
+    fn provider_type(&self) -> EmailProviderType;
+
     async fn send_email(
         &self,
         to: &str,
@@ -42,24 +44,36 @@ pub trait EmailProviderAdapter: Send + Sync {
     async fn create_alias_or_mailbox(&self, prefix: &str) -> Result<String>;
 }
 
-pub struct MockEmailProviderAdapter {
+/// A provider that is declared but has no live connection. Allocation and
+/// sends fail loudly here instead of returning a fabricated mailbox or a fake
+/// message id.
+pub struct UnconfiguredEmailProviderAdapter {
+    pub provider_id: String,
     pub provider_type: EmailProviderType,
-    pub domain: String,
+    pub reason: String,
 }
 
-impl MockEmailProviderAdapter {
-    pub fn new(provider_type: EmailProviderType, domain: String) -> Self {
+impl UnconfiguredEmailProviderAdapter {
+    pub fn new(provider_id: &str, provider_type: EmailProviderType, reason: &str) -> Self {
         Self {
+            provider_id: provider_id.to_string(),
             provider_type,
-            domain,
+            reason: reason.to_string(),
         }
     }
 }
 
 #[async_trait]
-impl EmailProviderAdapter for MockEmailProviderAdapter {
+impl EmailProviderAdapter for UnconfiguredEmailProviderAdapter {
+    fn provider_type(&self) -> EmailProviderType {
+        self.provider_type.clone()
+    }
+
     async fn send_email(&self, _to: &str, _subject: &str, _body_text: &str) -> Result<String> {
-        Ok("msg_mock_sent_9918".into())
+        Err(OpenAccountsError::NotConfigured(format!(
+            "Cannot send email: provider '{}' is not connected ({})",
+            self.provider_id, self.reason
+        )))
     }
 
     async fn fetch_recent_messages(
@@ -67,18 +81,16 @@ impl EmailProviderAdapter for MockEmailProviderAdapter {
         _limit: u32,
         _since: Option<DateTime<Utc>>,
     ) -> Result<Vec<IncomingEmailMessage>> {
-        Ok(vec![IncomingEmailMessage {
-            message_id: "msg_verify_101".into(),
-            sender: "no-reply@instagram.mail.com".into(),
-            recipient: format!("auth@{}", self.domain),
-            subject: "Your Instagram Verification Code: 492810".into(),
-            body_plain: "Please use verification code 492810 to confirm your account registration or click https://instagram.com/verify?code=492810".into(),
-            body_html: None,
-            received_at: Utc::now(),
-        }])
+        Err(OpenAccountsError::NotConfigured(format!(
+            "Cannot read inbox: provider '{}' is not connected ({})",
+            self.provider_id, self.reason
+        )))
     }
 
-    async fn create_alias_or_mailbox(&self, prefix: &str) -> Result<String> {
-        Ok(format!("{}_{}@{}", prefix, uuid::Uuid::new_v4().to_string()[..6].to_lowercase(), self.domain))
+    async fn create_alias_or_mailbox(&self, _prefix: &str) -> Result<String> {
+        Err(OpenAccountsError::NotConfigured(format!(
+            "Cannot allocate a mailbox: provider '{}' is not connected ({})",
+            self.provider_id, self.reason
+        )))
     }
 }

@@ -49,7 +49,8 @@ impl AuthenticationEngine {
             platform: platform.to_string(),
             auth_method: method,
             authenticated_at: Utc::now(),
-            expires_at: Some(Utc::now() + chrono::Duration::days(30)),
+            // The platform's real session lifetime is not known here.
+            expires_at: None,
             is_active: true,
         })
     }

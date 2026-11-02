@@ -98,6 +98,21 @@ impl Database {
                 is_active INTEGER NOT NULL DEFAULT 1,
                 created_at TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS autonomy_cycles (
+                id TEXT PRIMARY KEY,
+                started_at TEXT NOT NULL,
+                finished_at TEXT NOT NULL,
+                status TEXT NOT NULL,
+                job_count INTEGER NOT NULL,
+                failed_count INTEGER NOT NULL,
+                jobs_json TEXT NOT NULL,
+                error TEXT,
+                created_at TEXT NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_autonomy_cycles_started
+                ON autonomy_cycles (started_at DESC);
             "#,
         )
         .execute(&self.pool)

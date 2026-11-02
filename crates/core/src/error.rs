@@ -26,6 +26,9 @@ pub enum OpenAccountsError {
     #[error("Account not found: {0}")]
     AccountNotFound(String),
 
+    #[error("Not configured: {0}")]
+    NotConfigured(String),
+
     #[error("Automation error: {0}")]
     Automation(String),
 

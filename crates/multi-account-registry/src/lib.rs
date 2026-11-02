@@ -8,7 +8,8 @@ use std::sync::Arc;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ManagedAccountView {
     pub account: AccountRecord,
-    pub category: AccountCategory,
+    /// `None` when no identity profile has been registered for the account.
+    pub category: Option<AccountCategory>,
     pub session_isolated: bool,
     pub email_address: Option<String>,
 }
@@ -66,16 +67,12 @@ impl MultiAccountRegistry {
 
         for acc in accounts {
             let identity = self.identity_manager.get_identity(&acc.id).await;
-            let category = identity
-                .as_ref()
-                .map(|i| i.category.clone())
-                .unwrap_or(AccountCategory::Personal);
 
             views.push(ManagedAccountView {
                 email_address: acc.email.clone(),
                 account: acc,
-                category,
-                session_isolated: true,
+                category: identity.as_ref().map(|i| i.category.clone()),
+                session_isolated: identity.map(|i| i.is_isolated_session).unwrap_or(false),
             });
         }
 
