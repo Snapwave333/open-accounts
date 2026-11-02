@@ -20,11 +20,23 @@ use openaccounts_policy_monitor::PolicyMonitorAlert;
 use openaccounts_policy_versioning::PolicyVersionRecord;
 use openaccounts_publishing_engine::SocialPostPayload;
 use openaccounts_social_analytics::VerifiedPlatformMetric;
-use openaccounts_social_media_manager::{
-    bridge::{GarbageCollectionReport, StickBridgeMessage, StickBridgeState},
-    SubAgentAssignment, SubAgentRole,
+use openaccounts_social_media_manager::bridge::{
+    GarbageCollectionReport, StickBridgeMessage, StickBridgeState,
 };
 use tauri::State;
+
+/// Opens an http(s) page in the user's default browser (for human-gate tasks).
+#[tauri::command]
+pub async fn open_external(app: tauri::AppHandle, url: String) -> Result<(), String> {
+    use tauri_plugin_opener::OpenerExt;
+    let url = url.trim();
+    if !(url.starts_with("https://") || url.starts_with("http://")) {
+        return Err(format!("Refusing to open a non-http URL: {url}"));
+    }
+    app.opener()
+        .open_url(url, None::<&str>)
+        .map_err(|e| e.to_string())
+}
 
 #[tauri::command]
 pub async fn get_system_stats(state: State<'_, AppState>) -> Result<SystemStats, String> {
@@ -73,12 +85,24 @@ pub async fn create_account(
     username: String,
     email: Option<String>,
 ) -> Result<String, String> {
-    let plat = match platform.to_lowercase().as_str() {
+    let platform = platform.trim().to_lowercase();
+    let username = username.trim().to_string();
+    if platform.is_empty() || username.is_empty() {
+        return Err("Platform and username are required".into());
+    }
+    let email = email.map(|e| e.trim().to_string()).filter(|e| !e.is_empty());
+    if let Some(e) = &email {
+        if !e.contains('@') {
+            return Err(format!("'{e}' is not an email address"));
+        }
+    }
+    let plat = match platform.as_str() {
         "instagram" => Platform::Instagram,
         "reddit" => Platform::Reddit,
         "youtube" => Platform::YouTube,
         "discord" => Platform::Discord,
         "x" => Platform::X,
+        "email" => Platform::Email,
         _ => Platform::Custom(platform),
     };
 
@@ -410,7 +434,6 @@ pub async fn start_autonomous_marketing_loop(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     state.autonomy.resume();
-    state.autonomy.start(None);
     Ok(())
 }
 
@@ -430,95 +453,14 @@ pub async fn is_autonomous_marketing_loop_running(
 }
 
 #[tauri::command]
-pub async fn list_collaborating_agents(
-    state: State<'_, AppState>,
-) -> Result<Vec<SubAgentAssignment>, String> {
-    let status = state.autonomy.status().await;
-    let last = status.last_cycle.clone();
-    let loop_active = status.loop_running && !status.paused;
-
-    let job_summary = |job_name: &str| -> Option<String> {
-        last.as_ref().and_then(|cycle| {
-            cycle
-                .jobs
-                .iter()
-                .find(|j| j.name == job_name)
-                .map(|j| {
-                    format!(
-                        "{} ({})",
-                        j.summary,
-                        if j.success { "ok" } else { "failed" }
-                    )
-                })
-        })
-    };
-
-    let assignment = |role: SubAgentRole, title: &str, task: String, active: bool| SubAgentAssignment {
-        role,
-        title: title.into(),
-        current_task: task,
-        assigned_model_profile: status.python.clone(),
-        is_active: active,
-    };
-
-    let mut agents = Vec::new();
-
-    agents.push(assignment(
-        SubAgentRole::CommunityManager,
-        "Comment & Reply Agent",
-        job_summary("Comment sweep").unwrap_or_else(|| {
-            if loop_active {
-                "Queued — no completed cycle yet".into()
-            } else {
-                "Idle — autonomy loop is not running".into()
-            }
-        }),
-        loop_active,
-    ));
-
-    agents.push(assignment(
-        SubAgentRole::Publisher,
-        "Social Publishing Agent",
-        job_summary("Social publish").or_else(|| job_summary("Social plan")).unwrap_or_else(|| {
-            if loop_active {
-                "Queued — no completed cycle yet".into()
-            } else {
-                "Idle — autonomy loop is not running".into()
-            }
-        }),
-        loop_active,
-    ));
-
-    agents.push(assignment(
-        SubAgentRole::EngagementAgent,
-        "Engagement Agent",
-        job_summary("Engagement run").or_else(|| job_summary("Engagement stats")).unwrap_or_else(|| {
-            if loop_active {
-                "Queued — no completed cycle yet".into()
-            } else {
-                "Idle — autonomy loop is not running".into()
-            }
-        }),
-        loop_active,
-    ));
-
-    agents.push(assignment(
-        SubAgentRole::ComplianceAgent,
-        "Retention / GC Agent",
-        job_summary("Retention GC").unwrap_or_else(|| {
-            "Idle — no garbage-collection cycle yet".into()
-        }),
-        loop_active,
-    ));
-
-    Ok(agents)
-}
-
-#[tauri::command]
 pub async fn get_stick_bridge_state(
     state: State<'_, AppState>,
 ) -> Result<StickBridgeState, String> {
-    Ok(state.social_media_manager.get_stick_bridge_state())
+    // Reads the bridge file and scans the studio's out/ folder: keep it off the async threads.
+    let manager = state.social_media_manager.clone();
+    tauri::async_runtime::spawn_blocking(move || manager.get_stick_bridge_state())
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]

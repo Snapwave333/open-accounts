@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { computed, Injectable, signal } from '@angular/core';
 
 export interface SystemStats {
   total_accounts: number;
@@ -153,7 +153,31 @@ const JOB_ACCOUNT: Record<string, { platform: string; handle: string; role: stri
   'Retention GC': { platform: 'shopify', handle: 'Studio host', role: 'Retention / GC Agent' },
 };
 
-const POLL_MS = 5000;
+/** Cycle state changes by the second; accounts, vault, GC and bridge rarely do. */
+const FAST_POLL_MS = 5000;
+const SLOW_POLL_MS = 30000;
+
+/** Turns engage.py's stats line (a Python dict) into "IG 4 likes · 1 follow · YT 3 likes". */
+function formatEngagement(summary: string): string | null {
+  let parsed: Record<string, Record<string, number>>;
+  try {
+    parsed = JSON.parse(summary.replace(/'/g, '"'));
+  } catch {
+    return null;
+  }
+  const labels: Record<string, string> = { instagram: 'IG', tiktok: 'TT', youtube: 'YT' };
+  const parts: string[] = [];
+  for (const [platform, counts] of Object.entries(parsed)) {
+    if (!counts || typeof counts !== 'object') continue;
+    const bits: string[] = [];
+    if (counts['like']) bits.push(`${counts['like']} like${counts['like'] === 1 ? '' : 's'}`);
+    if (counts['follow']) bits.push(`${counts['follow']} follow${counts['follow'] === 1 ? '' : 's'}`);
+    if (counts['comment']) bits.push(`${counts['comment']} comment${counts['comment'] === 1 ? '' : 's'}`);
+    if (counts['comment_draft']) bits.push(`${counts['comment_draft']} draft${counts['comment_draft'] === 1 ? '' : 's'}`);
+    if (bits.length) parts.push(`${labels[platform] ?? platform} ${bits.join(', ')}`);
+  }
+  return parts.length ? parts.join(' · ') : 'no actions yet today';
+}
 
 /** Rust enums arrive either as "variant" or {"variant": value}; show them as text. */
 function enumText(value: unknown): string {
@@ -194,18 +218,23 @@ export class TauriService {
   engagementToday = signal<string | null>(null);
   agentChatMessages = signal<AgentChatMessage[]>([]);
 
-  /** Last error talking to the backend, shown in the UI. */
-  backendError = signal<string | null>(null);
+  /** Last error from the fast poller, the slow poller, and the last user action. */
+  private cycleError = signal<string | null>(null);
+  private studioError = signal<string | null>(null);
+  private actionError = signal<string | null>(null);
+  /** What the UI shows: whichever source is currently failing. */
+  backendError = computed(() => this.actionError() ?? this.cycleError() ?? this.studioError());
   /** Set once the first refresh has finished, so empty states aren't shown while loading. */
   loaded = signal<boolean>(false);
 
-  private polling = false;
+  private fastPolling = false;
+  private slowPolling = false;
 
   constructor() {
     if (this.isTauriAvailable) {
       void this.startSync();
     } else {
-      this.backendError.set('Not running inside the OpenAccounts desktop app: no backend to talk to.');
+      this.cycleError.set('Not running inside the OpenAccounts desktop app: no backend to talk to.');
       this.loaded.set(true);
     }
   }
@@ -220,36 +249,39 @@ export class TauriService {
 
   private async startSync() {
     await this.refresh();
-    setInterval(() => void this.refresh(), POLL_MS);
+    setInterval(() => void this.refreshCycleState(), FAST_POLL_MS);
+    setInterval(() => void this.refreshStudioData(), SLOW_POLL_MS);
     try {
       const { listen } = await import('@tauri-apps/api/event');
+      // A finished cycle may have changed accounts, GC and the bridge as well.
       await listen<AutonomyCycleReport>('autonomy://cycle', () => void this.refresh());
     } catch (err) {
       console.warn('Cannot subscribe to autonomy://cycle events', err);
     }
   }
 
-  /** Pulls the whole visible state from the backend. Overlapping calls are skipped. */
+  /** Pulls the whole visible state from the backend. */
   async refresh() {
-    if (this.polling) return;
-    this.polling = true;
+    await Promise.all([this.refreshCycleState(), this.refreshStudioData()]);
+    this.loaded.set(true);
+  }
+
+  /** The parts that change while a cycle runs. Overlapping calls are skipped. */
+  async refreshCycleState() {
+    if (this.fastPolling) return;
+    this.fastPolling = true;
     try {
-      const [status, cycles, stats, kill, accounts, tasks, vault, gc, bridge] = await Promise.all([
+      const [status, cycles, stats, kill, tasks] = await Promise.all([
         this.invoke<AutonomyStatus>('get_autonomy_status'),
         this.invoke<AutonomyCycleReport[]>('list_autonomy_cycles', { limit: 5 }),
         this.invoke<SystemStats>('get_system_stats'),
         this.invoke<boolean>('is_kill_switch_active'),
-        this.invoke<Array<AccountRecord & { platform: unknown }>>('list_accounts'),
         this.invoke<Array<HumanTask & { id: unknown; challenge_type: unknown; status: unknown }>>('list_human_tasks'),
-        this.invoke<boolean>('is_vault_unlocked'),
-        this.invoke<GarbageCollectionReport | null>('get_gc_report'),
-        this.invoke<StickBridgeState>('get_stick_bridge_state'),
       ]);
       this.autonomyStatus.set(status);
       this.stats.set(stats);
       this.killSwitchActive.set(kill);
       this.isAutonomousLoopRunning.set(status.loop_running && !status.paused);
-      this.accounts.set(accounts.map((a) => ({ ...a, platform: enumText(a.platform).toLowerCase() })));
       this.humanTasks.set(
         tasks.map((t) => ({
           ...t,
@@ -258,6 +290,27 @@ export class TauriService {
           status: enumText(t.status),
         }))
       );
+      this.applyFlowFromRuntime(status, cycles);
+      this.cycleError.set(null);
+    } catch (err) {
+      this.cycleError.set(String(err));
+    } finally {
+      this.fastPolling = false;
+    }
+  }
+
+  /** Accounts, vault, GC and the studio bridge: slow to read, slow to change. */
+  async refreshStudioData() {
+    if (this.slowPolling) return;
+    this.slowPolling = true;
+    try {
+      const [accounts, vault, gc, bridge] = await Promise.all([
+        this.invoke<Array<AccountRecord & { platform: unknown }>>('list_accounts'),
+        this.invoke<boolean>('is_vault_unlocked'),
+        this.invoke<GarbageCollectionReport | null>('get_gc_report'),
+        this.invoke<StickBridgeState>('get_stick_bridge_state'),
+      ]);
+      this.accounts.set(accounts.map((a) => ({ ...a, platform: enumText(a.platform).toLowerCase() })));
       this.vaultUnlocked.set(vault);
       this.vaultSecrets.set(
         vault
@@ -268,13 +321,11 @@ export class TauriService {
       );
       this.gcReport.set(gc);
       this.bridgeState.set(bridge);
-      this.applyFlowFromRuntime(status, cycles);
-      this.backendError.set(null);
+      this.studioError.set(null);
     } catch (err) {
-      this.backendError.set(String(err));
+      this.studioError.set(String(err));
     } finally {
-      this.polling = false;
-      this.loaded.set(true);
+      this.slowPolling = false;
     }
   }
 
@@ -312,7 +363,7 @@ export class TauriService {
     this.justDidItems.set(done.slice(0, 12));
 
     const stats = cycles[0]?.jobs.find((j) => j.name === 'Engagement stats' && j.success);
-    this.engagementToday.set(stats ? stats.summary : null);
+    this.engagementToday.set(stats ? formatEngagement(stats.summary) ?? stats.summary : null);
 
     const planned = status.planned_jobs;
     const currentIdx = status.current_job ? planned.indexOf(status.current_job) : -1;
@@ -370,13 +421,19 @@ export class TauriService {
   /** Runs an action, records its error for the UI, then re-reads backend state. */
   async act<T>(cmd: string, args?: Record<string, unknown>): Promise<T | undefined> {
     try {
-      return await this.invoke<T>(cmd, args);
+      const result = await this.invoke<T>(cmd, args);
+      this.actionError.set(null);
+      return result;
     } catch (err) {
-      this.backendError.set(`${cmd}: ${String(err)}`);
+      this.actionError.set(`${cmd}: ${String(err)}`);
       return undefined;
     } finally {
       await this.refresh();
     }
+  }
+
+  async openExternal(url: string) {
+    await this.act('open_external', { url });
   }
 
   async resolveTask(id: string) {

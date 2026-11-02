@@ -24,7 +24,6 @@ use tokio::{
 use tracing::{error, info, warn};
 use uuid::Uuid;
 
-pub const DEFAULT_STUDIO_ROOT: &str = r"C:\Users\chrom\Desktop\StickExplainers";
 pub const DEFAULT_INTERVAL_SECS: u64 = 1800;
 const MAX_SUMMARY_CHARS: usize = 700;
 #[cfg(windows)]
@@ -172,9 +171,7 @@ pub struct AutonomyRuntime {
 
 impl AutonomyRuntime {
     pub fn new(db: Arc<Database>, automation_engine: Arc<AutomationEngine>) -> Self {
-        let studio_root = std::env::var("OPENACCOUNTS_STUDIO_ROOT")
-            .map(PathBuf::from)
-            .unwrap_or_else(|_| PathBuf::from(DEFAULT_STUDIO_ROOT));
+        let studio_root = openaccounts_core::studio_root();
 
         let interval_secs = std::env::var("OPENACCOUNTS_CYCLE_SECS")
             .ok()
@@ -186,7 +183,7 @@ impl AutonomyRuntime {
             db,
             automation_engine,
             studio_root,
-            python: resolve_python(),
+            python: openaccounts_core::python_interpreter(),
             interval: Duration::from_secs(interval_secs),
             running: AtomicBool::new(false),
             paused: AtomicBool::new(false),
@@ -258,9 +255,10 @@ impl AutonomyRuntime {
         warn!("Autonomy runtime paused by operator");
     }
 
+    /// Clears a pause and makes sure the loop task exists.
     pub fn resume(self: &Arc<Self>) {
-        let was_paused = self.paused.swap(false, Ordering::SeqCst);
-        if was_paused && !self.is_running() {
+        self.paused.store(false, Ordering::SeqCst);
+        if !self.is_running() {
             self.start(None);
         }
         info!("Autonomy runtime resumed by operator");
@@ -440,13 +438,6 @@ impl AutonomyRuntime {
                     ),
                 };
             }
-            if cadence.touch {
-                // Same stamp format the studio's autopilot writes.
-                let stamp = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
-                if let Err(e) = std::fs::write(&marker, stamp) {
-                    warn!("Cannot write cadence stamp {}: {e}", marker.display());
-                }
-            }
         }
 
         let mut command = Command::new(&self.python);
@@ -461,7 +452,35 @@ impl AutonomyRuntime {
         #[cfg(windows)]
         command.creation_flags(CREATE_NO_WINDOW);
 
-        match tokio::time::timeout(Duration::from_secs(spec.timeout_secs), command.output()).await {
+        let child = match command.spawn() {
+            Ok(child) => child,
+            Err(e) => {
+                return AutonomyJobReport {
+                    name: spec.name.into(),
+                    program: self.python.clone(),
+                    args,
+                    exit_code: None,
+                    success: false,
+                    timed_out: false,
+                    skipped: false,
+                    duration_ms: started.elapsed().as_millis() as u64,
+                    summary: format!("Failed to launch: {e}"),
+                }
+            }
+        };
+
+        if let Some(cadence) = spec.cadence.as_ref().filter(|c| c.touch) {
+            // Same stamp format the studio's autopilot writes, so it skips this job too.
+            let marker = self.studio_root.join(cadence.marker);
+            let stamp = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+            if let Err(e) = std::fs::write(&marker, stamp) {
+                warn!("Cannot write cadence stamp {}: {e}", marker.display());
+            }
+        }
+
+        // On timeout the child is dropped and killed (kill_on_drop); it is the
+        // real interpreter, not a launcher, so nothing is left running.
+        match tokio::time::timeout(Duration::from_secs(spec.timeout_secs), child.wait_with_output()).await {
             Err(_) => AutonomyJobReport {
                 name: spec.name.into(),
                 program: self.python.clone(),
@@ -482,7 +501,7 @@ impl AutonomyRuntime {
                 timed_out: false,
                 skipped: false,
                 duration_ms: started.elapsed().as_millis() as u64,
-                summary: format!("Failed to launch: {e}"),
+                summary: format!("Failed while waiting for the job: {e}"),
             },
             Ok(Ok(output)) => {
                 let code = output.status.code();
@@ -539,13 +558,23 @@ impl AutonomyRuntime {
         .bind(limit.clamp(1, 200))
         .fetch_all(self.db.pool())
         .await
-        .unwrap_or_default();
+        .unwrap_or_else(|e| {
+            error!("Cannot read autonomy cycles: {e}");
+            Vec::new()
+        });
 
         rows.into_iter()
             .map(|(id, started_at, finished_at, status, jobs_json, error)| {
-                let jobs: Vec<AutonomyJobReport> =
-                    serde_json::from_str(&jobs_json).unwrap_or_default();
-                let duration_ms = jobs.iter().map(|j| j.duration_ms).sum();
+                let jobs: Vec<AutonomyJobReport> = serde_json::from_str(&jobs_json)
+                    .unwrap_or_else(|e| {
+                        warn!("Cycle {id} has unreadable job records: {e}");
+                        Vec::new()
+                    });
+                // Wall-clock time of the whole cycle, not the sum of its jobs.
+                let duration_ms = DateTime::parse_from_rfc3339(&finished_at)
+                    .and_then(|f| DateTime::parse_from_rfc3339(&started_at).map(|s| (f - s).num_milliseconds()))
+                    .map(|ms| ms.max(0) as u64)
+                    .unwrap_or_else(|_| jobs.iter().map(|j| j.duration_ms).sum());
                 AutonomyCycleReport {
                     cycle_id: id,
                     started_at,
@@ -567,24 +596,6 @@ impl AutonomyRuntime {
             }
         }
     }
-}
-
-/// Resolves the interpreter used for the studio jobs. `py` is the Windows
-/// launcher that maps to the interpreter the studio actually depends on;
-/// inheriting whatever `python` happens to be first on PATH (Inkscape, GIMP)
-/// breaks the YouTube client, which is a real failure seen in production logs.
-fn resolve_python() -> String {
-    if let Ok(explicit) = std::env::var("OPENACCOUNTS_PYTHON") {
-        if !explicit.trim().is_empty() {
-            return explicit.trim().to_string();
-        }
-    }
-    #[cfg(windows)]
-    {
-        return "py".to_string();
-    }
-    #[allow(unreachable_code)]
-    "python3".to_string()
 }
 
 fn human_duration(secs: u64) -> String {

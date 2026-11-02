@@ -206,7 +206,7 @@ impl StickExplainersBridge {
         }
         let serialized = serde_json::to_string_pretty(&state)
             .map_err(|e| OpenAccountsError::Internal(e.to_string()))?;
-        std::fs::write(&bridge_path, serialized)
+        write_atomic(&bridge_path, serialized.as_bytes())
             .map_err(|e| OpenAccountsError::Internal(e.to_string()))?;
 
         // Also write interaction transcript to StickExplainers Obsidian Vault
@@ -275,7 +275,7 @@ impl StickExplainersBridge {
             "issued_at": issued_at,
             "status": "active"
         }));
-        std::fs::write(&dir_path, serde_json::to_string_pretty(&list)?)
+        write_atomic(&dir_path, serde_json::to_string_pretty(&list)?.as_bytes())
             .map_err(|e| OpenAccountsError::Internal(format!("{}: {e}", dir_path.display())))
     }
 
@@ -529,6 +529,19 @@ impl Default for StickExplainersBridge {
     fn default() -> Self {
         Self::new()
     }
+}
+
+/// Writes to a sibling temp file and renames it into place. The studio's own
+/// Python reads and rewrites these JSON files; a rename is atomic on the same
+/// volume, so neither side ever sees a partially written file.
+fn write_atomic(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
+    let tmp = path.with_extension(format!("tmp-{}", std::process::id()));
+    std::fs::write(&tmp, bytes)?;
+    if let Err(e) = std::fs::rename(&tmp, path) {
+        let _ = std::fs::remove_file(&tmp);
+        return Err(e);
+    }
+    Ok(())
 }
 
 #[cfg(test)]

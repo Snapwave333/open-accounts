@@ -212,7 +212,14 @@
               </div>
               <p class="task-instructions">{{ task.instructions }}</p>
               <div class="task-actions">
-                <span class="mono" style="color: var(--text-muted); font-size: 12px;">{{ task.page_url }}</span>
+                <button
+                  *ngIf="task.page_url"
+                  class="btn-micro mono"
+                  (click)="tauri.openExternal(task.page_url)"
+                  title="Open this page in your browser"
+                >
+                  {{ task.page_url }}
+                </button>
                 <button class="btn btn-primary" (click)="tauri.resolveTask(task.id)">
                   <span>Approve & Continue</span>
                 </button>
