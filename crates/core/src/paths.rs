@@ -15,6 +15,28 @@ pub fn studio_root() -> PathBuf {
         .unwrap_or_else(|| PathBuf::from(DEFAULT_STUDIO_ROOT))
 }
 
+/// The Nova Vexley influencer project (`influencer/` in the OpenAccounts
+/// checkout). `OPENACCOUNTS_INFLUENCER_ROOT` overrides; otherwise the folder
+/// next to the running app's working directory, else the source checkout.
+pub fn influencer_root() -> PathBuf {
+    if let Some(explicit) = std::env::var("OPENACCOUNTS_INFLUENCER_ROOT")
+        .ok()
+        .filter(|v| !v.trim().is_empty())
+    {
+        return PathBuf::from(explicit);
+    }
+    if let Ok(cwd) = std::env::current_dir() {
+        let candidate = cwd.join("influencer");
+        if candidate.join("pipeline.py").is_file() {
+            return candidate;
+        }
+    }
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("..")
+        .join("..")
+        .join("influencer")
+}
+
 /// The interpreter that owns the studio's Python dependencies, resolved once.
 ///
 /// On Windows the `py` launcher maps to the real CPython install; inheriting

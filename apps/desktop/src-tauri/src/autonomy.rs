@@ -40,8 +40,18 @@ struct Cadence {
     touch: bool,
 }
 
+/// Which project directory a job runs in.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum JobRoot {
+    /// StickExplainers: the Clearly Drawn Studios pipeline.
+    Studio,
+    /// `influencer/`: the Nova Vexley pipeline.
+    Influencer,
+}
+
 struct JobSpec {
     name: &'static str,
+    root: JobRoot,
     script: &'static str,
     args: &'static [&'static str],
     timeout_secs: u64,
@@ -53,6 +63,7 @@ struct JobSpec {
 const JOBS: &[JobSpec] = &[
     JobSpec {
         name: "Comment sweep",
+        root: JobRoot::Studio,
         script: "comments.py",
         args: &["check"],
         timeout_secs: 1200,
@@ -60,6 +71,7 @@ const JOBS: &[JobSpec] = &[
     },
     JobSpec {
         name: "Social plan",
+        root: JobRoot::Studio,
         script: "social_agent.py",
         args: &["plan"],
         timeout_secs: 120,
@@ -67,6 +79,7 @@ const JOBS: &[JobSpec] = &[
     },
     JobSpec {
         name: "Social publish",
+        root: JobRoot::Studio,
         script: "social_agent.py",
         args: &["next"],
         timeout_secs: 1800,
@@ -74,6 +87,7 @@ const JOBS: &[JobSpec] = &[
     },
     JobSpec {
         name: "Engagement run",
+        root: JobRoot::Studio,
         script: "engage.py",
         args: &["run"],
         timeout_secs: 1800,
@@ -81,6 +95,7 @@ const JOBS: &[JobSpec] = &[
     },
     JobSpec {
         name: "Engagement stats",
+        root: JobRoot::Studio,
         script: "engage.py",
         args: &["stats"],
         timeout_secs: 120,
@@ -88,10 +103,77 @@ const JOBS: &[JobSpec] = &[
     },
     JobSpec {
         name: "Retention GC",
+        root: JobRoot::Studio,
         script: "retention.py",
         args: &["--apply"],
         timeout_secs: 1800,
         cadence: Some(Cadence { marker: r"insights\gc.json", min_age_secs: 20 * 3600, touch: false }),
+    },
+    // Nova Vexley (influencer/pipeline.py). Each command exits at once when its
+    // human gate is still open, so the cadences only bound the paid work.
+    JobSpec {
+        name: "Nova plan",
+        root: JobRoot::Influencer,
+        script: "pipeline.py",
+        args: &["plan"],
+        timeout_secs: 120,
+        cadence: None,
+    },
+    JobSpec {
+        name: "Nova handles",
+        root: JobRoot::Influencer,
+        script: "pipeline.py",
+        args: &["handles"],
+        timeout_secs: 600,
+        cadence: Some(Cadence { marker: r"data\logs\handles.stamp", min_age_secs: 6 * 3600, touch: true }),
+    },
+    JobSpec {
+        name: "Nova reference",
+        root: JobRoot::Influencer,
+        script: "pipeline.py",
+        args: &["reference"],
+        timeout_secs: 1800,
+        cadence: Some(Cadence { marker: r"data\logs\reference.stamp", min_age_secs: 3600, touch: true }),
+    },
+    JobSpec {
+        name: "Nova generate",
+        root: JobRoot::Influencer,
+        script: "pipeline.py",
+        args: &["generate"],
+        timeout_secs: 3600,
+        cadence: Some(Cadence { marker: r"data\logs\generate.stamp", min_age_secs: 6 * 3600, touch: true }),
+    },
+    JobSpec {
+        name: "Nova reels",
+        root: JobRoot::Influencer,
+        script: "pipeline.py",
+        args: &["reels"],
+        timeout_secs: 1800,
+        cadence: Some(Cadence { marker: r"data\logs\reels.stamp", min_age_secs: 12 * 3600, touch: true }),
+    },
+    JobSpec {
+        name: "Nova publish",
+        root: JobRoot::Influencer,
+        script: "pipeline.py",
+        args: &["publish"],
+        timeout_secs: 1800,
+        cadence: Some(Cadence { marker: r"data\logs\publish.stamp", min_age_secs: 50 * 60, touch: true }),
+    },
+    JobSpec {
+        name: "Nova analytics",
+        root: JobRoot::Influencer,
+        script: "pipeline.py",
+        args: &["analytics"],
+        timeout_secs: 600,
+        cadence: Some(Cadence { marker: r"data\logs\analytics.stamp", min_age_secs: 6 * 3600, touch: true }),
+    },
+    JobSpec {
+        name: "Nova GC",
+        root: JobRoot::Influencer,
+        script: "pipeline.py",
+        args: &["gc"],
+        timeout_secs: 300,
+        cadence: Some(Cadence { marker: r"data\logs\gc.stamp", min_age_secs: 24 * 3600, touch: true }),
     },
 ];
 
@@ -135,6 +217,8 @@ pub struct AutonomyStatus {
     pub studio_root: String,
     pub python: String,
     pub studio_root_exists: bool,
+    pub influencer_root: String,
+    pub influencer_root_exists: bool,
     /// True while a cycle is executing.
     pub cycle_in_flight: bool,
     /// The job the loop is executing right now, if any.
@@ -155,6 +239,7 @@ pub struct AutonomyRuntime {
     db: Arc<Database>,
     automation_engine: Arc<AutomationEngine>,
     studio_root: PathBuf,
+    influencer_root: PathBuf,
     python: String,
     interval: Duration,
     running: AtomicBool,
@@ -183,6 +268,7 @@ impl AutonomyRuntime {
             db,
             automation_engine,
             studio_root,
+            influencer_root: openaccounts_core::influencer_root(),
             python: openaccounts_core::python_interpreter(),
             interval: Duration::from_secs(interval_secs),
             running: AtomicBool::new(false),
@@ -223,6 +309,8 @@ impl AutonomyRuntime {
             studio_root: self.studio_root.to_string_lossy().to_string(),
             python: self.python.clone(),
             studio_root_exists: self.studio_root.is_dir(),
+            influencer_root: self.influencer_root.to_string_lossy().to_string(),
+            influencer_root_exists: self.influencer_root.join("pipeline.py").is_file(),
             cycle_in_flight: self.cycle_in_flight.load(Ordering::SeqCst),
             current_job: self.current_job.read().await.clone(),
             planned_jobs: JOBS.iter().map(|j| j.name.to_string()).collect(),
@@ -401,7 +489,11 @@ impl AutonomyRuntime {
         args.push(spec.script.to_string());
         args.extend(spec.args.iter().map(|a| (*a).to_string()));
 
-        if !self.studio_root.is_dir() {
+        let root = match spec.root {
+            JobRoot::Studio => &self.studio_root,
+            JobRoot::Influencer => &self.influencer_root,
+        };
+        if !root.is_dir() {
             return AutonomyJobReport {
                 name: spec.name.into(),
                 program: self.python.clone(),
@@ -411,12 +503,12 @@ impl AutonomyRuntime {
                 timed_out: false,
                 skipped: false,
                 duration_ms: 0,
-                summary: format!("Studio root not found: {}", self.studio_root.display()),
+                summary: format!("Project folder not found: {}", root.display()),
             };
         }
 
         if let Some(cadence) = &spec.cadence {
-            let marker = self.studio_root.join(cadence.marker);
+            let marker = root.join(cadence.marker);
             let age = std::fs::metadata(&marker)
                 .and_then(|m| m.modified())
                 .ok()
@@ -444,7 +536,7 @@ impl AutonomyRuntime {
         command
             .arg(spec.script)
             .args(spec.args)
-            .current_dir(&self.studio_root)
+            .current_dir(root)
             .stdin(std::process::Stdio::null())
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped())
@@ -471,7 +563,10 @@ impl AutonomyRuntime {
 
         if let Some(cadence) = spec.cadence.as_ref().filter(|c| c.touch) {
             // Same stamp format the studio's autopilot writes, so it skips this job too.
-            let marker = self.studio_root.join(cadence.marker);
+            let marker = root.join(cadence.marker);
+            if let Some(parent) = marker.parent() {
+                let _ = std::fs::create_dir_all(parent);
+            }
             let stamp = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
             if let Err(e) = std::fs::write(&marker, stamp) {
                 warn!("Cannot write cadence stamp {}: {e}", marker.display());
@@ -507,14 +602,17 @@ impl AutonomyRuntime {
                 let code = output.status.code();
                 let stdout = String::from_utf8_lossy(&output.stdout);
                 let stderr = String::from_utf8_lossy(&output.stderr);
+                // Exit code 3 is the pipelines' "waiting on a human gate or a busy
+                // resource": nothing went wrong, nothing was done.
+                let waiting = code == Some(3);
                 AutonomyJobReport {
                     name: spec.name.into(),
                     program: self.python.clone(),
                     args,
                     exit_code: code,
-                    success: output.status.success(),
+                    success: output.status.success() || waiting,
                     timed_out: false,
-                    skipped: false,
+                    skipped: waiting,
                     duration_ms: started.elapsed().as_millis() as u64,
                     summary: summarise(&stdout, &stderr),
                 }

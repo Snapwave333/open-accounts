@@ -2,6 +2,7 @@
 
 mod autonomy;
 mod commands;
+mod influencer;
 mod state;
 
 use commands::*;

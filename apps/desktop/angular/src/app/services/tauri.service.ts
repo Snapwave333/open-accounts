@@ -331,7 +331,11 @@ export class TauriService {
 
   /** Builds Just Did / Actively Doing / Plan To Do Next from real job results only. */
   private applyFlowFromRuntime(status: AutonomyStatus, cycles: AutonomyCycleReport[]) {
-    const account = (job: string) => JOB_ACCOUNT[job] ?? { platform: 'shopify', handle: 'Studio', role: 'Studio Agent' };
+    const account = (job: string) =>
+      JOB_ACCOUNT[job] ??
+      (job.startsWith('Nova ')
+        ? { platform: 'instagram', handle: 'Nova Vexley', role: `Nova ${job.slice(5)} agent` }
+        : { platform: 'shopify', handle: 'Studio', role: 'Studio Agent' });
 
     const done: FlowCardItem[] = [];
     for (const cycle of cycles) {

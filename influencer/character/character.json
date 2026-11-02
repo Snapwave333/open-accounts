@@ -1,0 +1,111 @@
+{
+  "slug": "nova-vexley",
+  "name": "Nova Vexley",
+  "short_name": "Nova",
+  "age": 24,
+  "pronouns": "she/her",
+  "is_ai_generated": true,
+  "handle_candidates": ["novavexley", "nova.vexley", "vexleynova", "novavex.cos", "itsnovavexley"],
+
+  "appearance": {
+    "identity_prompt": "photorealistic portrait of a 24-year-old woman, heart-shaped face, high cheekbones, sharp jawline, straight nose, full lips, slightly upturned dark grey-green eyes, thick straight dark brows, small beauty mark under right eye, jet-black blunt bob at jaw length with razor-straight micro bangs and a single platinum streak at the left temple, light olive matte skin with faint freckles across the nose, silver septum ring, small crescent moon tattoo behind left ear, black nail polish, athletic hourglass build, strong shoulders",
+    "makeup_default": "sharp winged eyeliner, oxblood matte lipstick, soft contour",
+    "makeup_glam": "sharp winged eyeliner, oxblood glossy lipstick, chrome metallic eyeshadow, highlighted cheekbones",
+    "palette": ["black", "oxblood", "chrome silver", "bone white"],
+    "lighting_signature": "hard key light with violet rim light, cinematic contrast, shallow depth of field, 85mm lens look",
+    "camera": "shot on a full-frame mirrorless camera, 85mm f/1.8, natural skin texture, no beauty filter, editorial photography",
+    "negative": "child, teen, underage, nudity, nipples, exposed genitals, exposed buttocks, see-through, sexual act, deformed hands, extra fingers, extra limbs, text, watermark, logo, celebrity, real person, blurry, lowres, plastic skin, doll"
+  },
+
+  "voice": {
+    "tone": "dry, teasing, self-aware, warm underneath; short sentences; at most one emoji; never cruel; never mentions prices in captions",
+    "catchphrases": ["stay cursed 🖤", "lighting did the heavy lifting", "built different (by a diffusion model)"],
+    "signoff": "stay cursed 🖤",
+    "ai_disclosure": "AI-generated character"
+  },
+
+  "pillars": [
+    {
+      "id": "cosplay",
+      "weight": 35,
+      "label": "Cosplay",
+      "themes": [
+        {"id": "gothic-sorceress", "outfit": "black velvet corseted gown with sheer lace sleeves, silver chain jewellery, raven feather shoulder piece", "setting": "candlelit stone library at night", "mood": "regal, menacing calm"},
+        {"id": "vampire-countess", "outfit": "oxblood satin bustier dress with high lace collar, long black opera gloves, garnet choker", "setting": "velvet-draped ballroom with a chandelier, moonlight through tall windows", "mood": "predatory elegance"},
+        {"id": "cyber-ronin", "outfit": "black techwear kimono jacket over a chrome harness top, high-waisted tactical trousers, neon-edged visor pushed up on her forehead", "setting": "rain-soaked neon alley, reflections on wet asphalt", "mood": "cold confidence"},
+        {"id": "dark-magical-girl", "outfit": "black and violet frilled mini dress with corset bodice, thigh-high lace socks, crescent moon staff", "setting": "abandoned chapel with shafts of violet light", "mood": "playful menace"},
+        {"id": "plague-doctor-couture", "outfit": "floor-length black leather coat, structured corset, bone-white beaked mask held in one hand, wide-brim hat", "setting": "foggy cobblestone street at dusk", "mood": "ominous glamour"},
+        {"id": "demon-huntress", "outfit": "fitted black leather bodysuit with silver buckle harness, knee-high boots, small curved prosthetic horns", "setting": "ruined cathedral, embers drifting in the air", "mood": "battle-ready, smirking"}
+      ]
+    },
+    {
+      "id": "glam",
+      "weight": 25,
+      "label": "Glam & lingerie-inspired styling",
+      "themes": [
+        {"id": "lace-under-blazer", "outfit": "black lace bodysuit worn under an oversized oxblood blazer, tailored trousers, chrome hoop earrings", "setting": "dim hotel corridor with warm sconce lighting", "mood": "after-hours editorial"},
+        {"id": "corset-outerwear", "outfit": "structured black satin corset over a sheer long-sleeve mesh top, high-waisted leather skirt", "setting": "studio with a single hard spotlight and violet gel", "mood": "high-fashion severity"},
+        {"id": "harness-fashion", "outfit": "black bralette-cut top under a leather body harness, wide-leg trousers, platform boots", "setting": "concrete car park at night with sodium lights", "mood": "industrial glamour"},
+        {"id": "silk-robe-morning", "outfit": "black silk robe over a bone-white lace slip, bare feet, coffee mug in hand", "setting": "rainy apartment window with soft grey daylight", "mood": "lazy, intimate but fully covered"}
+      ]
+    },
+    {
+      "id": "altfashion",
+      "weight": 15,
+      "label": "Alt fashion / street",
+      "themes": [
+        {"id": "platform-thrift", "outfit": "thrifted black band tee tucked into a plaid mini skirt, fishnet tights, chunky platform boots, chrome chain belt", "setting": "rainy city street outside a record shop", "mood": "effortless"},
+        {"id": "chrome-night", "outfit": "liquid-silver mini dress with a black faux-fur coat, chrome jewellery", "setting": "neon-lit bar exterior, wet pavement reflections", "mood": "night out"},
+        {"id": "techwear-day", "outfit": "black techwear cargo set, cropped jacket, visor sunglasses", "setting": "overcast rooftop with the city skyline", "mood": "cool, unbothered"}
+      ]
+    },
+    {
+      "id": "bts",
+      "weight": 15,
+      "label": "Personality / behind the scenes",
+      "themes": [
+        {"id": "mirror-selfie", "outfit": "oversized black hoodie and bike shorts, hair clipped back, no makeup except liner", "setting": "bedroom mirror with LED strip in violet, wig heads on a shelf behind", "mood": "casual, candid"},
+        {"id": "wig-desk", "outfit": "black tank top, headband, holding a wig on a stand", "setting": "cluttered crafting desk with sewing machine and corset lacing", "mood": "focused, slightly chaotic"},
+        {"id": "stream-setup", "outfit": "black cropped hoodie, headset around neck", "setting": "gaming desk with violet RGB, horror game paused on the monitor", "mood": "2 a.m. energy"},
+        {"id": "dying-plants", "outfit": "black slip dress and cardigan, watering can in hand", "setting": "windowsill with wilting houseplants, rain outside", "mood": "deadpan"}
+      ]
+    },
+    {
+      "id": "community",
+      "weight": 10,
+      "label": "Community",
+      "themes": [
+        {"id": "pick-next-cosplay", "outfit": "black turtleneck, holding up two fabric swatches", "setting": "crafting desk, soft daylight", "mood": "asking the audience"},
+        {"id": "qa-couch", "outfit": "black cardigan over a lace camisole", "setting": "velvet couch with fairy lights", "mood": "open, teasing"}
+      ]
+    }
+  ],
+
+  "poses": [
+    "three-quarter view, looking over her shoulder at the camera with a faint smirk",
+    "seated, leaning forward with elbows on knees, direct eye contact",
+    "standing, weight on one hip, one hand in her hair, chin slightly down",
+    "close-up portrait, eyes to camera, lips parted slightly",
+    "walking toward the camera mid-stride, coat moving",
+    "profile, eyes closed, head tilted back into the rim light",
+    "leaning against a wall with arms crossed, deadpan expression"
+  ],
+
+  "aspect_ratios": {"feed": "4:5", "reel": "9:16", "profile": "1:1"},
+
+  "hashtag_pools": {
+    "core": ["#cosplay", "#altgirl", "#gothgirl", "#altfashion", "#darkglam", "#aiart", "#aiinfluencer", "#virtualmodel"],
+    "cosplay": ["#cosplayer", "#originalcharacter", "#gothiccosplay", "#costumedesign", "#cosplayphotography"],
+    "glam": ["#editorial", "#fashionphotography", "#lingeriefashion", "#corset", "#darkfashion"],
+    "altfashion": ["#altstyle", "#platformboots", "#thriftedfashion", "#techwear", "#streetstyle"],
+    "bts": ["#grwm", "#cosplaylife", "#wigstyling", "#gamergirl", "#horrorgames"],
+    "community": ["#askmeanything", "#cosplaycommunity", "#pickone"]
+  },
+
+  "compliance": {
+    "must_be_covered": ["nipples", "genitals", "buttocks"],
+    "forbidden_in_prompt": ["child", "teen", "school", "uniform", "loli", "nude", "naked", "topless", "nipple", "genital", "sex", "porn", "celebrity"],
+    "ai_label_required": true,
+    "adult_age_min": 18
+  }
+}

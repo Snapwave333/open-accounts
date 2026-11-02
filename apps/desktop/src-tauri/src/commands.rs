@@ -130,7 +130,9 @@ pub async fn create_account(
 
 #[tauri::command]
 pub async fn list_human_tasks(state: State<'_, AppState>) -> Result<Vec<HumanTask>, String> {
-    Ok(state.human_controller.list_pending_tasks().await)
+    let mut tasks = state.human_controller.list_pending_tasks().await;
+    tasks.extend(crate::influencer::pending_tasks());
+    Ok(tasks)
 }
 
 #[tauri::command]
@@ -139,6 +141,9 @@ pub async fn resolve_human_task(
     task_id: String,
 ) -> Result<(), String> {
     let id = TaskId(uuid::Uuid::parse_str(&task_id).map_err(|e| e.to_string())?);
+    if crate::influencer::approve(&id)? {
+        return Ok(());
+    }
     state
         .human_controller
         .resolve_task(&id)
