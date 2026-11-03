@@ -93,6 +93,51 @@ impl BrandManager {
         };
         map.insert(cdn_brand.brand_id.clone(), cdn_brand);
 
+        let nova_brand = BrandProfile {
+            brand_id: "brand_nova".into(),
+            name: "Nova Vexley (AI Influencer)".into(),
+            tagline: "Dark-glam AI cosplayer — photos only, labelled AI everywhere".into(),
+            visual_identity: VisualIdentity {
+                primary_hex: "#0b0b0f".into(),
+                secondary_hex: "#1a0a12".into(),
+                accent_hex: "#7c3aed".into(),
+                font_family: "Inter, sans-serif".into(),
+                logo_asset_path: None,
+            },
+            voice: BrandVoice {
+                tone_adjectives: vec![
+                    "Dry".into(),
+                    "Teasing".into(),
+                    "Self-aware".into(),
+                    "Warm".into(),
+                ],
+                audience_persona: "Alt / goth / cosplay fans who know she is an AI-generated character.".into(),
+                writing_rules: vec![
+                    "Always disclose she is AI-generated.".into(),
+                    "Photos only — never Reels or video.".into(),
+                    "1 feed post/day, at least 20 hours apart.".into(),
+                    "Suggestive styling is fine; never explicit.".into(),
+                ],
+                prohibited_words: vec![
+                    "nsfw".into(),
+                    "onlyfans".into(),
+                    "nude".into(),
+                    "follow for follow".into(),
+                    "crypto".into(),
+                ],
+                escalation_triggers: vec![
+                    "underage".into(),
+                    "action blocked".into(),
+                    "copyright".into(),
+                    "real person claim".into(),
+                ],
+            },
+            linked_account_ids: Vec::new(),
+            created_at: authored_at,
+            updated_at: authored_at,
+        };
+        map.insert(nova_brand.brand_id.clone(), nova_brand);
+
         Self {
             brands: Arc::new(RwLock::new(map)),
         }

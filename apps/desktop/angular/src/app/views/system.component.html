@@ -1,0 +1,147 @@
+<header class="view-header">
+  <div>
+    <h1>System</h1>
+    <p class="view-sub">Runtime wiring, credential vault, browser relay, storage and the studio bridge.</p>
+  </div>
+</header>
+
+<div class="grid-2">
+  <section class="panel">
+    <div class="panel-header"><h2>Runtime</h2><span class="tag" [class.tag-ok]="tauri.isAutonomousLoopRunning()" [class.tag-warn]="!tauri.isAutonomousLoopRunning()">{{ tauri.stats()?.system_status }}</span></div>
+    @if (tauri.autonomyStatus(); as s) {
+      <dl class="kv">
+        <dt>Studio root</dt><dd class="mono">{{ s.studio_root }} <span class="tag" [class.tag-ok]="s.studio_root_exists" [class.tag-danger]="!s.studio_root_exists">{{ s.studio_root_exists ? 'found' : 'missing' }}</span></dd>
+        <dt>Nova pipeline</dt><dd class="mono">{{ s.influencer_root }} <span class="tag" [class.tag-ok]="s.influencer_root_exists" [class.tag-danger]="!s.influencer_root_exists">{{ s.influencer_root_exists ? 'found' : 'missing' }}</span></dd>
+        <dt>Python</dt><dd class="mono">{{ s.python }}</dd>
+        <dt>Cycle interval</dt><dd>{{ s.interval_secs / 60 | number: '1.0-0' }} minutes · {{ s.planned_jobs.length }} jobs per cycle</dd>
+        <dt>Cycles</dt><dd>{{ s.cycles_completed }} completed · {{ s.cycles_failed }} with failures</dd>
+        <dt>Last error</dt><dd class="muted">{{ s.last_error ?? 'none' }}</dd>
+      </dl>
+    }
+    <div class="row-actions">
+      <button class="btn btn-ghost btn-sm" (click)="tauri.toggleMarketingLoop()" [disabled]="tauri.killSwitchActive()">{{ tauri.isAutonomousLoopRunning() ? 'Pause loop' : 'Resume loop' }}</button>
+      <button class="btn btn-sm" [class.btn-danger]="!tauri.killSwitchActive()" [class.btn-warn]="tauri.killSwitchActive()" (click)="tauri.toggleKillSwitch()">{{ tauri.killSwitchActive() ? 'Reset kill switch' : 'Emergency kill switch' }}</button>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-header"><h2>Chrome relay</h2>
+      <span class="tag" [class.tag-ok]="tauri.relayStatus()?.online" [class.tag-danger]="tauri.relayStatus() && !tauri.relayStatus()?.online">{{ tauri.relayStatus()?.online ? 'online' : 'offline' }}</span>
+    </div>
+    <dl class="kv">
+      <dt>Broker</dt><dd class="mono">{{ tauri.relayStatus()?.broker_url || '—' }}</dd>
+      <dt>Sessions</dt>
+      <dd>
+        @for (s of tauri.relayStatus()?.sessions ?? []; track s.run_id) {
+          <div>{{ s.name }} <span class="muted">· {{ s.state }}{{ s.tab_id !== null ? ' · tab ' + s.tab_id : '' }}</span></div>
+        } @empty { <span class="muted">none</span> }
+      </dd>
+      @if (tauri.relayStatus()?.error; as e) { <dt>Error</dt><dd class="text-danger">{{ e }}</dd> }
+    </dl>
+    <p class="muted small">Publishing and engagement jobs drive Eli's signed-in Chrome through this relay. One client at a time.</p>
+  </section>
+</div>
+
+<div class="grid-2">
+  <section class="panel">
+    <div class="panel-header"><h2>Credential vault</h2><span class="tag" [class.tag-ok]="tauri.vaultUnlocked()" [class.tag-muted]="!tauri.vaultUnlocked()">{{ tauri.vaultUnlocked() ? 'unlocked' : 'locked' }}</span></div>
+    @if (!tauri.vaultUnlocked()) {
+      <p class="muted small">Argon2id + AES-256-GCM, local only. Agents use isolated tokens; unlock only to inspect stored secrets.</p>
+      <div class="form-row">
+        <label class="field grow"><span>Master password</span><input type="password" [ngModel]="vaultPassword()" (ngModelChange)="vaultPassword.set($event)" (keyup.enter)="unlockVault()" /></label>
+        <button class="btn btn-primary" (click)="unlockVault()" [disabled]="!vaultPassword()">Unlock</button>
+      </div>
+      @if (vaultError()) { <div class="banner banner-error">{{ vaultError() }}</div> }
+    } @else {
+      <div class="row-actions"><button class="btn btn-ghost btn-sm" (click)="lockVault()">Lock vault</button></div>
+      <table class="table">
+        <thead><tr><th>Label</th><th>Type</th><th>Account</th><th>Added</th></tr></thead>
+        <tbody>
+          @for (s of tauri.vaultSecrets(); track s.id) {
+            <tr><td><strong>{{ s.label }}</strong></td><td>{{ s.secret_type }}</td><td class="mono muted">{{ s.account_id || '—' }}</td><td class="muted">{{ s.created_at | localWhen }}</td></tr>
+          } @empty {
+            <tr><td colspan="4" class="empty">No secrets stored.</td></tr>
+          }
+        </tbody>
+      </table>
+    }
+  </section>
+
+  <section class="panel">
+    <div class="panel-header"><h2>Storage & garbage collection</h2>
+      <button class="btn btn-ghost btn-sm" (click)="runGc()" [disabled]="gcRunning()">{{ gcRunning() ? 'Running retention.py…' : 'Run GC now' }}</button>
+    </div>
+    @if (tauri.gcReport(); as g) {
+      <dl class="kv">
+        <dt>Free disk</dt><dd [class.text-danger]="g.disk_pressure">{{ g.free_gb | number: '1.1-1' }} GB{{ g.disk_pressure ? ' · disk pressure' : '' }}</dd>
+        <dt>Last sweep</dt><dd>{{ g.executed_at | localWhen }} ({{ g.executed_at | timeAgo }}) · {{ g.applied ? 'applied' : 'dry run' }}</dd>
+        <dt>Reclaimed</dt><dd>{{ g.freed_this_run_gb | number: '1.2-2' }} GB this run · {{ g.freed_total_gb | number: '1.2-2' }} GB total</dd>
+        <dt>Items</dt><dd>{{ g.items_cleaned }} cleaned · {{ g.logs_rotated }} logs rotated</dd>
+        <dt>Orphans / emulator</dt><dd class="muted">{{ g.orphans_status }} · {{ g.emulator_status }}</dd>
+      </dl>
+    } @else {
+      <div class="muted small">No garbage-collection report recorded yet.</div>
+    }
+  </section>
+</div>
+
+<section class="panel">
+  <div class="panel-header">
+    <h2>Studio bridge</h2>
+    <span class="tag" [class.tag-ok]="tauri.bridgeState()?.status === 'CONNECTED'" [class.tag-danger]="tauri.bridgeState()?.status !== 'CONNECTED'">{{ tauri.bridgeState()?.status ?? '—' }}</span>
+  </div>
+  @if (tauri.bridgeState(); as b) {
+    <div class="grid-2">
+      <div>
+        <dl class="kv">
+          <dt>Root</dt><dd class="mono">{{ b.stick_studio_root }}</dd>
+          <dt>Control room</dt><dd class="mono">{{ b.control_room_url }}</dd>
+          <dt>Delegated to OpenAccounts</dt>
+          <dd>
+            <span class="chip" [class.chip-muted]="!b.delegation.comments_delegated_to_openaccounts">comments</span>
+            <span class="chip" [class.chip-muted]="!b.delegation.engage_delegated_to_openaccounts">engagement</span>
+            <span class="chip" [class.chip-muted]="!b.delegation.social_agent_delegated_to_openaccounts">social</span>
+          </dd>
+          <dt>Synced</dt><dd class="muted">{{ b.last_synced_at | localWhen }}</dd>
+        </dl>
+        <h3 class="sub-h">Agent pairings</h3>
+        <table class="table">
+          <thead><tr><th>OpenAccounts agent</th><th>Studio agents</th><th>Channel</th></tr></thead>
+          <tbody>
+            @for (p of b.pairings; track p.openaccounts_agent) {
+              <tr><td><strong>{{ p.openaccounts_agent }}</strong><div class="muted small">{{ p.openaccounts_title }}</div></td><td>{{ p.stick_agents.join(', ') }}</td><td class="muted">{{ p.channel }}</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <h3 class="sub-h">Dispatch a message</h3>
+        <p class="muted small">Written to the bridge file the studio agents read; optionally filed as a CEO directive.</p>
+        <label class="field"><span>To</span>
+          <select [ngModel]="dispatchTo()" (ngModelChange)="dispatchTo.set($event)">
+            @for (p of b.pairings; track p.openaccounts_agent) {
+              <option [value]="'OpenAccounts · ' + p.openaccounts_agent">OpenAccounts · {{ p.openaccounts_agent }}</option>
+              <option [value]="p.stick_agents.join(' & ')">{{ p.stick_agents.join(' & ') }}</option>
+            }
+          </select>
+        </label>
+        <label class="field"><span>Subject</span><input type="text" [ngModel]="dispatchSubject()" (ngModelChange)="dispatchSubject.set($event)" /></label>
+        <label class="field"><span>Message</span><textarea rows="4" [ngModel]="dispatchBody()" (ngModelChange)="dispatchBody.set($event)"></textarea></label>
+        <label class="check"><input type="checkbox" [ngModel]="dispatchDirective()" (ngModelChange)="dispatchDirective.set($event)" /> Also file as a CEO directive</label>
+        <div class="row-actions">
+          <button class="btn btn-primary" (click)="dispatch()" [disabled]="dispatching() || !dispatchSubject().trim() || !dispatchBody().trim()">Send</button>
+          @if (dispatchResult(); as r) { <span class="muted small">{{ r }}</span> }
+        </div>
+        <h3 class="sub-h">Recent messages</h3>
+        <div class="bridge-list">
+          @for (m of b.messages.slice(0, 8); track m.id) {
+            <div class="bridge-msg">
+              <div class="bridge-meta"><strong>{{ m.from_agent }}</strong> → {{ m.to_agent }} <span class="muted">· {{ m.timestamp | localWhen }}</span></div>
+              <div class="bridge-subject">{{ m.subject }}</div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</section>

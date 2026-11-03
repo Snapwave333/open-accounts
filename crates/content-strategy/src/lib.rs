@@ -57,10 +57,68 @@ pub struct ContentStrategyEngine {
 
 impl ContentStrategyEngine {
     pub fn new(brand_manager: Arc<BrandManager>, lm_gateway: Arc<LMGateway>) -> Self {
+        // Two distinct campaigns so the dashboard never mixes StickExplainers
+        // stick-figure video work with Nova's free, photos-only Instagram pipeline.
+        let start = DateTime::parse_from_rfc3339("2026-11-01T00:00:00Z")
+            .map(|d| d.with_timezone(&Utc))
+            .unwrap_or(DateTime::<Utc>::MIN_UTC);
+        let end = DateTime::parse_from_rfc3339("2027-11-01T00:00:00Z")
+            .map(|d| d.with_timezone(&Utc))
+            .unwrap_or(DateTime::<Utc>::MAX_UTC);
+        let mut campaigns = HashMap::new();
+        campaigns.insert(
+            "campaign_cdn".into(),
+            CampaignBrief {
+                campaign_id: "campaign_cdn".into(),
+                brand_id: "brand_cdn".into(),
+                title: "Clearly Drawn News (StickExplainers)".into(),
+                objective: "Daily stick-figure news + Cartoon Kitchen distribution".into(),
+                target_platforms: vec![
+                    "youtube".into(),
+                    "tiktok".into(),
+                    "instagram".into(),
+                ],
+                target_audience: "Animation / anime fans and Cartoon Kitchen viewers".into(),
+                content_formats: vec![
+                    "Video_Short".into(),
+                    "Video_Reel".into(),
+                    "Feed_Carousel".into(),
+                ],
+                hashtags: vec!["#animation".into(), "#cartoonkitchen".into()],
+                start_date: start,
+                end_date: end,
+                status: "active".into(),
+            },
+        );
+        campaigns.insert(
+            "campaign_nova".into(),
+            CampaignBrief {
+                campaign_id: "campaign_nova".into(),
+                brand_id: "brand_nova".into(),
+                title: "Nova Vexley - photos-only AI influencer".into(),
+                objective: "Grow a labelled AI cosplay Instagram with free local image generation".into(),
+                target_platforms: vec!["instagram".into()],
+                target_audience: "Alt / goth / cosplay fans who accept AI-generated characters".into(),
+                content_formats: vec![
+                    "Feed_Photo".into(),
+                    "Image_Carousel".into(),
+                    "Story_Photo".into(),
+                ],
+                hashtags: vec![
+                    "#cosplay".into(),
+                    "#altgirl".into(),
+                    "#aiinfluencer".into(),
+                    "#darkglam".into(),
+                ],
+                start_date: start,
+                end_date: end,
+                status: "active".into(),
+            },
+        );
         Self {
             brand_manager,
             lm_gateway,
-            campaigns: Arc::new(RwLock::new(HashMap::new())),
+            campaigns: Arc::new(RwLock::new(campaigns)),
             calendar: Arc::new(RwLock::new(Vec::new())),
         }
     }

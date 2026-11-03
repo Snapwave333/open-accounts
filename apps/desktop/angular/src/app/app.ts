@@ -1,210 +1,131 @@
-import { Component, HostListener, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { AccountRecord, ChatAttachment, TauriService } from './services/tauri.service';
+import { Component, computed, effect, HostListener, inject, signal } from '@angular/core';
+import { TauriService } from './services/tauri.service';
+import { CeoChatService } from './services/ceo-chat.service';
+import { OverviewComponent } from './views/overview.component';
+import { ActivityComponent } from './views/activity.component';
+import { CampaignsComponent } from './views/campaigns.component';
+import { CeoChatComponent } from './views/ceo-chat.component';
+import { NeedsYouComponent } from './views/needs-you.component';
+import { AccountsComponent } from './views/accounts.component';
+import { SystemComponent } from './views/system.component';
 
-export type NavTab = 'home' | 'flow' | 'chat' | 'accounts' | 'vault';
+export type NavView = 'overview' | 'activity' | 'campaigns' | 'ceo' | 'needs-you' | 'accounts' | 'system';
+
+interface NavItem {
+  id: NavView;
+  label: string;
+  hint: string;
+  key: string;
+}
+
+export const NAV_ITEMS: NavItem[] = [
+  { id: 'overview', label: 'Overview', hint: 'Command center', key: '1' },
+  { id: 'activity', label: 'Activity', hint: 'Agent runs and queue', key: '2' },
+  { id: 'campaigns', label: 'Campaigns', hint: 'Lifecycle and accounts', key: '3' },
+  { id: 'ceo', label: 'CEO Chat', hint: 'Talk to V. Sterling', key: '4' },
+  { id: 'needs-you', label: 'Needs You', hint: 'Human gates', key: '5' },
+  { id: 'accounts', label: 'Accounts', hint: 'Managed identities', key: '6' },
+  { id: 'system', label: 'System', hint: 'Vault, relay, bridge', key: '7' },
+];
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [
+    OverviewComponent,
+    ActivityComponent,
+    CampaignsComponent,
+    CeoChatComponent,
+    NeedsYouComponent,
+    AccountsComponent,
+    SystemComponent,
+  ],
   templateUrl: './app.html',
-  styleUrl: './app.scss',
 })
 export class App {
   tauri = inject(TauriService);
+  ceo = inject(CeoChatService);
 
-  activeTab = signal<NavTab>('flow');
+  nav = NAV_ITEMS;
+  activeView = signal<NavView>('overview');
+  /** Set once the persisted view has been applied, so the default does not flash. */
+  private restored = false;
+  now = signal<number>(Date.now());
 
-  // Accounts
-  newAccountPlatform = signal<string>('instagram');
-  newAccountUsername = signal<string>('');
-  newAccountEmail = signal<string>('');
-
-  // Vault
-  vaultPasswordInput = signal<string>('');
-  vaultError = signal<string>('');
-
-  // Chat
-  chatInput = signal<string>('');
-  chatTargetScope = signal<string>('All Accounts & Studio Agents');
-  stagedAttachments = signal<ChatAttachment[]>([]);
-  isDragOver = signal<boolean>(false);
-
-  // Garbage collection
-  gcRunning = signal<boolean>(false);
-  cycleRunning = signal<boolean>(false);
-
-  getAccountBrandKey(acc: AccountRecord): string {
-    const u = (acc.username || '').toLowerCase();
-    const p = acc.platform;
-    if (u.includes('gmail.com')) return 'gmail';
-    if (u.includes('outlook.com') || u.includes('hotmail.com')) return 'outlook';
-    if (p === 'paypal' || u.includes('paypal')) return 'paypal';
-    if (p === 'shopify' || u.includes('myshopify')) return 'shopify';
-    return p;
-  }
-
-  timeAgo(iso: string | null | undefined): string {
-    if (!iso) return 'never';
-    const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
-    if (mins < 1) return 'just now';
-    if (mins < 60) return `${mins}m ago`;
-    const hours = Math.round(mins / 60);
-    return hours < 48 ? `${hours}h ago` : `${Math.round(hours / 24)}d ago`;
-  }
-
-  onChatFilesSelected(event: Event) {
-    const input = event.target as HTMLInputElement;
-    if (input.files && input.files.length > 0) {
-      this.processFiles(Array.from(input.files));
-      input.value = '';
-    }
-  }
-
-  onChatDragOver(event: DragEvent) {
-    event.preventDefault();
-    event.stopPropagation();
-    this.isDragOver.set(true);
-  }
-
-  onChatDragLeave(event: DragEvent) {
-    event.preventDefault();
-    event.stopPropagation();
-    this.isDragOver.set(false);
-  }
-
-  onChatDrop(event: DragEvent) {
-    event.preventDefault();
-    event.stopPropagation();
-    this.isDragOver.set(false);
-    if (event.dataTransfer?.files && event.dataTransfer.files.length > 0) {
-      this.processFiles(Array.from(event.dataTransfer.files));
-    }
-  }
-
-  onChatPaste(event: ClipboardEvent) {
-    if (event.clipboardData?.files && event.clipboardData.files.length > 0) {
-      this.processFiles(Array.from(event.clipboardData.files));
-    }
-  }
-
-  private processFiles(files: File[]) {
-    for (const file of files) {
-      const kb = file.size / 1024;
-      const sizeLabel = kb >= 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(kb))} KB`;
-      const isImg = file.type.startsWith('image/');
-      const att: ChatAttachment = {
-        id: `att-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-        name: file.name,
-        size_label: sizeLabel,
-        mime_type: file.type || 'application/octet-stream',
-        is_image: isImg,
-      };
-      if (isImg) {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const dataUrl = typeof reader.result === 'string' ? reader.result : undefined;
-          this.stagedAttachments.update((prev) => [...prev, { ...att, data_url: dataUrl }]);
-        };
-        reader.readAsDataURL(file);
-      } else {
-        this.stagedAttachments.update((prev) => [...prev, att]);
+  constructor() {
+    setInterval(() => this.now.set(Date.now()), 1000);
+    effect(() => {
+      const saved = this.tauri.uiState().activeView as NavView | undefined;
+      if (!this.restored && saved && this.nav.some((n) => n.id === saved)) {
+        this.activeView.set(saved);
       }
+      if (this.tauri.loaded()) this.restored = true;
+    });
+  }
+
+  statusLabel = computed(() => {
+    if (this.tauri.killSwitchActive()) return 'HALTED';
+    const s = this.tauri.autonomyStatus();
+    if (!s) return 'CONNECTING';
+    if (s.paused) return 'PAUSED';
+    if (s.cycle_in_flight) return 'RUNNING';
+    if (s.loop_running) return 'AUTOPILOT';
+    return 'STOPPED';
+  });
+
+  statusTone = computed(() => {
+    const l = this.statusLabel();
+    if (l === 'HALTED') return 'danger';
+    if (l === 'PAUSED' || l === 'STOPPED') return 'warn';
+    if (l === 'CONNECTING') return 'muted';
+    return 'ok';
+  });
+
+  nextCycleIn = computed(() => {
+    const s = this.tauri.autonomyStatus();
+    const now = this.now();
+    if (!s) return '';
+    if (s.cycle_in_flight) return s.current_job ? `running ${s.current_job}` : 'cycle running';
+    if (this.tauri.killSwitchActive()) return 'kill switch engaged';
+    if (s.paused) return 'loop paused';
+    if (!s.next_cycle_at) return 'first cycle pending';
+    const secs = Math.max(0, Math.round((new Date(s.next_cycle_at).getTime() - now) / 1000));
+    const m = Math.floor(secs / 60);
+    const sec = secs % 60;
+    return `next cycle in ${m}:${sec.toString().padStart(2, '0')}`;
+  });
+
+  badge(id: NavView): number | null {
+    switch (id) {
+      case 'needs-you':
+        return this.tauri.humanTasks().length || null;
+      case 'campaigns': {
+        const issues = this.tauri.campaigns().reduce((n, c) => n + c.issues.filter((i) => i.severity !== 'warning').length, 0);
+        return issues || null;
+      }
+      case 'ceo':
+        return this.ceo.pending() ? 1 : null;
+      case 'accounts':
+        return this.tauri.accounts().length || null;
+      default:
+        return null;
     }
   }
 
-  removeAttachment(id: string) {
-    this.stagedAttachments.update((prev) => prev.filter((a) => a.id !== id));
-  }
-
-  async sendQuickPrompt(prompt: string) {
-    this.chatInput.set(prompt);
-    await this.sendChatMessage();
-  }
-
-  async sendChatMessage() {
-    const text = this.chatInput().trim();
-    const atts = this.stagedAttachments();
-    if (!text && atts.length === 0) return;
-
-    this.chatInput.set('');
-    this.stagedAttachments.set([]);
-    await this.tauri.sendAgentChatMessage(text, this.chatTargetScope(), atts);
+  setView(view: NavView) {
+    this.activeView.set(view);
+    this.tauri.updateUiState({ activeView: view });
   }
 
   @HostListener('window:keydown', ['$event'])
   handleGlobalShortcuts(event: KeyboardEvent) {
     const tag = (event.target as HTMLElement)?.tagName?.toLowerCase();
     const isInput = tag === 'input' || tag === 'textarea' || tag === 'select';
-    if (!isInput && !event.ctrlKey && !event.metaKey && !event.altKey) {
-      if (event.key === '1') this.setTab('home');
-      else if (event.key === '2') this.setTab('flow');
-      else if (event.key === '3') this.setTab('chat');
-      else if (event.key === '4') this.setTab('accounts');
-      else if (event.key === '5') this.setTab('vault');
+    if (isInput || !(event.ctrlKey || event.metaKey) || event.altKey) return;
+    const item = this.nav.find((n) => n.key === event.key);
+    if (item) {
+      event.preventDefault();
+      this.setView(item.id);
     }
-  }
-
-  setTab(tab: NavTab) {
-    this.activeTab.set(tab);
-  }
-
-  async addAccount() {
-    const username = this.newAccountUsername().trim();
-    if (!username) return;
-    const email = this.newAccountEmail().trim();
-    const id = await this.tauri.act<string>('create_account', {
-      platform: this.newAccountPlatform(),
-      username,
-      email: email || null,
-    });
-    if (id) {
-      this.newAccountUsername.set('');
-      this.newAccountEmail.set('');
-    }
-  }
-
-  async runCycleNow() {
-    this.cycleRunning.set(true);
-    try {
-      await this.tauri.runCycleNow();
-    } finally {
-      this.cycleRunning.set(false);
-    }
-  }
-
-  async runGarbageCollection() {
-    this.gcRunning.set(true);
-    try {
-      await this.tauri.runGarbageCollection();
-    } finally {
-      this.gcRunning.set(false);
-    }
-  }
-
-  async unlockVault() {
-    if (!this.vaultPasswordInput()) return;
-    try {
-      await this.tauri.invoke('unlock_vault', { password: this.vaultPasswordInput() });
-      this.vaultPasswordInput.set('');
-      this.vaultError.set('');
-    } catch (e: unknown) {
-      this.vaultError.set(`Failed to unlock vault: ${e instanceof Error ? e.message : String(e)}`);
-    }
-    await this.tauri.refresh();
-  }
-
-  async lockVault() {
-    await this.tauri.act('lock_vault');
-  }
-
-  async toggleKillSwitch() {
-    await this.tauri.toggleKillSwitch();
-  }
-
-  async toggleMarketingLoop() {
-    await this.tauri.toggleMarketingLoop();
   }
 }

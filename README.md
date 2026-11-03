@@ -48,9 +48,39 @@ OpenAccounts is a desktop application designed to create, manage, secure, and au
 | **`openaccounts-account-registry`** | `crates/account-registry` | Account CRUD, metadata store, and platform mapping. |
 | **`openaccounts-account-creator`** | `crates/account-creator` | Guided and Autonomous account registration workflows with credential generation. |
 | **`openaccounts-desktop`** | `apps/desktop/src-tauri` | Tauri 2 application providing native IPC command handlers for the Angular UI. |
-| **`angular-ui`** | `apps/desktop/angular` | Modern desktop console built with Angular 22 standalone components and responsive dark theme. |
+| **`angular-ui`** | `apps/desktop/angular` | Command-center UI: shell + seven standalone view components (`src/app/views`), services for the runtime and the CEO chat, one design system (`styles.scss`). |
 
 ---
+
+## 🖥️ Desktop Command Center
+
+The dashboard is a native Tauri 2 window (Angular 22 inside WebView2, Rust backend). No browser is involved: the
+Angular bundle is embedded in the executable (`custom-protocol`), the window remembers its size, position and
+maximized state (`window_state.json` next to the database), and the active view, campaign selection and chat draft
+persist across launches (`ui_state.json`). The database is found from the working directory, the checkout the
+executable lives in, or `OPENACCOUNTS_DATA_DIR`, so launching from Explorer and from the shortcut open the same data.
+
+Views (Ctrl+1 … Ctrl+7):
+
+| View | What it shows | Source |
+| :--- | :--- | :--- |
+| **Overview** | Needs-attention list, live job, last-cycle outcome, campaign and account health, latest CEO reply | runtime status, cycle ledger, campaign overviews |
+| **Activity** | Just did / Running now / Up next, filterable by campaign, plus the cycle ledger with per-job exit codes | `autonomy_cycles` (SQLite) |
+| **Campaigns** | Every registered campaign: accounts, agents, progress, metrics, issues/blocked work, execution history, calendar/episodes, bridge traffic, brief and brand | `content-strategy` + `brand-manager` crates, account registry, cycle ledger, Nova `data/*.json`, studio `insights/*.json` |
+| **CEO Chat** | Streamed, persistent conversation with V. Sterling; tool runs shown inline; confirm/cancel gated actions | `StickExplainers/ceo_chat.py` |
+| **Needs You** | Human gates (CAPTCHAs, sign-ins, Nova launch gates) and pending CEO actions | human-intervention controller + `influencer/data/needs_you.json` |
+| **Accounts** | Registry grouped by campaign | `accounts` (SQLite) |
+| **System** | Runtime wiring, vault, Chrome relay, GC, studio bridge pairings and dispatch | respective engines |
+
+### CEO communication
+
+`StickExplainers/ceo_chat.py` is the one CEO agent. The desktop app (`apps/desktop/src-tauri/src/ceo.rs`) and the
+Telegram bot (`StickExplainers/telegram_bot.py`) both call it, and both read and write the same conversation file
+(`StickExplainers/insights/ceo/conversation.json`), so a thread started on Telegram continues in the app and vice
+versa. Desktop turns stream: the service prints JSONL events which the Rust side forwards as `ceo://event`. Tools
+that change things pause for a confirmation that either channel can give. The Telegram bot answers in plain
+conversational text; inline buttons appear only for real decisions (confirm/cancel, send/skip a comment draft) and
+the previous keyboard is removed when a new one is shown.
 
 ## 🚀 Getting Started
 
@@ -58,34 +88,31 @@ OpenAccounts is a desktop application designed to create, manage, secure, and au
 - **Node.js**: v20+ (v24 tested)
 - **Rust & Cargo**: 1.80+ (1.99 tested)
 - **Tauri CLI**: 2.x
+- **Python**: the `py` launcher resolving to the interpreter that owns the StickExplainers dependencies
 
 ### Running the Application
 
-1. **Development Mode (Browser & Web Mock)**:
+1. **Native desktop (release)** — the Desktop shortcut runs this:
    ```bash
-   cd apps/desktop/angular
-   npm start
+   cd apps/desktop/angular && npm run build
+   cd ../../.. && cargo build --release -p openaccounts-desktop --features custom-protocol
+   target/release/openaccounts-desktop.exe
    ```
-   Open `http://localhost:4200` to interact with the full operations console with simulated Tauri IPC.
 
-2. **Native Desktop Mode (Tauri 2 + Angular + Rust Engine)**:
+2. **Native desktop (dev, hot reload)**:
    ```bash
-   cd apps/desktop
+   cd apps/desktop/src-tauri
    cargo tauri dev
    ```
+   (`beforeDevCommand` starts the Angular dev server; the Tauri window loads it. Opening `http://localhost:4200`
+   in a browser shows the UI without a backend and is not a supported mode.)
 
-3. **Building Production Binaries**:
-   ```bash
-   # Build Angular frontend
-   cd apps/desktop/angular
-   npm run build
+### Tests
 
-   # Build Native Desktop executable (.exe)
-   cd ../src-tauri
-   cargo tauri build
-   ```
-
----
+```bash
+cargo test --workspace                                  # Rust crates (bridge, engines)
+cd ../StickExplainers && py -m pytest tests/test_ceo_chat.py -q   # shared CEO service + Telegram keyboard rules
+```
 
 ## 🔒 Security Principles
 - **Credential Isolation**: Models never receive raw master keys or unapproved passwords.

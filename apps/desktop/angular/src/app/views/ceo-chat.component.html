@@ -1,0 +1,94 @@
+<div class="chat-layout">
+  <header class="chat-head">
+    <div class="chat-identity">
+      <span class="avatar">VS</span>
+      <div>
+        <div class="chat-name">V. Sterling <span class="muted">· CEO, Clearly Drawn Studios</span></div>
+        <div class="chat-sub">
+          @if (chat.available()) {
+            One conversation across this app and Telegram · {{ chat.messages().length }} messages ({{ chat.telegramMessages() }} via Telegram)
+          } @else {
+            CEO service unavailable
+          }
+        </div>
+      </div>
+    </div>
+    <div class="row-actions">
+      <button class="btn btn-ghost btn-sm" (click)="chat.loadHistory()" [disabled]="chat.streaming()">Refresh</button>
+      <button class="btn btn-ghost btn-sm" (click)="chat.clear()" [disabled]="chat.streaming() || chat.messages().length === 0">Clear conversation</button>
+    </div>
+  </header>
+
+  @if (chat.loadError(); as e) { <div class="banner banner-error">{{ e }}</div> }
+
+  <div class="chat-scroll" #scroller>
+    @if (chat.loaded() && chat.messages().length === 0 && !chat.streaming()) {
+      <div class="chat-empty">
+        <p>Ask the CEO about agents, campaigns, tasks or decisions. She reads the live pipeline state, the OpenAccounts agents' cycle ledger and the studio bridge before answering, and can run actions (with your confirmation for anything that changes things). Nova Vexley is run by the OpenAccounts agents themselves and is not in her remit.</p>
+        <div class="quick-prompts">
+          @for (q of quickPrompts; track q) { <button class="chip clickable" (click)="send(q)">{{ q }}</button> }
+        </div>
+      </div>
+    }
+
+    @for (m of chat.messages(); track m.id; let i = $index) {
+      @if (dayLabel(m, chat.messages()[i - 1]); as day) { <div class="day-sep">{{ day }}</div> }
+      <div class="msg" [class.msg-user]="m.role === 'user'" [class.msg-ceo]="m.role === 'ceo'" [class.msg-error]="m.status === 'error'">
+        <div class="msg-meta">
+          <span class="msg-author">{{ m.role === 'user' ? 'You' : 'V. Sterling' }}</span>
+          <span class="msg-channel" [class.channel-telegram]="m.channel === 'telegram'">{{ m.channel }}</span>
+          <span class="msg-time">{{ m.ts | localWhen: 'time' }}</span>
+        </div>
+        <div class="msg-text">{{ m.text }}</div>
+        @if (m.tools?.length) {
+          <div class="msg-tools">
+            @for (t of m.tools; track t.name + t.summary) {
+              <span class="tool-pill" [class.tool-ok]="t.ok" [class.tool-err]="!t.ok" [title]="t.summary">{{ t.ok ? '✓' : '✗' }} {{ t.name }}</span>
+            }
+          </div>
+        }
+        @if (m.confirmation && chat.pending()?.message_id === m.id) {
+          <div class="confirm-box">
+            <div><strong>{{ m.confirmation.tool }}</strong> · {{ fmtParams(m.confirmation.params) }}</div>
+            <div class="row-actions">
+              <button class="btn btn-primary btn-sm" (click)="chat.confirm()" [disabled]="chat.streaming()">Confirm and run</button>
+              <button class="btn btn-ghost btn-sm" (click)="chat.cancel()" [disabled]="chat.streaming()">Cancel</button>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    @if (chat.streaming()) {
+      <div class="msg msg-ceo msg-streaming">
+        <div class="msg-meta"><span class="msg-author">V. Sterling</span><span class="msg-channel">desktop</span><span class="msg-time">now</span></div>
+        @if (chat.liveTools().length) {
+          <div class="msg-tools">
+            @for (t of chat.liveTools(); track t.name + t.status) {
+              <span class="tool-pill" [class.tool-live]="t.status === 'start'" [class.tool-ok]="t.status === 'ok'" [class.tool-err]="t.status === 'error'" [title]="t.summary ?? ''">
+                {{ t.status === 'start' ? '…' : t.status === 'ok' ? '✓' : '✗' }} {{ t.name }}
+              </span>
+            }
+          </div>
+        }
+        <div class="msg-text">{{ chat.streamText() || (chat.liveTools().length ? 'Working…' : 'Thinking…') }}<span class="caret"></span></div>
+      </div>
+    }
+  </div>
+
+  @if (chat.sendError(); as e) { <div class="banner banner-error">{{ e }}</div> }
+
+  <div class="composer">
+    <textarea
+      rows="2"
+      placeholder="Message V. Sterling… (Enter to send, Shift+Enter for a new line)"
+      [ngModel]="draft()"
+      (ngModelChange)="onDraft($event)"
+      (keydown)="onKey($event)"
+      [disabled]="!chat.available()"
+    ></textarea>
+    <button class="btn btn-primary" (click)="send()" [disabled]="chat.streaming() || !draft().trim() || !chat.available()">
+      {{ chat.streaming() ? 'Answering…' : 'Send' }}
+    </button>
+  </div>
+</div>

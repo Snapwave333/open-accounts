@@ -1,0 +1,132 @@
+<header class="view-header">
+  <div>
+    <h1>Activity</h1>
+    <p class="view-sub">Supervised job runs from the autonomy runtime. Every card is a real process with its exit code and output.</p>
+  </div>
+  <div class="view-actions">
+    <div class="segmented">
+      @for (f of filters; track f.id) {
+        <button [class.active]="filter() === f.id" (click)="setFilter(f.id)">{{ f.label }}</button>
+      }
+    </div>
+    <button class="btn btn-primary" (click)="runCycleNow()" [disabled]="cycleRunning() || tauri.autonomyStatus()?.cycle_in_flight || tauri.killSwitchActive()">
+      Run cycle now
+    </button>
+  </div>
+</header>
+
+<div class="flow-grid">
+  <section class="panel flow-col">
+    <div class="panel-header">
+      <h2>Just did</h2>
+      <span class="badge">{{ done().length }}</span>
+    </div>
+    <div class="flow-list">
+      @for (item of done(); track item.id) {
+        <article class="flow-card" [class.flow-failed]="item.tag === 'FAILED'" [class.flow-waiting]="item.tag === 'WAITING'">
+          <div class="flow-top">
+            <span class="account-chip"><app-brand-logo [platform]="item.platform" [size]="14" />{{ item.account_handle }}</span>
+            <span class="tag" [class.tag-ok]="item.tag === 'DONE'" [class.tag-danger]="item.tag === 'FAILED'" [class.tag-warn]="item.tag === 'WAITING'" [class.tag-muted]="item.tag === 'SKIPPED'">{{ item.tag }}</span>
+          </div>
+          <div class="flow-title">{{ item.title }}</div>
+          <p class="flow-detail" [title]="item.detail">{{ item.detail }}</p>
+          <div class="flow-foot">{{ item.time_label }}</div>
+        </article>
+      } @empty {
+        <div class="empty">Nothing recorded for this filter yet.</div>
+      }
+    </div>
+  </section>
+
+  <section class="panel flow-col">
+    <div class="panel-header">
+      <h2>Running now</h2>
+      <span class="badge">{{ running().length }}</span>
+    </div>
+    <div class="flow-list">
+      @for (item of running(); track item.id) {
+        <article class="flow-card flow-live">
+          <div class="flow-top">
+            <span class="account-chip"><app-brand-logo [platform]="item.platform" [size]="14" />{{ item.account_handle }}</span>
+            <span class="tag tag-live">live</span>
+          </div>
+          <div class="flow-title">{{ item.title }}</div>
+          <p class="flow-detail">{{ item.detail }}</p>
+          <div class="progress"><div class="progress-fill" [style.width.%]="item.progress ?? 0"></div></div>
+          <div class="flow-foot">{{ item.eta }}</div>
+        </article>
+      } @empty {
+        <div class="empty">
+          @if (tauri.killSwitchActive()) { Kill switch engaged: nothing runs. }
+          @else if (!tauri.isAutonomousLoopRunning()) { Loop paused. Resume it from the sidebar or run a cycle manually. }
+          @else { Idle between cycles. }
+        </div>
+      }
+    </div>
+  </section>
+
+  <section class="panel flow-col">
+    <div class="panel-header">
+      <h2>Up next</h2>
+      <span class="badge">{{ queued().length }}</span>
+    </div>
+    <div class="flow-list">
+      @for (item of queued(); track item.id) {
+        <article class="flow-card">
+          <div class="flow-top">
+            <span class="account-chip"><app-brand-logo [platform]="item.platform" [size]="14" />{{ item.account_handle }}</span>
+            <span class="tag tag-muted">{{ item.eta }}</span>
+          </div>
+          <div class="flow-title">{{ item.title }}</div>
+          <p class="flow-detail">{{ item.detail }}</p>
+        </article>
+      } @empty {
+        <div class="empty">Queue is empty.</div>
+      }
+    </div>
+  </section>
+</div>
+
+<section class="panel">
+  <div class="panel-header">
+    <h2>Cycle ledger</h2>
+    <span class="muted small">persisted in openaccounts.sqlite · interval {{ (tauri.autonomyStatus()?.interval_secs ?? 0) / 60 | number: '1.0-0' }} min</span>
+  </div>
+  <table class="table">
+    <thead>
+      <tr><th>Finished</th><th>Status</th><th>Jobs</th><th>Failed</th><th>Duration</th><th>Note</th></tr>
+    </thead>
+    <tbody>
+      @for (c of tauri.recentCycles(); track c.cycle_id) {
+        <tr class="clickable" (click)="toggleCycle(c.cycle_id)">
+          <td>{{ c.finished_at | localWhen }}</td>
+          <td><span class="tag" [class.tag-ok]="c.status === 'succeeded'" [class.tag-warn]="c.status === 'partial'" [class.tag-danger]="c.status === 'failed'" [class.tag-muted]="c.status.startsWith('skipped')">{{ c.status.replace('_', ' ') }}</span></td>
+          <td>{{ c.jobs.length }}</td>
+          <td [class.text-danger]="c.jobs.length && countFailed(c)">{{ countFailed(c) }}</td>
+          <td>{{ (c.duration_ms / 1000) | number: '1.0-0' }}s</td>
+          <td class="muted">{{ c.error ?? '' }}</td>
+        </tr>
+        @if (expandedCycle() === c.cycle_id) {
+          <tr class="expanded">
+            <td colspan="6">
+              <table class="table nested">
+                <tbody>
+                  @for (j of c.jobs; track j.name) {
+                    <tr>
+                      <td class="nowrap">{{ j.name }}</td>
+                      <td><span class="tag" [class]="'tag tag-' + jobTone(j)">{{ jobLabel(j) }}</span></td>
+                      <td class="nowrap mono">exit {{ j.exit_code ?? '—' }} · {{ (j.duration_ms / 1000) | number: '1.1-1' }}s</td>
+                      <td class="muted">{{ j.summary }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </td>
+          </tr>
+        }
+      } @empty {
+        <tr><td colspan="6" class="empty">No cycle has run yet.</td></tr>
+      }
+    </tbody>
+  </table>
+</section>

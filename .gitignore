@@ -28,3 +28,10 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
+
+# Runtime state written by the desktop app (next to the database)
+ui_state.json
+window_state.json
+
+# Verification screenshots
+_shots/

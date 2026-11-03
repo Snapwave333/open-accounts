@@ -70,14 +70,16 @@ async fn test_inbox_reads_the_studio_comment_queue() {
 
     let question = inbox.iter().find(|m| m.message_id == "a1").unwrap();
     assert_eq!(question.category, ClassificationCategory::GeneralInquiry);
-    assert_eq!(question.status, "PendingApproval");
+    // CDN organic replies run in auto mode (comments.py keeps the safety filter and daily caps).
+    assert_eq!(question.status, "AutoApproved");
+    assert!(!question.requires_human_approval);
     assert_eq!(question.drafted_reply.as_deref(), Some("Like this."));
     assert!(question.received_at.is_none());
     assert!(question.sentiment_score.is_none());
 
     let toxic = inbox.iter().find(|m| m.message_id == "b2").unwrap();
     assert_eq!(toxic.category, ClassificationCategory::SecurityOrLegalEscalation);
-    assert_eq!(toxic.status, "New");
+    assert_eq!(toxic.status, "NeedsHuman");
     assert!(toxic.requires_human_approval);
 
     let _ = std::fs::remove_dir_all(&root);

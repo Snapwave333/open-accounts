@@ -1,4 +1,6 @@
 use crate::autonomy::{AutonomyCycleReport, AutonomyStatus};
+use crate::campaigns::{CampaignDetail, CampaignOverview};
+use crate::ceo::CeoHistory;
 use crate::state::AppState;
 use openaccounts_account_creator::{AccountCreationPreflightReport, AccountCreationPreflightRequest};
 use openaccounts_account_identity_manager::AccountCategory;
@@ -542,4 +544,94 @@ pub async fn get_chrome_relay_status(
     let _ = &state;
     let adapter = ChromeRelayAdapter::new(ChromeRelayConfig::default());
     Ok(adapter.probe().await)
+}
+
+// --- CEO CHAT (shared with the Telegram bot through StickExplainers/ceo_chat.py) ---
+
+#[tauri::command]
+pub async fn ceo_history(state: State<'_, AppState>, limit: Option<i64>) -> Result<CeoHistory, String> {
+    Ok(state.ceo.history(limit.unwrap_or(200)).await)
+}
+
+/// Sends Eli's message; tokens, tool events and the final message arrive as
+/// `ceo://event` events while this runs. Resolves with the final message.
+#[tauri::command]
+pub async fn ceo_send(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    text: String,
+) -> Result<serde_json::Value, String> {
+    let text = text.trim().to_string();
+    if text.is_empty() {
+        return Err("Message is empty".into());
+    }
+    state
+        .ceo
+        .stream_turn(&app, "send", Some(serde_json::json!({ "text": text })))
+        .await
+}
+
+#[tauri::command]
+pub async fn ceo_confirm(app: tauri::AppHandle, state: State<'_, AppState>) -> Result<serde_json::Value, String> {
+    state.ceo.stream_turn(&app, "confirm", None).await
+}
+
+#[tauri::command]
+pub async fn ceo_cancel(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
+    state.ceo.cancel().await
+}
+
+#[tauri::command]
+pub async fn ceo_clear(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
+    state.ceo.clear().await
+}
+
+// --- CAMPAIGNS (content-strategy registry joined with live execution data) ---
+
+#[tauri::command]
+pub async fn list_campaign_overviews(state: State<'_, AppState>) -> Result<Vec<CampaignOverview>, String> {
+    let inputs = crate::campaigns::gather(&state).await;
+    let mut out: Vec<CampaignOverview> = inputs.briefs.iter().map(|b| crate::campaigns::overview(&inputs, b)).collect();
+    out.sort_by(|a, b| a.brief.campaign_id.cmp(&b.brief.campaign_id));
+    Ok(out)
+}
+
+#[tauri::command]
+pub async fn get_campaign_detail(
+    state: State<'_, AppState>,
+    campaign_id: String,
+) -> Result<CampaignDetail, String> {
+    let inputs = crate::campaigns::gather(&state).await;
+    let brief = inputs
+        .briefs
+        .iter()
+        .find(|b| b.campaign_id == campaign_id)
+        .cloned()
+        .ok_or_else(|| format!("No campaign registered with id '{campaign_id}'"))?;
+    Ok(crate::campaigns::detail(&inputs, &brief))
+}
+
+// --- PERSISTED UI STATE (active view, panel sizes, chat draft...) ---
+
+fn ui_state_path(state: &AppState) -> std::path::PathBuf {
+    state.data_dir.join("ui_state.json")
+}
+
+#[tauri::command]
+pub async fn get_ui_state(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
+    let path = ui_state_path(&state);
+    match std::fs::read_to_string(&path) {
+        Ok(raw) => serde_json::from_str(&raw).map_err(|e| format!("{}: {e}", path.display())),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(serde_json::json!({})),
+        Err(e) => Err(format!("{}: {e}", path.display())),
+    }
+}
+
+#[tauri::command]
+pub async fn set_ui_state(state: State<'_, AppState>, value: serde_json::Value) -> Result<(), String> {
+    let path = ui_state_path(&state);
+    let tmp = path.with_extension("json.tmp");
+    std::fs::write(&tmp, serde_json::to_vec_pretty(&value).map_err(|e| e.to_string())?)
+        .map_err(|e| format!("{}: {e}", tmp.display()))?;
+    std::fs::rename(&tmp, &path).map_err(|e| format!("{}: {e}", path.display()))
 }

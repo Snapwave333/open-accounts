@@ -1,0 +1,206 @@
+<header class="view-header">
+  <div>
+    <h1>Overview</h1>
+    <p class="view-sub">Live state of the agent runtime, the campaigns it executes and the accounts it manages.</p>
+  </div>
+  <div class="view-actions">
+    <button class="btn btn-primary" (click)="runCycleNow()" [disabled]="cycleRunning() || tauri.autonomyStatus()?.cycle_in_flight || tauri.killSwitchActive()">
+      {{ tauri.autonomyStatus()?.cycle_in_flight ? 'Cycle running…' : 'Run cycle now' }}
+    </button>
+  </div>
+</header>
+
+<!-- KPI strip -->
+<section class="kpi-strip">
+  <div class="kpi">
+    <span class="kpi-label">Runtime</span>
+    <span class="kpi-value">{{ tauri.stats()?.system_status ?? '—' }}</span>
+    <span class="kpi-sub">{{ tauri.autonomyStatus()?.cycles_completed ?? 0 }} cycles since launch · {{ tauri.autonomyStatus()?.cycles_failed ?? 0 }} with failures</span>
+  </div>
+  <div class="kpi">
+    <span class="kpi-label">Last cycle</span>
+    @if (lastCycleCounts(); as c) {
+      <span class="kpi-value">{{ c.ok }}/{{ c.ran }} ok</span>
+      <span class="kpi-sub">{{ c.failed }} failed · {{ c.waiting }} waiting on a gate · {{ c.deferred }} not due · {{ lastCycle()?.finished_at | timeAgo }}</span>
+    } @else {
+      <span class="kpi-value">—</span>
+      <span class="kpi-sub">No cycle recorded yet</span>
+    }
+  </div>
+  <div class="kpi">
+    <span class="kpi-label">Needs you</span>
+    <span class="kpi-value" [class.text-warn]="attention().length > 0">{{ attention().length }}</span>
+    <span class="kpi-sub">{{ tauri.humanTasks().length }} human gate(s) · {{ ceo.pending() ? '1 CEO action awaiting confirmation' : 'no CEO action pending' }}</span>
+  </div>
+  <div class="kpi">
+    <span class="kpi-label">Engagement today</span>
+    <span class="kpi-value kpi-value-sm">{{ tauri.engagementToday() ?? 'not reported yet' }}</span>
+    <span class="kpi-sub">from the last Engagement stats job</span>
+  </div>
+  <div class="kpi">
+    <span class="kpi-label">Chrome relay</span>
+    <span class="kpi-value" [class.text-ok]="tauri.relayStatus()?.online" [class.text-danger]="tauri.relayStatus() && !tauri.relayStatus()?.online">
+      {{ tauri.relayStatus() ? (tauri.relayStatus()?.online ? 'online' : 'offline') : '—' }}
+    </span>
+    <span class="kpi-sub">{{ tauri.relayStatus()?.sessions?.length ?? 0 }} session(s) · {{ tauri.gcReport()?.free_gb?.toFixed(0) ?? '?' }} GB free</span>
+  </div>
+</section>
+
+<div class="grid-2">
+  <!-- Needs attention -->
+  <section class="panel">
+    <div class="panel-header">
+      <h2>Needs attention</h2>
+      <span class="badge" [class.badge-warn]="attention().length">{{ attention().length }}</span>
+    </div>
+    @if (attention().length === 0) {
+      <div class="empty">Nothing is waiting on you. Failed jobs, open human gates and pending CEO actions appear here.</div>
+    } @else {
+      <ul class="list">
+        @for (item of attention(); track item.title + item.detail) {
+          <li class="list-row clickable" (click)="navigate.emit(item.view)">
+            <span class="sev" [class]="'sev sev-' + item.severity">{{ item.severity }}</span>
+            <div class="list-main">
+              <div class="list-title">{{ item.title }}</div>
+              <div class="list-detail">{{ item.detail }}</div>
+            </div>
+            <span class="list-meta">{{ item.when | timeAgo }}</span>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <!-- Live activity -->
+  <section class="panel">
+    <div class="panel-header">
+      <h2>Agent activity</h2>
+      <button class="btn btn-ghost btn-sm" (click)="navigate.emit('activity')">Open activity</button>
+    </div>
+    @if (tauri.activelyDoingItems().length) {
+      @for (item of tauri.activelyDoingItems(); track item.id) {
+        <div class="live-card">
+          <div class="live-head">
+            <app-brand-logo [platform]="item.platform" [size]="18" />
+            <span class="live-title">{{ item.title }}</span>
+            <span class="tag tag-live">running</span>
+          </div>
+          <div class="progress"><div class="progress-fill" [style.width.%]="item.progress ?? 0"></div></div>
+          <div class="live-sub">{{ item.eta }} · {{ item.account_handle }}</div>
+        </div>
+      }
+    } @else {
+      <div class="muted small pad-b">Idle. {{ tauri.planToDoNextItems().length }} jobs queued for the next cycle.</div>
+    }
+    <ul class="list compact">
+      @for (item of recentDone(); track item.id) {
+        <li class="list-row">
+          <app-brand-logo [platform]="item.platform" [size]="16" />
+          <div class="list-main">
+            <div class="list-title">{{ item.title }}</div>
+            <div class="list-detail">{{ item.detail }}</div>
+          </div>
+          <span class="tag" [class.tag-ok]="item.tag === 'DONE'" [class.tag-danger]="item.tag === 'FAILED'" [class.tag-warn]="item.tag === 'WAITING'">{{ item.tag }}</span>
+          <span class="list-meta">{{ item.time_label }}</span>
+        </li>
+      } @empty {
+        <li class="empty">No job has run yet.</li>
+      }
+    </ul>
+  </section>
+</div>
+
+<div class="grid-2">
+  <!-- Campaigns -->
+  <section class="panel">
+    <div class="panel-header">
+      <h2>Campaigns</h2>
+      <button class="btn btn-ghost btn-sm" (click)="navigate.emit('campaigns')">Manage</button>
+    </div>
+    @for (c of tauri.campaigns(); track c.brief.campaign_id) {
+      <div class="campaign-card" (click)="navigate.emit('campaigns')">
+        <div class="campaign-head">
+          <div>
+            <div class="campaign-title">{{ c.brief.title }}</div>
+            <div class="campaign-sub">{{ c.brief.objective }}</div>
+          </div>
+          <span class="tag" [class.tag-ok]="c.last_cycle_status === 'succeeded'" [class.tag-warn]="c.last_cycle_status === 'partial'" [class.tag-danger]="c.last_cycle_status === 'failed'">
+            {{ c.last_cycle_status ?? 'no run yet' }}
+          </span>
+        </div>
+        <div class="campaign-row">
+          <div class="accounts-inline">
+            @for (a of c.accounts; track a.id) {
+              <span class="account-chip"><app-brand-logo [platform]="a.platform" [size]="14" />{{ a.username }}</span>
+            } @empty {
+              <span class="muted small">no accounts linked</span>
+            }
+          </div>
+        </div>
+        @for (p of c.progress.slice(0, 2); track p.label) {
+          <div class="progress-line">
+            <span class="progress-label">{{ p.label }}</span>
+            <div class="progress"><div class="progress-fill" [style.width.%]="progressPct(p.done, p.total)"></div></div>
+            <span class="progress-num">{{ p.done }}/{{ p.total }}</span>
+          </div>
+        }
+        <div class="campaign-foot">
+          <span [class.text-danger]="c.jobs_failed">{{ c.jobs_failed }} failed</span>
+          <span [class.text-warn]="c.jobs_waiting">{{ c.jobs_waiting }} waiting</span>
+          <span>{{ c.jobs_done }} done</span>
+          <span class="muted">last activity {{ c.last_activity_at | timeAgo }}</span>
+        </div>
+      </div>
+    } @empty {
+      <div class="empty">No campaign is registered in the content-strategy engine.</div>
+    }
+  </section>
+
+  <!-- CEO + accounts -->
+  <div class="stack">
+    <section class="panel">
+      <div class="panel-header">
+        <h2>CEO</h2>
+        <button class="btn btn-ghost btn-sm" (click)="navigate.emit('ceo')">Open chat</button>
+      </div>
+      @if (latestCeoMessage(); as m) {
+        <div class="ceo-snippet">
+          <div class="ceo-snippet-meta">V. Sterling · via {{ m.channel }} · {{ m.ts | localWhen }}</div>
+          <div class="ceo-snippet-text">{{ m.text }}</div>
+        </div>
+      } @else {
+        <div class="muted small">No conversation yet. Ask the CEO what the agents did today, or give a directive.</div>
+      }
+      @if (ceo.pending(); as p) {
+        <div class="pending-box">
+          <span>Waiting for your confirmation: <strong>{{ p.tool }}</strong> {{ fmtParams(p.params) }}</span>
+          <div class="row-actions">
+            <button class="btn btn-primary btn-sm" (click)="ceo.confirm()" [disabled]="ceo.streaming()">Confirm</button>
+            <button class="btn btn-ghost btn-sm" (click)="ceo.cancel()" [disabled]="ceo.streaming()">Cancel</button>
+          </div>
+        </div>
+      }
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Accounts</h2>
+        <button class="btn btn-ghost btn-sm" (click)="navigate.emit('accounts')">All {{ tauri.accounts().length }}</button>
+      </div>
+      <ul class="list compact">
+        @for (a of socialAccounts(); track a.id) {
+          <li class="list-row">
+            <app-brand-logo [platform]="a.platform" [size]="18" />
+            <div class="list-main">
+              <div class="list-title">{{ a.username }}</div>
+              <div class="list-detail">{{ a.platform }} · {{ tauri.isNovaAccount(a) ? 'Nova Vexley' : 'Clearly Drawn News' }}</div>
+            </div>
+            <span class="tag" [class.tag-ok]="a.status === 'active'" [class.tag-warn]="a.status !== 'active'">{{ a.status }}</span>
+          </li>
+        } @empty {
+          <li class="empty">No accounts registered.</li>
+        }
+      </ul>
+    </section>
+  </div>
+</div>

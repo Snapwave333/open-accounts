@@ -12,12 +12,16 @@
   "app": {
     "windows": [
       {
-        "title": "OpenAccounts — Autonomous Account Management",
-        "width": 1400,
-        "height": 900,
+        "title": "OpenAccounts Command Center",
+        "width": 1440,
+        "height": 920,
         "resizable": true,
         "decorations": true,
-        "transparent": false
+        "transparent": false,
+        "minWidth": 1024,
+        "minHeight": 680,
+        "center": true,
+        "visible": false
       }
     ],
     "security": {

@@ -1,0 +1,271 @@
+<header class="view-header">
+  <div>
+    <h1>Campaigns</h1>
+    <p class="view-sub">Registered in the content-strategy engine, executed by the supervised runtime. Live data only.</p>
+  </div>
+</header>
+
+<div class="campaign-layout">
+  <!-- Campaign list -->
+  <aside class="campaign-list">
+    @for (c of tauri.campaigns(); track c.brief.campaign_id) {
+      <button class="campaign-item" [class.active]="selectedId() === c.brief.campaign_id" (click)="select(c.brief.campaign_id)">
+        <div class="campaign-item-head">
+          <span class="campaign-item-title">{{ c.brief.title }}</span>
+          <span class="tag" [class]="'tag tag-' + healthTone(c)">{{ healthLabel(c) }}</span>
+        </div>
+        <div class="campaign-item-sub">{{ c.brief.status }} · {{ c.accounts.length }} account(s) · {{ c.agents.length }} agent(s)</div>
+        <div class="accounts-inline">
+          @for (a of c.accounts; track a.id) {
+            <app-brand-logo [platform]="a.platform" [size]="14" />
+          }
+        </div>
+        <div class="campaign-item-foot">last activity {{ c.last_activity_at | timeAgo }}</div>
+      </button>
+    } @empty {
+      <div class="empty">No campaigns registered.</div>
+    }
+  </aside>
+
+  <!-- Detail -->
+  <section class="campaign-detail">
+    @if (selected(); as c) {
+      <div class="detail-head">
+        <div>
+          <h2>{{ c.brief.title }}</h2>
+          <p class="muted">{{ c.brief.objective }}</p>
+          <div class="chips">
+            <span class="chip">{{ c.brief.status }}</span>
+            @for (p of c.brief.target_platforms; track p) { <span class="chip"><app-brand-logo [platform]="p" [size]="12" />{{ p }}</span> }
+            @for (f of c.brief.content_formats; track f) { <span class="chip chip-muted">{{ f.replace('_', ' ') }}</span> }
+          </div>
+        </div>
+        <div class="detail-status">
+          <span class="tag" [class]="'tag tag-' + healthTone(c)">{{ healthLabel(c) }}</span>
+          @if (c.current_job) { <span class="tag tag-live">running {{ c.current_job }}</span> }
+          <span class="muted small">last cycle {{ c.last_cycle_status ?? '—' }} · {{ c.last_activity_at | timeAgo }}</span>
+        </div>
+      </div>
+
+      <div class="detail-grid">
+        <div class="panel">
+          <div class="panel-header"><h3>Progress</h3></div>
+          @for (p of c.progress; track p.label) {
+            <div class="progress-line">
+              <span class="progress-label">{{ p.label }}</span>
+              <div class="progress"><div class="progress-fill" [style.width.%]="pct(p.done, p.total)"></div></div>
+              <span class="progress-num">{{ p.done }}/{{ p.total }}</span>
+            </div>
+          } @empty {
+            <div class="muted small">No progress data recorded.</div>
+          }
+          <div class="stat-row">
+            <span><strong>{{ c.jobs_done }}</strong> done</span>
+            <span [class.text-warn]="c.jobs_waiting"><strong>{{ c.jobs_waiting }}</strong> waiting</span>
+            <span [class.text-danger]="c.jobs_failed"><strong>{{ c.jobs_failed }}</strong> failed</span>
+            <span class="muted">in the last cycle</span>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header"><h3>Performance</h3><span class="muted small">from recorded metrics</span></div>
+          @for (m of c.metrics; track m.label) {
+            <div class="metric-row" [title]="m.source + (m.captured_at ? ' · ' + m.captured_at : '')">
+              <span class="metric-label">{{ m.label }}</span>
+              <span class="metric-value">{{ m.value }}</span>
+              @if (metricPct(m); as p) {
+                <span class="metric-target">{{ p }}% of {{ m.target | number }}</span>
+              } @else if (m.target) {
+                <span class="metric-target">of {{ m.target | number }}</span>
+              }
+            </div>
+          } @empty {
+            <div class="muted small">No verified metrics are recorded for this campaign yet.</div>
+          }
+        </div>
+
+        <div class="panel">
+          <div class="panel-header"><h3>Issues & blocked</h3><span class="badge" [class.badge-warn]="c.issues.length">{{ c.issues.length }}</span></div>
+          @for (i of c.issues; track i.title + i.detail) {
+            <div class="issue">
+              <span class="sev" [class]="'sev sev-' + i.severity">{{ i.severity }}</span>
+              <div class="list-main">
+                <div class="list-title">{{ i.title }}</div>
+                <div class="list-detail">{{ i.detail }}</div>
+                <div class="list-foot">{{ i.source }} · {{ i.at | timeAgo }}</div>
+              </div>
+            </div>
+          } @empty {
+            <div class="muted small">No errors or blocked operations.</div>
+          }
+        </div>
+
+        <div class="panel">
+          <div class="panel-header"><h3>Outstanding work</h3></div>
+          <ul class="bullets">
+            @for (o of c.outstanding; track o) { <li>{{ o }}</li> } @empty { <li class="muted">Nothing outstanding recorded.</li> }
+          </ul>
+        </div>
+      </div>
+
+      <div class="tabs">
+        @for (t of tabs; track t.id) {
+          <button [class.active]="tab() === t.id" (click)="tab.set(t.id)">{{ t.label }}</button>
+        }
+        @if (loadingDetail()) { <span class="muted small">loading…</span> }
+      </div>
+
+      @if (detailError(); as e) { <div class="banner banner-error">{{ e }}</div> }
+
+      @switch (tab()) {
+        @case ('execution') {
+          <div class="panel">
+            <table class="table">
+              <thead><tr><th>When</th><th>Job</th><th>Status</th><th>Output</th><th>Duration</th></tr></thead>
+              <tbody>
+                @for (a of detail()?.activities ?? []; track a.cycle_id + a.job) {
+                  <tr>
+                    <td class="nowrap">{{ a.at | localWhen }}</td>
+                    <td class="nowrap">{{ a.job }}</td>
+                    <td><span class="tag" [class.tag-ok]="a.status === 'done'" [class.tag-danger]="a.status === 'failed' || a.status === 'timed_out'" [class.tag-warn]="a.status === 'waiting'" [class.tag-muted]="a.status === 'skipped'">{{ a.status.replace('_', ' ') }}</span></td>
+                    <td class="muted">{{ a.summary }}</td>
+                    <td class="nowrap mono">{{ (a.duration_ms / 1000) | number: '1.1-1' }}s</td>
+                  </tr>
+                } @empty {
+                  <tr><td colspan="5" class="empty">No job for this campaign has run yet.</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+        @case ('accounts') {
+          <div class="panel">
+            <table class="table">
+              <thead><tr><th>Platform</th><th>Account</th><th>Status</th><th>Last active</th></tr></thead>
+              <tbody>
+                @for (a of c.accounts; track a.id) {
+                  <tr>
+                    <td><span class="account-chip"><app-brand-logo [platform]="a.platform" [size]="16" />{{ a.platform }}</span></td>
+                    <td><strong>{{ a.username }}</strong></td>
+                    <td><span class="tag" [class.tag-ok]="a.status === 'active'" [class.tag-warn]="a.status !== 'active'">{{ a.status }}</span></td>
+                    <td class="muted">{{ a.last_active | timeAgo }}</td>
+                  </tr>
+                } @empty {
+                  <tr><td colspan="4" class="empty">No account is linked to this campaign.</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+        @case ('agents') {
+          <div class="panel">
+            <table class="table">
+              <thead><tr><th>Agent</th><th>Role</th><th>Side</th><th>Channel</th><th>Owns jobs</th></tr></thead>
+              <tbody>
+                @for (a of c.agents; track a.name) {
+                  <tr>
+                    <td><strong>{{ a.name }}</strong></td>
+                    <td>{{ a.role }}</td>
+                    <td><span class="chip chip-muted">{{ a.side }}</span></td>
+                    <td class="muted">{{ a.channel }}</td>
+                    <td class="muted">{{ a.jobs.length ? a.jobs.join(', ') : '—' }}</td>
+                  </tr>
+                } @empty {
+                  <tr><td colspan="5" class="empty">No agent is assigned.</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+        @case ('calendar') {
+          <div class="panel">
+            @if (c.brief.campaign_id === 'campaign_nova') {
+              <table class="table">
+                <thead><tr><th>Slot</th><th>Scheduled</th><th>Kind</th><th>Pillar / theme</th><th>Status</th><th>Assets</th></tr></thead>
+                <tbody>
+                  @for (s of detail()?.calendar ?? []; track slotText(s, 'id')) {
+                    <tr>
+                      <td class="nowrap">{{ slotText(s, 'id') }}</td>
+                      <td class="nowrap">{{ slotText(s, 'scheduled_at') | localWhen }}</td>
+                      <td>{{ slotText(s, 'kind') }} ×{{ slotText(s, 'images') }}</td>
+                      <td class="muted">{{ slotText(s, 'pillar') }} · {{ slotText(s, 'theme') }}</td>
+                      <td><span class="tag" [class.tag-ok]="slotText(s, 'status') === 'posted'" [class.tag-warn]="slotText(s, 'status') === 'ready'" [class.tag-muted]="slotText(s, 'status') === 'planned'">{{ slotText(s, 'status') }}</span></td>
+                      <td class="muted">{{ slotText(s, 'assets') }}</td>
+                    </tr>
+                  } @empty {
+                    <tr><td colspan="6" class="empty">The calendar has no slots.</td></tr>
+                  }
+                </tbody>
+              </table>
+            } @else {
+              <table class="table">
+                <thead><tr><th>Episode</th><th>Rendered</th><th>Shorts</th><th>YouTube</th><th>TikTok</th><th>Instagram</th><th>Kitchen</th></tr></thead>
+                <tbody>
+                  @for (e of detail()?.episodes ?? []; track e.slug) {
+                    <tr>
+                      <td><strong>{{ e.title }}</strong><div class="muted small">{{ e.slug }}</div></td>
+                      <td>{{ e.has_long_mp4 ? 'yes' : 'no' }}</td>
+                      <td>{{ e.shorts_count }}</td>
+                      <td><span class="tag" [class.tag-ok]="e.youtube_published" [class.tag-muted]="!e.youtube_published">{{ e.youtube_published ? 'published' : 'pending' }}</span></td>
+                      <td><span class="tag" [class.tag-ok]="e.tiktok_posted" [class.tag-muted]="!e.tiktok_posted">{{ e.tiktok_posted ? 'posted' : 'pending' }}</span></td>
+                      <td><span class="tag" [class.tag-ok]="e.instagram_posted" [class.tag-muted]="!e.instagram_posted">{{ e.instagram_posted ? 'posted' : 'pending' }}</span></td>
+                      <td class="muted">{{ e.kitchen_dish ?? '—' }}</td>
+                    </tr>
+                  } @empty {
+                    <tr><td colspan="7" class="empty">No rendered episodes found in the studio's out/ folder.</td></tr>
+                  }
+                </tbody>
+              </table>
+            }
+          </div>
+        }
+        @case ('bridge') {
+          <div class="panel">
+            @for (m of detail()?.bridge_messages ?? []; track m.id) {
+              <div class="bridge-msg">
+                <div class="bridge-meta"><strong>{{ m.from_agent }}</strong> → {{ m.to_agent }} <span class="muted">· {{ m.channel }} · {{ m.timestamp | localWhen }}</span></div>
+                <div class="bridge-subject">{{ m.subject }}</div>
+                <div class="bridge-body">{{ m.body }}</div>
+              </div>
+            } @empty {
+              <div class="empty">No coordination messages for this campaign on the studio bridge.</div>
+            }
+          </div>
+        }
+        @case ('brief') {
+          <div class="detail-grid">
+            <div class="panel">
+              <div class="panel-header"><h3>Campaign brief</h3><span class="muted small mono">{{ c.brief.campaign_id }}</span></div>
+              <dl class="kv">
+                <dt>Objective</dt><dd>{{ c.brief.objective }}</dd>
+                <dt>Audience</dt><dd>{{ c.brief.target_audience }}</dd>
+                <dt>Platforms</dt><dd>{{ c.brief.target_platforms.join(', ') }}</dd>
+                <dt>Formats</dt><dd>{{ c.brief.content_formats.join(', ') }}</dd>
+                <dt>Hashtags</dt><dd>{{ c.brief.hashtags.join(' ') }}</dd>
+                <dt>Window</dt><dd>{{ c.brief.start_date | localWhen }} → {{ c.brief.end_date | localWhen }}</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <div class="panel-header"><h3>Brand</h3><span class="muted small mono">{{ c.brief.brand_id }}</span></div>
+              @if (c.brand; as b) {
+                <dl class="kv">
+                  <dt>Name</dt><dd>{{ b.name }}</dd>
+                  <dt>Tagline</dt><dd>{{ b.tagline }}</dd>
+                  <dt>Tone</dt><dd>{{ b.voice.tone_adjectives.join(', ') }}</dd>
+                  <dt>Persona</dt><dd>{{ b.voice.audience_persona }}</dd>
+                  <dt>Rules</dt><dd><ul class="bullets">@for (r of b.voice.writing_rules; track r) { <li>{{ r }}</li> }</ul></dd>
+                  <dt>Escalate on</dt><dd>{{ b.voice.escalation_triggers.join(', ') }}</dd>
+                  <dt>Palette</dt><dd><span class="swatch" [style.background]="b.visual_identity.primary_hex"></span><span class="swatch" [style.background]="b.visual_identity.secondary_hex"></span><span class="swatch" [style.background]="b.visual_identity.accent_hex"></span></dd>
+                </dl>
+              } @else {
+                <div class="muted small">No brand profile is linked.</div>
+              }
+            </div>
+          </div>
+        }
+      }
+    } @else {
+      <div class="empty">Select a campaign.</div>
+    }
+  </section>
+</div>

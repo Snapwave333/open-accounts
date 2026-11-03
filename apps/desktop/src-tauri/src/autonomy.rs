@@ -41,8 +41,8 @@ struct Cadence {
 }
 
 /// Which project directory a job runs in.
-#[derive(Clone, Copy, PartialEq, Eq)]
-enum JobRoot {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum JobRoot {
     /// StickExplainers: the Clearly Drawn Studios pipeline.
     Studio,
     /// `influencer/`: the Nova Vexley pipeline.
@@ -110,7 +110,7 @@ const JOBS: &[JobSpec] = &[
         cadence: Some(Cadence { marker: r"insights\gc.json", min_age_secs: 20 * 3600, touch: false }),
     },
     // Nova Vexley (influencer/pipeline.py). Each command exits at once when its
-    // human gate is still open, so the cadences only bound the paid work.
+    // human gate is still open, so the cadences only bound GPU / relay work.
     JobSpec {
         name: "Nova plan",
         root: JobRoot::Influencer,
@@ -128,6 +128,14 @@ const JOBS: &[JobSpec] = &[
         cadence: Some(Cadence { marker: r"data\logs\handles.stamp", min_age_secs: 6 * 3600, touch: true }),
     },
     JobSpec {
+        name: "Nova account",
+        root: JobRoot::Influencer,
+        script: "pipeline.py",
+        args: &["account"],
+        timeout_secs: 600,
+        cadence: Some(Cadence { marker: r"data\logsccount.stamp", min_age_secs: 3600, touch: true }),
+    },
+    JobSpec {
         name: "Nova reference",
         root: JobRoot::Influencer,
         script: "pipeline.py",
@@ -140,16 +148,8 @@ const JOBS: &[JobSpec] = &[
         root: JobRoot::Influencer,
         script: "pipeline.py",
         args: &["generate"],
-        timeout_secs: 3600,
+        timeout_secs: 7200,
         cadence: Some(Cadence { marker: r"data\logs\generate.stamp", min_age_secs: 6 * 3600, touch: true }),
-    },
-    JobSpec {
-        name: "Nova reels",
-        root: JobRoot::Influencer,
-        script: "pipeline.py",
-        args: &["reels"],
-        timeout_secs: 1800,
-        cadence: Some(Cadence { marker: r"data\logs\reels.stamp", min_age_secs: 12 * 3600, touch: true }),
     },
     JobSpec {
         name: "Nova publish",
@@ -176,6 +176,11 @@ const JOBS: &[JobSpec] = &[
         cadence: Some(Cadence { marker: r"data\logs\gc.stamp", min_age_secs: 24 * 3600, touch: true }),
     },
 ];
+
+/// Every supervised job, in cycle order, with the project it runs in.
+pub fn planned_jobs() -> Vec<(String, JobRoot)> {
+    JOBS.iter().map(|j| (j.name.to_string(), j.root)).collect()
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AutonomyJobReport {
@@ -204,6 +209,25 @@ pub struct AutonomyCycleReport {
     pub error: Option<String>,
 }
 
+
+/// Live snapshot of the Nova Vexley campaign for the dashboard (distinct from StickExplainers).
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct NovaCampaignSnapshot {
+    pub campaign_id: String,
+    pub brand_id: String,
+    pub title: String,
+    pub handle: Option<String>,
+    pub account_status: String,
+    pub gates_open: Vec<String>,
+    pub calendar_slots: usize,
+    pub ready_posts: usize,
+    pub posted: usize,
+    pub followers: Option<u64>,
+    pub reference_images: usize,
+    pub photos_only: bool,
+    pub cost: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AutonomyStatus {
     pub loop_running: bool,
@@ -225,6 +249,8 @@ pub struct AutonomyStatus {
     pub current_job: Option<String>,
     /// Every job a cycle runs, in order.
     pub planned_jobs: Vec<String>,
+    /// Nova Vexley campaign live status (None if influencer/ is missing).
+    pub nova: Option<NovaCampaignSnapshot>,
 }
 
 /// Resets the in-flight flag even if a cycle returns early.
@@ -233,6 +259,104 @@ impl Drop for InFlightGuard<'_> {
     fn drop(&mut self) {
         self.0.store(false, Ordering::SeqCst);
     }
+}
+
+
+fn read_nova_snapshot(root: &PathBuf) -> Option<NovaCampaignSnapshot> {
+    if !root.join("pipeline.py").is_file() {
+        return None;
+    }
+    let read_json = |name: &str| -> Option<serde_json::Value> {
+        let raw = std::fs::read_to_string(root.join("data").join(name)).ok()?;
+        serde_json::from_str(&raw).ok()
+    };
+    let state = read_json("state.json").unwrap_or_else(|| serde_json::json!({}));
+    let needs = read_json("needs_you.json").unwrap_or_else(|| serde_json::json!({"tasks": []}));
+    let cal = read_json("calendar.json").unwrap_or_else(|| serde_json::json!({"slots": []}));
+    let analytics = read_json("analytics.json").unwrap_or_else(|| serde_json::json!({}));
+
+    let handle = state
+        .get("handle")
+        .and_then(|v| v.as_str())
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty());
+
+    let gates_open: Vec<String> = needs
+        .get("tasks")
+        .and_then(|t| t.as_array())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|t| t.get("gate").and_then(|g| g.as_str()).map(str::to_string))
+                .collect()
+        })
+        .unwrap_or_default();
+
+    let slots = cal
+        .get("slots")
+        .and_then(|s| s.as_array())
+        .cloned()
+        .unwrap_or_default();
+    let calendar_slots = slots.len();
+    let ready_posts = slots
+        .iter()
+        .filter(|s| s.get("status").and_then(|v| v.as_str()) == Some("ready"))
+        .count();
+    let posted = slots
+        .iter()
+        .filter(|s| s.get("status").and_then(|v| v.as_str()) == Some("posted"))
+        .count();
+
+    let followers = analytics
+        .get("followers")
+        .and_then(|v| v.as_u64())
+        .or_else(|| {
+            analytics
+                .get("latest")
+                .and_then(|l| l.get("followers"))
+                .and_then(|v| v.as_u64())
+        });
+
+    let reference_images = std::fs::read_dir(root.join("data").join("reference"))
+        .map(|rd| {
+            rd.filter_map(|e| e.ok())
+                .filter(|e| {
+                    e.path()
+                        .extension()
+                        .and_then(|x| x.to_str())
+                        .is_some_and(|x| x.eq_ignore_ascii_case("jpg") || x.eq_ignore_ascii_case("png"))
+                })
+                .count()
+        })
+        .unwrap_or(0);
+
+    let account_created = std::fs::read_to_string(root.join("data").join("approvals.json"))
+        .ok()
+        .and_then(|r| serde_json::from_str::<serde_json::Value>(&r).ok())
+        .and_then(|v| v.pointer("/gates/account_created").cloned())
+        .is_some();
+    let account_status = if account_created {
+        "account_created".into()
+    } else if handle.is_some() {
+        "pending_signup".into()
+    } else {
+        "pending_handle".into()
+    };
+
+    Some(NovaCampaignSnapshot {
+        campaign_id: "campaign_nova".into(),
+        brand_id: "brand_nova".into(),
+        title: "Nova Vexley - photos-only AI influencer".into(),
+        handle,
+        account_status,
+        gates_open,
+        calendar_slots,
+        ready_posts,
+        posted,
+        followers,
+        reference_images,
+        photos_only: true,
+        cost: "free".into(),
+    })
 }
 
 pub struct AutonomyRuntime {
@@ -288,6 +412,10 @@ impl AutonomyRuntime {
         &self.studio_root
     }
 
+    pub fn influencer_root(&self) -> &PathBuf {
+        &self.influencer_root
+    }
+
     pub fn is_paused(&self) -> bool {
         self.paused.load(Ordering::SeqCst)
     }
@@ -314,6 +442,7 @@ impl AutonomyRuntime {
             cycle_in_flight: self.cycle_in_flight.load(Ordering::SeqCst),
             current_job: self.current_job.read().await.clone(),
             planned_jobs: JOBS.iter().map(|j| j.name.to_string()).collect(),
+            nova: read_nova_snapshot(&self.influencer_root),
         }
     }
 

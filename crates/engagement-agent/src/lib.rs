@@ -177,6 +177,7 @@ impl EngagementAgent {
                 _ => ClassificationCategory::CustomerSupport,
             };
 
+            let escalation = matches!(category, ClassificationCategory::SecurityOrLegalEscalation);
             let account_id = accounts
                 .iter()
                 .find(|a| a.platform.to_string().to_lowercase() == platform.to_lowercase())
@@ -192,12 +193,17 @@ impl EngagementAgent {
                 category,
                 sentiment_score: None,
                 drafted_reply: draft.clone(),
-                // Every reply goes through the studio's own approval path,
-                // which re-checks safety rules and daily limits.
-                is_auto_reply_eligible: false,
-                requires_human_approval: true,
-                status: if draft.is_some() {
-                    "PendingApproval".into()
+                // CDN organic replies follow StickExplainers config.json comments.mode.
+                // When mode is "auto" (Eli 2026-11-02: human out of the loop for organic
+                // CDN social/engagement), routine replies need no per-reply approval;
+                // comments.py still enforces safety categories + daily caps. Security /
+                // legal escalations (toxic, personal info) always stay with a human.
+                is_auto_reply_eligible: !escalation,
+                requires_human_approval: escalation,
+                status: if escalation {
+                    "NeedsHuman".into()
+                } else if draft.is_some() {
+                    "AutoApproved".into()
                 } else {
                     "New".into()
                 },

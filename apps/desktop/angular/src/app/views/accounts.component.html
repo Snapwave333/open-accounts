@@ -1,0 +1,66 @@
+<header class="view-header">
+  <div>
+    <h1>Accounts</h1>
+    <p class="view-sub">{{ tauri.accounts().length }} identities in the local registry (openaccounts.sqlite), imported from the studio's config and the Nova pipeline.</p>
+  </div>
+  <div class="view-actions">
+    <button class="btn btn-primary" (click)="showAdd.set(!showAdd())">{{ showAdd() ? 'Close' : 'Add account' }}</button>
+  </div>
+</header>
+
+@if (showAdd()) {
+  <section class="panel">
+    <div class="panel-header"><h2>Register an account</h2><span class="muted small">Adds a registry row; credentials go into the vault separately.</span></div>
+    <div class="form-row">
+      <label class="field">
+        <span>Platform</span>
+        <select [ngModel]="platform()" (ngModelChange)="platform.set($event)">
+          <option value="instagram">Instagram</option>
+          <option value="tiktok">TikTok</option>
+          <option value="youtube">YouTube</option>
+          <option value="x">X</option>
+          <option value="reddit">Reddit</option>
+          <option value="discord">Discord</option>
+          <option value="shopify">Shopify</option>
+          <option value="email">Email</option>
+        </select>
+      </label>
+      <label class="field grow">
+        <span>Handle</span>
+        <input type="text" placeholder="@handle" [ngModel]="username()" (ngModelChange)="username.set($event)" (keyup.enter)="add()" />
+      </label>
+      <label class="field grow">
+        <span>Email <em>optional</em></span>
+        <input type="email" placeholder="name@example.com" [ngModel]="email()" (ngModelChange)="email.set($event)" (keyup.enter)="add()" />
+      </label>
+      <button class="btn btn-primary" (click)="add()" [disabled]="adding() || !username().trim()">Save</button>
+    </div>
+  </section>
+}
+
+@for (g of groups(); track g.title) {
+  <section class="panel">
+    <div class="panel-header">
+      <div><h2>{{ g.title }}</h2><span class="muted small">{{ g.sub }}</span></div>
+      <span class="badge">{{ g.items.length }}</span>
+    </div>
+    <table class="table">
+      <thead><tr><th>Platform</th><th>Account</th><th>Email</th><th>Status</th><th>Integration</th><th>Added</th><th>Last active</th></tr></thead>
+      <tbody>
+        @for (a of g.items; track a.id) {
+          <tr>
+            <td><span class="account-chip"><app-brand-logo [platform]="a.platform === 'email' ? a.username : a.platform" [size]="18" />{{ a.platform }}</span></td>
+            <td><strong>{{ a.username }}</strong></td>
+            <td class="muted">{{ a.email || '—' }}</td>
+            <td><span class="tag" [class.tag-ok]="a.status === 'active'" [class.tag-warn]="a.status !== 'active'">{{ a.status }}</span></td>
+            <td class="muted small">{{ metaText(a) || '—' }}</td>
+            <td class="muted">{{ a.created_at | localWhen }}</td>
+            <td class="muted">{{ a.last_active | timeAgo }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </section>
+} @empty {
+  <div class="panel"><div class="empty">No accounts registered yet.</div></div>
+}

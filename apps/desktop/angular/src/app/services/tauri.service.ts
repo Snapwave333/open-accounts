@@ -1,5 +1,9 @@
 import { computed, Injectable, signal } from '@angular/core';
 
+// ---------------------------------------------------------------------------
+// Backend shapes (mirrors the Rust structs; everything here is live data)
+// ---------------------------------------------------------------------------
+
 export interface SystemStats {
   total_accounts: number;
   active_automations: number;
@@ -16,6 +20,7 @@ export interface AccountRecord {
   email?: string | null;
   phone?: string | null;
   status: string;
+  profile_metadata?: Record<string, unknown>;
   created_at: string;
   last_active?: string | null;
 }
@@ -52,10 +57,38 @@ export interface StickBridgeMessage {
   status: string;
 }
 
+export interface StickAgentPairing {
+  openaccounts_agent: string;
+  openaccounts_title: string;
+  stick_agents: string[];
+  stick_roles: string[];
+  channel: string;
+}
+
+export interface StickEpisodeSummary {
+  slug: string;
+  title: string;
+  has_long_mp4: boolean;
+  shorts_count: number;
+  youtube_published: boolean;
+  tiktok_posted: boolean;
+  instagram_posted: boolean;
+  kitchen_dish?: string | null;
+  kitchen_show?: string | null;
+}
+
 export interface StickBridgeState {
   status: string;
   stick_studio_root: string;
+  control_room_url: string;
+  delegation: {
+    comments_delegated_to_openaccounts: boolean;
+    engage_delegated_to_openaccounts: boolean;
+    social_agent_delegated_to_openaccounts: boolean;
+  };
+  pairings: StickAgentPairing[];
   messages: StickBridgeMessage[];
+  latest_episodes: StickEpisodeSummary[];
   last_synced_at: string;
 }
 
@@ -73,35 +106,11 @@ export interface GarbageCollectionReport {
   openaccounts_buffers_scrubbed: number;
 }
 
-export interface FlowCardItem {
-  id: string;
-  title: string;
-  detail: string;
-  tag: string;
-  time_label: string;
-  eta?: string;
-  progress?: number;
-  platform: string;
-  account_handle: string;
-}
-
-export interface ChatAttachment {
-  id: string;
-  name: string;
-  size_label: string;
-  mime_type: string;
-  is_image: boolean;
-  data_url?: string;
-}
-
-export interface AgentChatMessage {
-  id: string;
-  sender: 'human' | 'agent';
-  author_label: string;
-  timestamp: string;
-  text: string;
-  target_scope?: string;
-  attachments: ChatAttachment[];
+export interface ChromeRelayStatus {
+  online: boolean;
+  broker_url: string;
+  sessions: { name: string; run_id: string; state: string; tab_id: number | null }[];
+  error: string | null;
 }
 
 export interface AutonomyJobReport {
@@ -126,6 +135,22 @@ export interface AutonomyCycleReport {
   error: string | null;
 }
 
+export interface NovaCampaignSnapshot {
+  campaign_id: string;
+  brand_id: string;
+  title: string;
+  handle: string | null;
+  account_status: string;
+  gates_open: string[];
+  calendar_slots: number;
+  ready_posts: number;
+  posted: number;
+  followers: number | null;
+  reference_images: number;
+  photos_only: boolean;
+  cost: string;
+}
+
 export interface AutonomyStatus {
   loop_running: boolean;
   paused: boolean;
@@ -138,19 +163,157 @@ export interface AutonomyStatus {
   studio_root: string;
   python: string;
   studio_root_exists: boolean;
+  influencer_root: string;
+  influencer_root_exists: boolean;
   cycle_in_flight: boolean;
   current_job: string | null;
   planned_jobs: string[];
+  nova?: NovaCampaignSnapshot | null;
 }
 
-/** Which accounts a studio job acts on, for the flow cards' logo and label. */
+export interface CampaignBrief {
+  campaign_id: string;
+  brand_id: string;
+  title: string;
+  objective: string;
+  target_platforms: string[];
+  target_audience: string;
+  content_formats: string[];
+  hashtags: string[];
+  start_date: string;
+  end_date: string;
+  status: string;
+}
+
+export interface BrandProfile {
+  brand_id: string;
+  name: string;
+  tagline: string;
+  visual_identity: { primary_hex: string; secondary_hex: string; accent_hex: string; font_family: string };
+  voice: {
+    tone_adjectives: string[];
+    audience_persona: string;
+    writing_rules: string[];
+    prohibited_words: string[];
+    escalation_triggers: string[];
+  };
+}
+
+export interface CampaignAccount {
+  id: string;
+  platform: string;
+  username: string;
+  status: string;
+  last_active: string | null;
+}
+
+export interface CampaignAgent {
+  name: string;
+  role: string;
+  side: 'openaccounts' | 'studio' | 'pipeline';
+  channel: string;
+  jobs: string[];
+}
+
+export interface CampaignIssue {
+  severity: 'error' | 'blocked' | 'warning';
+  title: string;
+  detail: string;
+  at: string | null;
+  source: string;
+}
+
+export interface CampaignMetric {
+  label: string;
+  value: string;
+  numeric: number | null;
+  target: number | null;
+  source: string;
+  captured_at: string | null;
+}
+
+export interface CampaignActivity {
+  cycle_id: string;
+  at: string;
+  job: string;
+  status: 'done' | 'failed' | 'timed_out' | 'waiting' | 'skipped';
+  summary: string;
+  duration_ms: number;
+}
+
+export interface CampaignProgress {
+  label: string;
+  done: number;
+  total: number;
+}
+
+export interface CampaignOverview {
+  brief: CampaignBrief;
+  brand: BrandProfile | null;
+  accounts: CampaignAccount[];
+  agents: CampaignAgent[];
+  last_activity_at: string | null;
+  last_cycle_status: string | null;
+  jobs_done: number;
+  jobs_failed: number;
+  jobs_waiting: number;
+  current_job: string | null;
+  issues: CampaignIssue[];
+  outstanding: string[];
+  metrics: CampaignMetric[];
+  progress: CampaignProgress[];
+  pending_tasks: number;
+}
+
+export interface CycleSummary {
+  cycle_id: string;
+  started_at: string;
+  finished_at: string;
+  status: string;
+  done: number;
+  failed: number;
+  waiting: number;
+}
+
+export interface CampaignDetail {
+  overview: CampaignOverview;
+  activities: CampaignActivity[];
+  cycles: CycleSummary[];
+  pending_tasks: HumanTask[];
+  bridge_messages: StickBridgeMessage[];
+  episodes: StickEpisodeSummary[];
+  calendar: Record<string, unknown>[];
+}
+
+/** A unit of agent work for the Activity view (built only from real job reports). */
+export interface FlowCardItem {
+  id: string;
+  title: string;
+  detail: string;
+  tag: 'DONE' | 'FAILED' | 'WAITING' | 'RUNNING NOW' | 'QUEUED' | 'SKIPPED';
+  time_label: string;
+  eta?: string;
+  progress?: number;
+  platform: string;
+  account_handle: string;
+  campaign: 'campaign_cdn' | 'campaign_nova' | 'runtime';
+}
+
+export interface UiState {
+  activeView?: string;
+  selectedCampaign?: string | null;
+  chatDraft?: string;
+  activityFilter?: string;
+}
+
+/** Which accounts a studio job acts on, for the activity cards' logo and label. */
 const JOB_ACCOUNT: Record<string, { platform: string; handle: string; role: string }> = {
   'Comment sweep': { platform: 'youtube', handle: 'YouTube · TikTok · IG', role: 'Comment & Reply Agent' },
   'Social plan': { platform: 'instagram', handle: 'Instagram', role: 'Social Publishing Agent' },
   'Social publish': { platform: 'instagram', handle: 'Instagram', role: 'Social Publishing Agent' },
   'Engagement run': { platform: 'tiktok', handle: 'TikTok · IG · YouTube', role: 'Engagement Agent' },
   'Engagement stats': { platform: 'tiktok', handle: 'TikTok · IG · YouTube', role: 'Engagement Agent' },
-  'Retention GC': { platform: 'shopify', handle: 'Studio host', role: 'Retention / GC Agent' },
+  'Retention GC': { platform: 'studio', handle: 'Studio host', role: 'Retention / GC Agent' },
 };
 
 /** Cycle state changes by the second; accounts, vault, GC and bridge rarely do. */
@@ -158,7 +321,7 @@ const FAST_POLL_MS = 5000;
 const SLOW_POLL_MS = 30000;
 
 /** Turns engage.py's stats line (a Python dict) into "IG 4 likes · 1 follow · YT 3 likes". */
-function formatEngagement(summary: string): string | null {
+export function formatEngagement(summary: string): string | null {
   let parsed: Record<string, Record<string, number>>;
   try {
     parsed = JSON.parse(summary.replace(/'/g, '"'));
@@ -180,7 +343,7 @@ function formatEngagement(summary: string): string | null {
 }
 
 /** Rust enums arrive either as "variant" or {"variant": value}; show them as text. */
-function enumText(value: unknown): string {
+export function enumText(value: unknown): string {
   if (typeof value === 'string') return value;
   if (value && typeof value === 'object') {
     const [key, inner] = Object.entries(value as Record<string, unknown>)[0] ?? [];
@@ -190,8 +353,17 @@ function enumText(value: unknown): string {
   return String(value ?? '');
 }
 
-function localTime(iso: string): string {
+export function localTime(iso: string): string {
   return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+export function timeAgo(iso: string | null | undefined): string {
+  if (!iso) return 'never';
+  const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.round(mins / 60);
+  return hours < 48 ? `${hours}h ago` : `${Math.round(hours / 24)}d ago`;
 }
 
 @Injectable({
@@ -203,20 +375,23 @@ export class TauriService {
   // Everything below is loaded from the Rust backend; nothing is seeded.
   stats = signal<SystemStats | null>(null);
   accounts = signal<AccountRecord[]>([]);
+  campaigns = signal<CampaignOverview[]>([]);
   humanTasks = signal<HumanTask[]>([]);
   vaultUnlocked = signal<boolean>(false);
   vaultSecrets = signal<SecretMetadata[]>([]);
   killSwitchActive = signal<boolean>(false);
   isAutonomousLoopRunning = signal<boolean>(false);
   autonomyStatus = signal<AutonomyStatus | null>(null);
+  recentCycles = signal<AutonomyCycleReport[]>([]);
   gcReport = signal<GarbageCollectionReport | null>(null);
   bridgeState = signal<StickBridgeState | null>(null);
+  relayStatus = signal<ChromeRelayStatus | null>(null);
   justDidItems = signal<FlowCardItem[]>([]);
   activelyDoingItems = signal<FlowCardItem[]>([]);
   planToDoNextItems = signal<FlowCardItem[]>([]);
   /** Last cycle's "Engagement stats" output (today's real action counts). */
   engagementToday = signal<string | null>(null);
-  agentChatMessages = signal<AgentChatMessage[]>([]);
+  uiState = signal<UiState>({});
 
   /** Last error from the fast poller, the slow poller, and the last user action. */
   private cycleError = signal<string | null>(null);
@@ -227,8 +402,16 @@ export class TauriService {
   /** Set once the first refresh has finished, so empty states aren't shown while loading. */
   loaded = signal<boolean>(false);
 
+  /** Issues that need the operator: failed jobs, open tasks, halted runtime. */
+  attentionCount = computed(() => {
+    const tasks = this.humanTasks().length;
+    const failed = this.justDidItems().filter((i) => i.tag === 'FAILED').length;
+    return tasks + failed + (this.killSwitchActive() ? 1 : 0);
+  });
+
   private fastPolling = false;
   private slowPolling = false;
+  private uiSaveTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     if (this.isTauriAvailable) {
@@ -248,16 +431,31 @@ export class TauriService {
   }
 
   private async startSync() {
+    try {
+      this.uiState.set((await this.invoke<UiState>('get_ui_state')) ?? {});
+    } catch (err) {
+      console.warn('No persisted UI state', err);
+    }
     await this.refresh();
     setInterval(() => void this.refreshCycleState(), FAST_POLL_MS);
     setInterval(() => void this.refreshStudioData(), SLOW_POLL_MS);
     try {
       const { listen } = await import('@tauri-apps/api/event');
-      // A finished cycle may have changed accounts, GC and the bridge as well.
+      // A finished cycle may have changed accounts, GC, campaigns and the bridge as well.
       await listen<AutonomyCycleReport>('autonomy://cycle', () => void this.refresh());
     } catch (err) {
       console.warn('Cannot subscribe to autonomy://cycle events', err);
     }
+  }
+
+  /** Persists a UI preference (debounced) to the backend's ui_state.json. */
+  updateUiState(patch: Partial<UiState>) {
+    this.uiState.update((s) => ({ ...s, ...patch }));
+    if (!this.isTauriAvailable) return;
+    if (this.uiSaveTimer) clearTimeout(this.uiSaveTimer);
+    this.uiSaveTimer = setTimeout(() => {
+      void this.invoke('set_ui_state', { value: this.uiState() }).catch((e) => console.warn('ui state not saved', e));
+    }, 400);
   }
 
   /** Pulls the whole visible state from the backend. */
@@ -273,12 +471,13 @@ export class TauriService {
     try {
       const [status, cycles, stats, kill, tasks] = await Promise.all([
         this.invoke<AutonomyStatus>('get_autonomy_status'),
-        this.invoke<AutonomyCycleReport[]>('list_autonomy_cycles', { limit: 5 }),
+        this.invoke<AutonomyCycleReport[]>('list_autonomy_cycles', { limit: 12 }),
         this.invoke<SystemStats>('get_system_stats'),
         this.invoke<boolean>('is_kill_switch_active'),
         this.invoke<Array<HumanTask & { id: unknown; challenge_type: unknown; status: unknown }>>('list_human_tasks'),
       ]);
       this.autonomyStatus.set(status);
+      this.recentCycles.set(cycles);
       this.stats.set(stats);
       this.killSwitchActive.set(kill);
       this.isAutonomousLoopRunning.set(status.loop_running && !status.paused);
@@ -299,18 +498,56 @@ export class TauriService {
     }
   }
 
-  /** Accounts, vault, GC and the studio bridge: slow to read, slow to change. */
+  /** StickExplainers CDN accounts vs Nova campaign accounts (metadata.campaign_id / brand). */
+  cdnAccounts(): AccountRecord[] {
+    return this.accounts().filter((a) => !this.isNovaAccount(a));
+  }
+
+  novaAccounts(): AccountRecord[] {
+    return this.accounts().filter((a) => this.isNovaAccount(a));
+  }
+
+  isNovaAccount(a: AccountRecord): boolean {
+    const handle = (a.username || '').toLowerCase();
+    if (handle.includes('novavexley') || handle.includes('nova vexley')) return true;
+    let meta: Record<string, unknown> | null = null;
+    const raw = a.profile_metadata as unknown;
+    if (raw && typeof raw === 'object') meta = raw as Record<string, unknown>;
+    else if (typeof raw === 'string') {
+      try {
+        meta = JSON.parse(raw) as Record<string, unknown>;
+      } catch {
+        meta = null;
+      }
+    }
+    if (!meta) return false;
+    return (
+      meta['campaign_id'] === 'campaign_nova' ||
+      String(meta['brand'] ?? '').includes('Nova Vexley') ||
+      String(meta['source'] ?? '').startsWith('influencer')
+    );
+  }
+
+  /** Accounts, vault, GC, relay, campaigns and the studio bridge: slow to read, slow to change. */
   async refreshStudioData() {
     if (this.slowPolling) return;
     this.slowPolling = true;
     try {
-      const [accounts, vault, gc, bridge] = await Promise.all([
+      const [accounts, vault, gc, bridge, campaigns, relay] = await Promise.all([
         this.invoke<Array<AccountRecord & { platform: unknown }>>('list_accounts'),
         this.invoke<boolean>('is_vault_unlocked'),
         this.invoke<GarbageCollectionReport | null>('get_gc_report'),
         this.invoke<StickBridgeState>('get_stick_bridge_state'),
+        this.invoke<CampaignOverview[]>('list_campaign_overviews').catch((e) => {
+          console.warn('campaign overviews unavailable', e);
+          return [] as CampaignOverview[];
+        }),
+        this.invoke<ChromeRelayStatus>('get_chrome_relay_status').catch(
+          (e) => ({ online: false, broker_url: '', sessions: [], error: String(e) }) as ChromeRelayStatus
+        ),
       ]);
       this.accounts.set(accounts.map((a) => ({ ...a, platform: enumText(a.platform).toLowerCase() })));
+      this.campaigns.set(campaigns ?? []);
       this.vaultUnlocked.set(vault);
       this.vaultSecrets.set(
         vault
@@ -321,6 +558,7 @@ export class TauriService {
       );
       this.gcReport.set(gc);
       this.bridgeState.set(bridge);
+      this.relayStatus.set(relay);
       this.studioError.set(null);
     } catch (err) {
       this.studioError.set(String(err));
@@ -329,27 +567,35 @@ export class TauriService {
     }
   }
 
-  /** Builds Just Did / Actively Doing / Plan To Do Next from real job results only. */
+  async loadCampaignDetail(campaignId: string): Promise<CampaignDetail> {
+    return this.invoke<CampaignDetail>('get_campaign_detail', { campaignId });
+  }
+
+  /** Builds Just Did / Running / Up Next from real job results only. */
   private applyFlowFromRuntime(status: AutonomyStatus, cycles: AutonomyCycleReport[]) {
     const account = (job: string) =>
       JOB_ACCOUNT[job] ??
       (job.startsWith('Nova ')
         ? { platform: 'instagram', handle: 'Nova Vexley', role: `Nova ${job.slice(5)} agent` }
-        : { platform: 'shopify', handle: 'Studio', role: 'Studio Agent' });
+        : { platform: 'studio', handle: 'Studio', role: 'Studio Agent' });
+    const campaignOf = (job: string): FlowCardItem['campaign'] =>
+      job.startsWith('Nova ') ? 'campaign_nova' : 'campaign_cdn';
 
     const done: FlowCardItem[] = [];
     for (const cycle of cycles) {
       for (const job of cycle.jobs) {
-        if (job.skipped) continue; // not due yet; the plan column shows when it next runs
+        const waiting = job.skipped && job.exit_code === 3;
+        if (job.skipped && !waiting) continue; // not due yet; the plan column shows when it next runs
         const a = account(job.name);
         done.push({
           id: `${cycle.cycle_id}-${job.name}`,
           title: `${a.role}: ${job.name}${job.success ? '' : job.timed_out ? ' (timed out)' : ' (failed)'}`,
           detail: job.summary,
-          tag: job.success ? 'DONE' : 'FAILED',
+          tag: waiting ? 'WAITING' : job.success ? 'DONE' : 'FAILED',
           time_label: `${localTime(cycle.finished_at)} · ${(job.duration_ms / 1000).toFixed(1)}s`,
           platform: a.platform,
           account_handle: a.handle,
+          campaign: campaignOf(job.name),
         });
       }
       if (cycle.jobs.length === 0 && cycle.error) {
@@ -359,12 +605,13 @@ export class TauriService {
           detail: cycle.error,
           tag: 'SKIPPED',
           time_label: localTime(cycle.finished_at),
-          platform: 'shopify',
+          platform: 'studio',
           account_handle: 'Autonomy loop',
+          campaign: 'runtime',
         });
       }
     }
-    this.justDidItems.set(done.slice(0, 12));
+    this.justDidItems.set(done.slice(0, 40));
 
     const stats = cycles[0]?.jobs.find((j) => j.name === 'Engagement stats' && j.success);
     this.engagementToday.set(stats ? formatEngagement(stats.summary) ?? stats.summary : null);
@@ -377,13 +624,14 @@ export class TauriService {
         {
           id: `live-${status.current_job}`,
           title: `${a.role}: ${status.current_job}`,
-          detail: `Running in ${status.studio_root} with ${status.python}`,
+          detail: `Running in ${status.current_job.startsWith('Nova ') ? status.influencer_root : status.studio_root}`,
           tag: 'RUNNING NOW',
           time_label: 'Live',
           eta: `Job ${currentIdx + 1} of ${planned.length}`,
           progress: Math.round((currentIdx / Math.max(1, planned.length)) * 100),
           platform: a.platform,
           account_handle: a.handle,
+          campaign: campaignOf(status.current_job),
         },
       ]);
     } else {
@@ -417,6 +665,7 @@ export class TauriService {
                 : 'Starting',
           platform: a.platform,
           account_handle: a.handle,
+          campaign: campaignOf(job),
         };
       })
     );
@@ -436,12 +685,16 @@ export class TauriService {
     }
   }
 
+  clearActionError() {
+    this.actionError.set(null);
+  }
+
   async openExternal(url: string) {
     await this.act('open_external', { url });
   }
 
   async resolveTask(id: string) {
-    await this.act('resolve_human_task', { task_id: id });
+    await this.act('resolve_human_task', { taskId: id });
   }
 
   async toggleKillSwitch() {
@@ -463,54 +716,15 @@ export class TauriService {
     return this.act<GarbageCollectionReport>('run_garbage_collection', { apply: true });
   }
 
-  async sendAgentChatMessage(text: string, targetScope: string, attachments: ChatAttachment[]) {
-    const now = new Date().toISOString();
-    this.agentChatMessages.update((prev) => [
-      ...prev,
-      {
-        id: `chat-${Date.now()}`,
-        sender: 'human',
-        author_label: 'You',
-        timestamp: localTime(now),
-        text: text || `Attached ${attachments.length} file(s)`,
-        target_scope: targetScope,
-        attachments,
-      },
-    ]);
-
-    const names = attachments.map((a) => `${a.name} (${a.size_label})`).join(', ');
-    const body = names ? `${text}\n[Attachments named by the operator, not transferred: ${names}]` : text;
-
-    let reply: string;
-    try {
-      const sent = await this.invoke<StickBridgeMessage>('send_stick_bridge_message', {
-        from_agent: 'Human Operator via OpenAccounts',
-        to_agent: targetScope,
-        channel: 'Direct Agent Chat',
-        subject: text ? text.slice(0, 64) : `Attachment note (${attachments.length} file(s))`,
-        body,
-        create_ceo_directive: true,
-      });
-      reply =
-        `Written to the studio bridge as ${sent.id} and filed as a CEO directive. ` +
-        `The studio's CEO agent reads active directives on its hourly brief.` +
-        (names ? ' File contents are not transferred, only their names.' : '');
-    } catch (err) {
-      reply = `Not delivered: ${String(err)}`;
-    }
-
-    this.agentChatMessages.update((prev) => [
-      ...prev,
-      {
-        id: `chat-reply-${Date.now()}`,
-        sender: 'agent',
-        author_label: 'Studio bridge',
-        timestamp: localTime(new Date().toISOString()),
-        text: reply,
-        target_scope: targetScope,
-        attachments: [],
-      },
-    ]);
-    await this.refresh();
+  /** Writes a coordination message to the studio bridge (and optionally a CEO directive). */
+  async sendBridgeMessage(toAgent: string, subject: string, body: string, createDirective: boolean) {
+    return this.act<StickBridgeMessage>('send_stick_bridge_message', {
+      fromAgent: 'Operator via OpenAccounts',
+      toAgent,
+      channel: 'Operator Dispatch',
+      subject,
+      body,
+      createCeoDirective: createDirective,
+    });
   }
 }

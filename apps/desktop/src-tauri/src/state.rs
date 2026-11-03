@@ -31,6 +31,7 @@ use std::sync::Arc;
 use tracing::{info, warn};
 
 use crate::autonomy::AutonomyRuntime;
+use crate::ceo::CeoChannel;
 
 #[allow(dead_code)]
 pub struct AppState {
@@ -62,11 +63,41 @@ pub struct AppState {
     pub social_analytics: Arc<SocialAnalyticsEngine>,
     pub social_media_manager: Arc<SocialMediaManagerAgent>,
     pub autonomy: Arc<AutonomyRuntime>,
+    pub ceo: Arc<CeoChannel>,
+    /// Folder holding openaccounts.sqlite and the UI state file.
+    pub data_dir: std::path::PathBuf,
+}
+
+/// Where the app keeps its database. `OPENACCOUNTS_DATA_DIR` wins; then the
+/// working directory if it already holds a database (the shortcut starts the
+/// app in the checkout); then the checkout found by walking up from the
+/// executable (a double-clicked `target/release/openaccounts-desktop.exe`);
+/// otherwise the working directory. Launching from a different folder must
+/// not silently open a second, empty database.
+pub fn data_dir() -> std::path::PathBuf {
+    if let Some(dir) = std::env::var("OPENACCOUNTS_DATA_DIR").ok().filter(|v| !v.trim().is_empty()) {
+        return std::path::PathBuf::from(dir);
+    }
+    let cwd = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+    if cwd.join("openaccounts.sqlite").is_file() {
+        return cwd;
+    }
+    if let Ok(exe) = std::env::current_exe() {
+        let mut dir = exe.parent().map(|p| p.to_path_buf());
+        while let Some(d) = dir {
+            if d.join("openaccounts.sqlite").is_file() || (d.join("Cargo.toml").is_file() && d.join("crates").is_dir()) {
+                return d;
+            }
+            dir = d.parent().map(|p| p.to_path_buf());
+        }
+    }
+    cwd
 }
 
 impl AppState {
     pub async fn init() -> Self {
-        let app_dir = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+        let app_dir = data_dir();
+        info!("Data directory: {}", app_dir.display());
         let db_path = app_dir.join("openaccounts.sqlite");
         let db = Arc::new(Database::init(&db_path).await.expect("Database init failed"));
 
@@ -92,6 +123,7 @@ impl AppState {
         // Import the studio's real, configured identities. Nothing is invented:
         // every row below is derived from StickExplainers/config.json.
         import_configured_accounts(&account_registry, autonomy.studio_root()).await;
+    import_nova_account(&account_registry, autonomy.influencer_root()).await;
 
         let event_bus = Arc::new(EventBus::new());
 
@@ -154,6 +186,11 @@ impl AppState {
             social_analytics.clone(),
         ));
 
+        let ceo = Arc::new(CeoChannel::new(
+            autonomy.studio_root().clone(),
+            openaccounts_core::python_interpreter(),
+        ));
+
         Self {
             db,
             vault,
@@ -183,6 +220,8 @@ impl AppState {
             social_analytics,
             social_media_manager,
             autonomy,
+            ceo,
+            data_dir: app_dir,
         }
     }
 }
@@ -320,5 +359,71 @@ async fn import_configured_accounts(registry: &Arc<AccountRegistry>, studio_root
 
     if imported > 0 {
         info!("Imported {imported} configured studio accounts from config.json");
+    }
+}
+
+/// Registers Nova Vexley as her own Instagram campaign account, distinct from
+/// the StickExplainers CDN IG handle. Idempotent: skips when a Nova-sourced
+/// row already exists. Handle is filled later by `pipeline.py handles`.
+async fn import_nova_account(registry: &Arc<AccountRegistry>, influencer_root: &std::path::Path) {
+    if !influencer_root.join("pipeline.py").is_file() {
+        return;
+    }
+    let existing = registry.list_accounts().await.unwrap_or_default();
+    let already = existing.iter().any(|a| {
+        a.profile_metadata
+            .get("campaign_id")
+            .and_then(|v| v.as_str())
+            == Some("campaign_nova")
+            || a.profile_metadata
+                .get("brand")
+                .and_then(|v| v.as_str())
+                .is_some_and(|b| b.contains("Nova Vexley"))
+    });
+    if already {
+        return;
+    }
+
+    let state_path = influencer_root.join("data").join("state.json");
+    let handle = std::fs::read_to_string(&state_path)
+        .ok()
+        .and_then(|raw| serde_json::from_str::<serde_json::Value>(&raw).ok())
+        .and_then(|v| v.get("handle").and_then(|h| h.as_str()).map(str::to_string));
+    let username = match handle {
+        Some(h) if !h.trim().is_empty() => {
+            if h.starts_with('@') {
+                h
+            } else {
+                format!("@{h}")
+            }
+        }
+        _ => "@NovaVexley (pending signup)".to_string(),
+    };
+
+    let now = Utc::now();
+    let record = AccountRecord {
+        id: AccountId::new(),
+        platform: Platform::Instagram,
+        username: username.clone(),
+        email: None,
+        phone: None,
+        status: "pending_signup".into(),
+        profile_metadata: json!({
+            "source": "influencer/",
+            "brand": "Nova Vexley (AI Influencer)",
+            "campaign_id": "campaign_nova",
+            "brand_id": "brand_nova",
+            "integration": "chrome_relay",
+            "isolation": "ig_relay.ensure_account switches to Nova's handle only; StickExplainers CDN posts use config.json instagram_account",
+            "formats": ["Feed_Photo", "Image_Carousel", "Story_Photo"],
+            "cost": "free (local ComfyUI + NIM free tier)"
+        }),
+        created_at: now,
+        updated_at: now,
+        last_active: None,
+    };
+    match registry.create_account(record).await {
+        Ok(_) => info!("Imported Nova Vexley campaign account {username}"),
+        Err(e) => warn!("Failed to import Nova account {username}: {e}"),
     }
 }

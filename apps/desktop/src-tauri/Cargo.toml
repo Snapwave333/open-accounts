@@ -53,3 +53,8 @@ sqlx.workspace = true
 tauri.workspace = true
 tauri-plugin-opener.workspace = true
 tauri-plugin-stronghold.workspace = true
+
+[features]
+# Embeds the built Angular frontend in the binary. Required for release builds;
+# without it Tauri falls back to the dev server URL (http://localhost:4200).
+custom-protocol = ["tauri/custom-protocol"]
