@@ -11,19 +11,28 @@ from . import config, nim, state
 JUDGE_SYSTEM = """You are a strict photo editor and compliance reviewer for an Instagram account of a
 fictional, AI-generated adult woman. The first image(s) are the approved reference set of the
 character. The LAST image is the candidate. Judge the candidate only.
-Score honestly; false positives cost money and false negatives get the account banned."""
+Styling note: flattering, revealing, flirtatious barely-safe-for-work cuts (deep necklines, midriff
+out, short hems, body-con silhouettes) are the intended look — they are NOT violations. What is a
+violation: exposed nipples, genitals or buttocks, see-through over them, or an explicitly sexual act/pose.
+Score honestly; false positives waste GPU time and false negatives get the account banned."""
 
 JUDGE_USER = """Return JSON with exactly these keys:
 - "same_person": 0-100, how certain the candidate shows the SAME person as the references (face shape,
-  eyes, brows, nose, lips, the beauty mark under the right eye, jet-black blunt bob with micro bangs
-  and a platinum streak at the left temple, septum ring).
+  eyes, brows, nose, lips, the beauty marks on the right cheek, short bob with soft micro bangs mixing
+  mint-green and soft lavender strands, freckles across nose and cheeks, silver septum ring, black nails).
+- "hair_matches": true/false, the hair is the short pastel-goth bob with soft micro bangs in TWO tones —
+  mint-green AND soft lavender strands both clearly present; false if the lavender strands are missing
+  (solid single-color mint), or the color/cut/style differs from the references.
+- "full_body_visible": true/false, the ENTIRE figure is visible head-to-toe — head AND feet fully inside
+  the frame with margin; false when the shot is cropped at the chest, waist, hips or knees.
 - "looks_adult": true/false (clearly an adult, no youthful or school styling).
 - "nudity": true/false (any exposed nipple, genitals or buttocks, or see-through over them).
-- "explicit_pose": true/false (sexual act or explicitly sexual pose).
+- "explicit_pose": true/false (sexual act or explicitly sexual pose; sultry/implied-sexy poses are fine).
 - "hands_ok": true/false (no extra/missing/deformed fingers or limbs).
 - "artifacts": true/false (text, watermark, logo, warped face, doubled features).
 - "quality": 0-100 overall photographic quality for a premium fashion feed.
-- "outfit_matches": true/false, does the outfit match this description: {outfit}
+- "outfit_matches": true/false, judge COLORS and SILHOUETTE against this description: {outfit}
+  (revealing/low-cut styling of the same outfit is intentional and still matches).
 - "notes": one short sentence."""
 
 
@@ -72,11 +81,12 @@ def judge(candidate: Path, references: list[Path], outfit: str) -> dict:
         JUDGE_USER.format(outfit=outfit),
         images=[*references[:3], candidate],
         temperature=0.1,
-        max_tokens=600,
+        max_tokens=config.NIM_JUDGE_TOKENS,
     )
 
 
-def review(candidate: Path, references: list[Path], aspect_ratio: str, outfit: str, asset_id: str) -> QcResult:
+def review(candidate: Path, references: list[Path], aspect_ratio: str, outfit: str, asset_id: str,
+           require_full_body: bool = False) -> QcResult:
     """Runs every check. `approved` is true only when all pass; reasons list what failed."""
     reasons: list[str] = []
     reasons += technical(candidate, aspect_ratio)
@@ -95,6 +105,10 @@ def review(candidate: Path, references: list[Path], aspect_ratio: str, outfit: s
         else:
             if int(verdict.get("same_person", 0)) < config.IDENTITY_MIN:
                 reasons.append(f"identity {verdict.get('same_person')} < {config.IDENTITY_MIN}")
+            if not verdict.get("hair_matches", True):
+                reasons.append("hair does not match the two-tone mint/lavender bob")
+            if require_full_body and not verdict.get("full_body_visible", True):
+                reasons.append("not full body: head-to-toe framing not visible")
             if not verdict.get("looks_adult", False):
                 reasons.append("does not read as an adult")
             if verdict.get("nudity") or verdict.get("explicit_pose"):

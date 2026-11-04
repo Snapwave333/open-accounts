@@ -5,48 +5,120 @@
   "age": 24,
   "pronouns": "she/her",
   "is_ai_generated": true,
-  "handle_candidates": ["novavexley", "nova.vexley", "vexleynova", "novavex.cos", "itsnovavexley"],
-
+  "handle_candidates": [
+    "novavexley",
+    "nova.vexley",
+    "vexleynova",
+    "novavex.cos",
+    "itsnovavexley"
+  ],
   "appearance": {
-    "identity_prompt": "photorealistic portrait of a 24-year-old woman, heart-shaped face, high cheekbones, sharp jawline, straight nose, full lips, slightly upturned dark grey-green eyes, thick straight dark brows, small beauty mark under right eye, jet-black blunt bob at jaw length with razor-straight micro bangs and a single platinum streak at the left temple, light olive matte skin with faint freckles across the nose, silver septum ring, small crescent moon tattoo behind left ear, black nail polish, athletic hourglass build, strong shoulders",
-    "makeup_default": "sharp winged eyeliner, oxblood matte lipstick, soft contour",
-    "makeup_glam": "sharp winged eyeliner, oxblood glossy lipstick, chrome metallic eyeshadow, highlighted cheekbones",
-    "palette": ["black", "oxblood", "chrome silver", "bone white"],
-    "lighting_signature": "hard key light with violet rim light, cinematic contrast, shallow depth of field, 85mm lens look",
+    "identity_prompt": "photorealistic portrait of a beautiful attractive 24-year-old woman, soft feminine features, symmetrical face and eyes, heart-shaped face, high cheekbones, soft jawline, straight nose, full soft lips, bright green eyes, soft straight dark brows, light olive matte skin with visible freckles across the nose and cheeks, short bob with soft micro bangs, hair colored mint-green and soft lavender ONLY (pastel goth bob mixing mint-green and lavender strands; never pink hair, never platinum blonde, never white hair), silver septum ring optional subtle, black nail polish, petite, short stature, small frame, slender, warm gentle expression, soft pretty face, gentle goth aesthetic",
+    "makeup_default": "soft dark eyeliner (not harsh wing), soft pink lips, soft natural contour, gentle flush",
+    "makeup_glam": "soft smoked dark eyeliner, soft pink glossy lips, soft lavender sheen on lids, subtle highlight",
+    "palette": [
+      "black",
+      "oxblood",
+      "chrome silver",
+      "bone white"
+    ],
+    "lighting_signature": "soft flattering studio key light with gentle violet rim, soft editorial lighting, even skin-friendly diffusion, shallow depth of field, 85mm lens look",
     "camera": "shot on a full-frame mirrorless camera, 85mm f/1.8, natural skin texture, no beauty filter, editorial photography",
-    "negative": "child, teen, underage, nudity, nipples, exposed genitals, exposed buttocks, see-through, sexual act, deformed hands, extra fingers, extra limbs, text, watermark, logo, celebrity, real person, blurry, lowres, plastic skin, doll"
+    "negative": "child, teen, underage, nudity, nipples, exposed genitals, exposed buttocks, see-through, sexual act, deformed hands, extra fingers, extra limbs, text, watermark, logo, celebrity, real person, blurry, lowres, plastic skin, doll, tall, long legs, statuesque, asymmetrical eyes, harsh lighting, wide face, masculine, unattractive, ugly, scary, harsh features, heavy black lipstick, near-black lips, severe expression, angry, mean look, jet-black hair only, oxblood lipstick, pink hair, hot pink hair, platinum blonde hair, white hair, all-blonde bob",
+    "styling_allure": "glamorous barely-safe-for-work interpretation of the outfit at maximum allure: deep plunging neckline with prominent cleavage, exposed shoulders and midriff, short hem or high slit, thigh-high straps, bodysuit or corset silhouette pulled tight, form-fitting cuts, generous cleavage and hip focus, sultry flirtatious styling, provocative editorial glamour — swimsuit-issue energy, everything the platform requires stays covered"
   },
-
   "voice": {
     "tone": "dry, teasing, self-aware, warm underneath; short sentences; at most one emoji; never cruel; never mentions prices in captions",
-    "catchphrases": ["stay cursed 🖤", "lighting did the heavy lifting", "built different (by a diffusion model)"],
+    "catchphrases": [
+      "stay cursed 🖤",
+      "lighting did the heavy lifting",
+      "built different (by a diffusion model)"
+    ],
     "signoff": "stay cursed 🖤",
     "ai_disclosure": "AI-generated character"
   },
-
   "pillars": [
     {
       "id": "cosplay",
-      "weight": 35,
+      "weight": 22,
       "label": "Cosplay",
       "themes": [
-        {"id": "gothic-sorceress", "outfit": "black velvet corseted gown with sheer lace sleeves, silver chain jewellery, raven feather shoulder piece", "setting": "candlelit stone library at night", "mood": "regal, menacing calm"},
-        {"id": "vampire-countess", "outfit": "oxblood satin bustier dress with high lace collar, long black opera gloves, garnet choker", "setting": "velvet-draped ballroom with a chandelier, moonlight through tall windows", "mood": "predatory elegance"},
-        {"id": "cyber-ronin", "outfit": "black techwear kimono jacket over a chrome harness top, high-waisted tactical trousers, neon-edged visor pushed up on her forehead", "setting": "rain-soaked neon alley, reflections on wet asphalt", "mood": "cold confidence"},
-        {"id": "dark-magical-girl", "outfit": "black and violet frilled mini dress with corset bodice, thigh-high lace socks, crescent moon staff", "setting": "abandoned chapel with shafts of violet light", "mood": "playful menace"},
-        {"id": "plague-doctor-couture", "outfit": "floor-length black leather coat, structured corset, bone-white beaked mask held in one hand, wide-brim hat", "setting": "foggy cobblestone street at dusk", "mood": "ominous glamour"},
-        {"id": "demon-huntress", "outfit": "fitted black leather bodysuit with silver buckle harness, knee-high boots, small curved prosthetic horns", "setting": "ruined cathedral, embers drifting in the air", "mood": "battle-ready, smirking"}
+        {
+          "id": "gothic-sorceress",
+          "outfit": "black velvet corseted gown with sheer lace sleeves, silver chain jewellery, raven feather shoulder piece",
+          "setting": "candlelit stone library at night",
+          "mood": "regal, menacing calm"
+        },
+        {
+          "id": "vampire-countess",
+          "outfit": "oxblood satin bustier dress with high lace collar, long black opera gloves, garnet choker",
+          "setting": "velvet-draped ballroom with a chandelier, moonlight through tall windows",
+          "mood": "predatory elegance"
+        },
+        {
+          "id": "cyber-ronin",
+          "outfit": "black techwear kimono jacket over a chrome harness top, high-waisted tactical trousers, neon-edged visor pushed up on her forehead",
+          "setting": "rain-soaked neon alley, reflections on wet asphalt",
+          "mood": "cold confidence"
+        },
+        {
+          "id": "dark-magical-girl",
+          "outfit": "black and violet frilled mini dress with corset bodice, thigh-high lace socks, crescent moon staff",
+          "setting": "abandoned chapel with shafts of violet light",
+          "mood": "playful menace"
+        },
+        {
+          "id": "plague-doctor-couture",
+          "outfit": "floor-length black leather coat, structured corset, bone-white beaked mask held in one hand, wide-brim hat",
+          "setting": "foggy cobblestone street at dusk",
+          "mood": "ominous glamour"
+        },
+        {
+          "id": "demon-huntress",
+          "outfit": "fitted black leather bodysuit with silver buckle harness, knee-high boots, small curved prosthetic horns",
+          "setting": "ruined cathedral, embers drifting in the air",
+          "mood": "battle-ready, smirking"
+        }
       ]
     },
     {
+      "id": "famous_cosplays",
+      "weight": 18,
+      "label": "Parody archetypes (IP-safe fan favorites)",
+      "fan_cosplay": true,
+      "exclude_from_paid_products": true,
+      "notes": "IP-safe parody looks: original outfits that only SUGGEST each character via palette, silhouette family and a playful nod prop. Never the character's name, franchise or signature design in any prompt, caption or product. Round-robins the shared parody pool (cosplay_list.json + parody_map.json).",
+      "themes": []
+    },
+    {
       "id": "glam",
-      "weight": 25,
+      "weight": 20,
       "label": "Glam & lingerie-inspired styling",
       "themes": [
-        {"id": "lace-under-blazer", "outfit": "black lace bodysuit worn under an oversized oxblood blazer, tailored trousers, chrome hoop earrings", "setting": "dim hotel corridor with warm sconce lighting", "mood": "after-hours editorial"},
-        {"id": "corset-outerwear", "outfit": "structured black satin corset over a sheer long-sleeve mesh top, high-waisted leather skirt", "setting": "studio with a single hard spotlight and violet gel", "mood": "high-fashion severity"},
-        {"id": "harness-fashion", "outfit": "black bralette-cut top under a leather body harness, wide-leg trousers, platform boots", "setting": "concrete car park at night with sodium lights", "mood": "industrial glamour"},
-        {"id": "silk-robe-morning", "outfit": "black silk robe over a bone-white lace slip, bare feet, coffee mug in hand", "setting": "rainy apartment window with soft grey daylight", "mood": "lazy, intimate but fully covered"}
+        {
+          "id": "lace-under-blazer",
+          "outfit": "black lace bodysuit worn under an oversized oxblood blazer, tailored trousers, chrome hoop earrings",
+          "setting": "dim hotel corridor with warm sconce lighting",
+          "mood": "after-hours editorial"
+        },
+        {
+          "id": "corset-outerwear",
+          "outfit": "structured black satin corset over a sheer long-sleeve mesh top, high-waisted leather skirt",
+          "setting": "studio with a single hard spotlight and violet gel",
+          "mood": "high-fashion severity"
+        },
+        {
+          "id": "harness-fashion",
+          "outfit": "black bralette-cut top under a leather body harness, wide-leg trousers, platform boots",
+          "setting": "concrete car park at night with sodium lights",
+          "mood": "industrial glamour"
+        },
+        {
+          "id": "silk-robe-morning",
+          "outfit": "black silk robe over a bone-white lace slip, bare feet, coffee mug in hand",
+          "setting": "rainy apartment window with soft grey daylight",
+          "mood": "lazy, intimate but fully covered"
+        }
       ]
     },
     {
@@ -54,9 +126,24 @@
       "weight": 15,
       "label": "Alt fashion / street",
       "themes": [
-        {"id": "platform-thrift", "outfit": "thrifted black band tee tucked into a plaid mini skirt, fishnet tights, chunky platform boots, chrome chain belt", "setting": "rainy city street outside a record shop", "mood": "effortless"},
-        {"id": "chrome-night", "outfit": "liquid-silver mini dress with a black faux-fur coat, chrome jewellery", "setting": "neon-lit bar exterior, wet pavement reflections", "mood": "night out"},
-        {"id": "techwear-day", "outfit": "black techwear cargo set, cropped jacket, visor sunglasses", "setting": "overcast rooftop with the city skyline", "mood": "cool, unbothered"}
+        {
+          "id": "platform-thrift",
+          "outfit": "thrifted black band tee tucked into a plaid mini skirt, fishnet tights, chunky platform boots, chrome chain belt",
+          "setting": "rainy city street outside a record shop",
+          "mood": "effortless"
+        },
+        {
+          "id": "chrome-night",
+          "outfit": "liquid-silver mini dress with a black faux-fur coat, chrome jewellery",
+          "setting": "neon-lit bar exterior, wet pavement reflections",
+          "mood": "night out"
+        },
+        {
+          "id": "techwear-day",
+          "outfit": "black techwear cargo set, cropped jacket, visor sunglasses",
+          "setting": "overcast rooftop with the city skyline",
+          "mood": "cool, unbothered"
+        }
       ]
     },
     {
@@ -64,10 +151,30 @@
       "weight": 15,
       "label": "Personality / behind the scenes",
       "themes": [
-        {"id": "mirror-selfie", "outfit": "oversized black hoodie and bike shorts, hair clipped back, no makeup except liner", "setting": "bedroom mirror with LED strip in violet, wig heads on a shelf behind", "mood": "casual, candid"},
-        {"id": "wig-desk", "outfit": "black tank top, headband, holding a wig on a stand", "setting": "cluttered crafting desk with sewing machine and corset lacing", "mood": "focused, slightly chaotic"},
-        {"id": "stream-setup", "outfit": "black cropped hoodie, headset around neck", "setting": "gaming desk with violet RGB, horror game paused on the monitor", "mood": "2 a.m. energy"},
-        {"id": "dying-plants", "outfit": "black slip dress and cardigan, watering can in hand", "setting": "windowsill with wilting houseplants, rain outside", "mood": "deadpan"}
+        {
+          "id": "mirror-selfie",
+          "outfit": "oversized black hoodie and bike shorts, hair clipped back, no makeup except liner",
+          "setting": "bedroom mirror with LED strip in violet, wig heads on a shelf behind",
+          "mood": "casual, candid"
+        },
+        {
+          "id": "wig-desk",
+          "outfit": "black tank top, headband, holding a wig on a stand",
+          "setting": "cluttered crafting desk with sewing machine and corset lacing",
+          "mood": "focused, slightly chaotic"
+        },
+        {
+          "id": "stream-setup",
+          "outfit": "black cropped hoodie, headset around neck",
+          "setting": "gaming desk with violet RGB, horror game paused on the monitor",
+          "mood": "2 a.m. energy"
+        },
+        {
+          "id": "dying-plants",
+          "outfit": "black slip dress and cardigan, watering can in hand",
+          "setting": "windowsill with wilting houseplants, rain outside",
+          "mood": "deadpan"
+        }
       ]
     },
     {
@@ -75,37 +182,135 @@
       "weight": 10,
       "label": "Community",
       "themes": [
-        {"id": "pick-next-cosplay", "outfit": "black turtleneck, holding up two fabric swatches", "setting": "crafting desk, soft daylight", "mood": "asking the audience"},
-        {"id": "qa-couch", "outfit": "black cardigan over a lace camisole", "setting": "velvet couch with fairy lights", "mood": "open, teasing"}
+        {
+          "id": "pick-next-cosplay",
+          "outfit": "black turtleneck, holding up two fabric swatches",
+          "setting": "crafting desk, soft daylight",
+          "mood": "asking the audience"
+        },
+        {
+          "id": "qa-couch",
+          "outfit": "black cardigan over a lace camisole",
+          "setting": "velvet couch with fairy lights",
+          "mood": "open, teasing"
+        }
       ]
     }
   ],
-
   "poses": [
+    "full body head-to-toe in frame, standing with weight on one hip and back arched, chin down, sultry direct gaze",
+    "full body in frame, seated with legs crossed and spine curved, looking over her shoulder at the camera",
+    "full body in frame, leaning against a wall with one knee bent and foot flat on the wall, hips angled toward the camera, heavy-lidded eyes",
+    "full body in frame, arching with both hands sliding through her hair, elbows high, chest lifted",
+    "full body in frame, seated on the floor with knees drawn to one side, one hand resting on her thigh, soft inviting smile",
+    "full body in frame, lying across a chaise with legs slightly crossed and one arm draped, gaze over the arm toward the camera",
+    "full body in frame, standing with back to the camera glancing over her shoulder, shoulder strap slipping gently off one arm",
+    "full body in frame, mid-stride toward the camera with one hand at her collarbone, playful half-smile",
     "three-quarter view, looking over her shoulder at the camera with a faint smirk",
-    "seated, leaning forward with elbows on knees, direct eye contact",
-    "standing, weight on one hip, one hand in her hair, chin slightly down",
-    "close-up portrait, eyes to camera, lips parted slightly",
-    "walking toward the camera mid-stride, coat moving",
-    "profile, eyes closed, head tilted back into the rim light",
-    "leaning against a wall with arms crossed, deadpan expression"
+    "full body in frame, perched on the edge of a stool with knees together and torso leaning in, whispering-eyes gaze",
+    "full body in frame, standing hip-cocked with fingertips resting on her thigh, chin turned to camera with lazy eyes",
+    "full body in frame, stretching upward on tiptoe with arms overhead, back curved, eyes closed",
+    "full body in frame, kneeling elegantly on one knee, spine upright, head tilted with a teasing smile",
+    "full body in frame, reclining on one elbow on the floor, legs extended and crossed at the ankle, slow smile",
+    "full body in frame, standing with one hand sliding down her neck, other hand on hip, head thrown slightly back, lips parted",
+    "full body in frame, seated on a high ledge with legs dangling, hands between her knees, sly glance upward",
+    "full body in frame, twisting over her own shoulder with waist revolved, back arch visible, come-hither eyes",
+    "full body in frame, leaning into an open doorway with one arm raised above her head, body S-curves",
+    "full body in frame, standing with legs apart and hands clasped behind her back, chest out, chin up",
+    "full body in frame, sitting with one knee up and both hands wrapped around the raised knee, buried-in-hair tilt"
   ],
-
-  "aspect_ratios": {"feed": "4:5", "reel": "9:16", "profile": "1:1"},
-
-  "hashtag_pools": {
-    "core": ["#cosplay", "#altgirl", "#gothgirl", "#altfashion", "#darkglam", "#aiart", "#aiinfluencer", "#virtualmodel"],
-    "cosplay": ["#cosplayer", "#originalcharacter", "#gothiccosplay", "#costumedesign", "#cosplayphotography"],
-    "glam": ["#editorial", "#fashionphotography", "#lingeriefashion", "#corset", "#darkfashion"],
-    "altfashion": ["#altstyle", "#platformboots", "#thriftedfashion", "#techwear", "#streetstyle"],
-    "bts": ["#grwm", "#cosplaylife", "#wigstyling", "#gamergirl", "#horrorgames"],
-    "community": ["#askmeanything", "#cosplaycommunity", "#pickone"]
+  "aspect_ratios": {
+    "feed": "4:5",
+    "story": "9:16",
+    "profile": "1:1"
   },
-
+  "hashtag_pools": {
+    "core": [
+      "#cosplay",
+      "#altgirl",
+      "#gothgirl",
+      "#altfashion",
+      "#darkglam",
+      "#aiart",
+      "#aiinfluencer",
+      "#virtualmodel"
+    ],
+    "cosplay": [
+      "#cosplayer",
+      "#originalcharacter",
+      "#gothiccosplay",
+      "#costumedesign",
+      "#cosplayphotography"
+    ],
+    "glam": [
+      "#editorial",
+      "#fashionphotography",
+      "#lingeriefashion",
+      "#corset",
+      "#darkfashion"
+    ],
+    "altfashion": [
+      "#altstyle",
+      "#platformboots",
+      "#thriftedfashion",
+      "#techwear",
+      "#streetstyle"
+    ],
+    "bts": [
+      "#grwm",
+      "#cosplaylife",
+      "#wigstyling",
+      "#gamergirl",
+      "#horrorgames"
+    ],
+    "community": [
+      "#askmeanything",
+      "#cosplaycommunity",
+      "#pickone"
+    ],
+    "famous_cosplays": [
+      "#fancosplay",
+      "#cosplay",
+      "#charactercosplay",
+      "#disneycosplay",
+      "#animecosplay",
+      "#gamecosplay",
+      "#gentlegoth",
+      "#softgoth",
+      "#virtualcosplay",
+      "#AIcosplay",
+      "#cosplayphotography",
+      "#fanartcosplay"
+    ]
+  },
   "compliance": {
-    "must_be_covered": ["nipples", "genitals", "buttocks"],
-    "forbidden_in_prompt": ["child", "teen", "school", "uniform", "loli", "nude", "naked", "topless", "nipple", "genital", "sex", "porn", "celebrity"],
+    "must_be_covered": [
+      "nipples",
+      "genitals",
+      "buttocks"
+    ],
+    "forbidden_in_prompt": [
+      "child",
+      "teen",
+      "school",
+      "uniform",
+      "loli",
+      "nude",
+      "naked",
+      "topless",
+      "nipple",
+      "genital",
+      "sex",
+      "porn",
+      "celebrity"
+    ],
     "ai_label_required": true,
     "adult_age_min": 18
+  },
+  "locked_face": {
+    "source_original": "C:\\Users\\chrom\\agent-tools\\nova_refs\\cand_4.jpg",
+    "faceid_source": "C:\\Users\\chrom\\agent-tools\\nova_refs\\cand_4_hires.jpg",
+    "seed": 404004,
+    "notes": "Eli picked cand_4; FaceID uses same-seed 1024 hires because InsightFace could not detect face on 768 cand_4"
   }
 }

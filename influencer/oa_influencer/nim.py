@@ -29,7 +29,11 @@ def _image_part(path: Path) -> dict:
 
 def chat(system: str, user: str, images: list[Path] = (), model: str | None = None,
          max_tokens: int = 1200, temperature: float = 0.4, timeout: int = 120) -> str:
-    """One chat completion. Images are attached to the user turn. Raises on any failure."""
+    """One chat completion. Images are attached to the user turn. Raises on any failure.
+    Retries transient failures (429 rate limits, 5xx, network) with backoff — a wasted judge
+    call throws away an already-rendered GPU frame, so retrying is much cheaper than failing."""
+    import time
+
     content: list[dict] | str
     if images:
         content = [_image_part(Path(p)) for p in images] + [{"type": "text", "text": user}]
@@ -41,24 +45,37 @@ def chat(system: str, user: str, images: list[Path] = (), model: str | None = No
         "max_tokens": max_tokens,
         "temperature": temperature,
     }
-    req = urllib.request.Request(
-        config.NIM_CHAT,
-        data=json.dumps(body).encode("utf8"),
-        headers={"Authorization": "Bearer " + _key(), "Content-Type": "application/json", "Accept": "application/json"},
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
-            payload = json.load(r)
-    except urllib.error.HTTPError as e:
-        detail = e.read().decode("utf8", "replace")[:400]
-        raise NimUnavailable(f"NIM HTTP {e.code}: {detail}") from e
-    except urllib.error.URLError as e:
-        raise NimUnavailable(f"NIM unreachable: {e.reason}") from e
+    attempts, last_err = 4, None
+    for attempt in range(attempts):
+        req = urllib.request.Request(
+            config.NIM_CHAT,
+            data=json.dumps(body).encode("utf8"),
+            headers={"Authorization": "Bearer " + _key(), "Content-Type": "application/json", "Accept": "application/json"},
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                payload = json.load(r)
+            break
+        except urllib.error.HTTPError as e:
+            detail = e.read().decode("utf8", "replace")[:400]
+            last_err = NimUnavailable(f"NIM HTTP {e.code}: {detail}")
+            # 429 and 5xx are transient: back off and retry. 4xx (except 429) is fatal.
+            if e.code != 429 and e.code < 500:
+                raise last_err from e
+        except urllib.error.URLError as e:
+            last_err = NimUnavailable(f"NIM unreachable: {e.reason}")
+        if attempt < attempts - 1:
+            time.sleep(min(60, 5 * (2 ** attempt)))  # 5s, 10s, 20s
+    else:
+        raise last_err
     try:
         text = payload["choices"][0]["message"]["content"]
+        finish = payload["choices"][0].get("finish_reason")
     except (KeyError, IndexError, TypeError) as e:
         raise NimUnavailable(f"NIM reply had no content: {json.dumps(payload)[:300]}") from e
     if not text or not text.strip():
+        if finish == "length":
+            raise NimUnavailable("NIM spent its whole max_tokens budget on reasoning; raise max_tokens")
         raise NimUnavailable("NIM returned an empty reply")
     return text.strip()
 

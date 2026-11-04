@@ -8,16 +8,20 @@ from . import character, config, state
 HORIZON_DAYS = 30
 STORY_IDEAS = {
     "cosplay": ["poll: which costume next?", "close-up of the costume detail with a 'how I made it' line"],
-    "glam": ["fit check mirror video", "'guess the fabric' quiz sticker"],
-    "altfashion": ["outfit poll A/B", "boot collection pan"],
-    "bts": ["wig desk time-lapse", "stream tonight? countdown sticker"],
+    "glam": ["fit-check mirror photo", "'guess the fabric' quiz sticker"],
+    "altfashion": ["outfit poll A/B", "boot shelf still (label your favourite)"],
+    "bts": ["wig desk still + 'which wig?' sticker", "stream tonight? countdown sticker"],
     "community": ["Q&A sticker", "shout-out to the best comment of the week"],
+    "famous_cosplays": ["which famous character next? poll", "gentle-goth twist detail close-up + franchise shout-out (fan cosplay)"],
 }
 
 
 def weights(spec: dict) -> dict[str, int]:
     saved = state.state().get("pillar_weights")
-    return dict(saved) if saved else {p["id"]: p["weight"] for p in spec["pillars"]}
+    w = dict(saved) if saved else {p["id"]: p["weight"] for p in spec["pillars"]}
+    # keep the curated character pillar in rotation (analyst-adjusted weights can never zero it)
+    w["famous_cosplays"] = max(w.get("famous_cosplays", config.FAMOUS_WEIGHT_FLOOR), config.FAMOUS_WEIGHT_FLOOR)
+    return w
 
 
 def _pick_pillar(rng: random.Random, w: dict[str, int]) -> str:
@@ -27,9 +31,10 @@ def _pick_pillar(rng: random.Random, w: dict[str, int]) -> str:
 
 def _theme_for(spec: dict, pillar_id: str, used: dict[str, int]) -> str:
     """Round-robin through a pillar's themes so no look repeats before the others ran."""
-    themes = character.pillar(spec, pillar_id)["themes"]
+    themes = character.theme_ids(spec, pillar_id)
     i = used.get(pillar_id, 0) % len(themes)
     used[pillar_id] = i + 1
+    return themes[i]
     return themes[i]["id"]
 
 
@@ -43,7 +48,6 @@ def build(today: dt.date | None = None) -> dict:
     for s in cal["slots"]:
         used[s["pillar"]] = used.get(s["pillar"], 0) + 1
 
-    posts_before = len([s for s in cal["slots"] if s["status"] == "posted"])
     added = 0
     for offset in range(HORIZON_DAYS):
         day = today + dt.timedelta(days=offset)
@@ -61,14 +65,15 @@ def build(today: dt.date | None = None) -> dict:
                 break
             pillar_id = _pick_pillar(rng, w)
         theme_id = _theme_for(spec, pillar_id, used)
-        kind = "carousel" if pillar_id == "cosplay" and rng.random() < 0.6 else "single"
+        # Every post is a FULL-size IG carousel: max images per post (20).
+        kind = "carousel"
         post_at = dt.datetime.combine(day, dt.time(config.POST_HOUR_LOCAL)).astimezone()
         slot = {
             "id": slot_id,
             "date": day.isoformat(),
             "scheduled_at": post_at.isoformat(timespec="seconds"),
             "kind": kind,
-            "images": 3 if kind == "carousel" else 1,
+            "images": int(config.FEED_MAX_IMAGES),
             "pillar": pillar_id,
             "theme": theme_id,
             "pose": character.pick_pose(spec, rng),
@@ -83,32 +88,6 @@ def build(today: dt.date | None = None) -> dict:
         }
         slots[slot_id] = slot
         added += 1
-
-        # One reel a week once the feed has enough posts to make the profile look alive.
-        reel_id = f"{day.isoformat()}-reel"
-        if day.weekday() == config.REEL_WEEKDAY and reel_id not in slots and (posts_before + offset) >= config.REEL_START_AFTER_POSTS:
-            reel_at = dt.datetime.combine(day, dt.time(18)).astimezone()
-            slots[reel_id] = {
-                "id": reel_id,
-                "date": day.isoformat(),
-                "scheduled_at": reel_at.isoformat(timespec="seconds"),
-                "kind": "reel",
-                "images": 1,
-                "pillar": "cosplay",
-                "theme": _theme_for(spec, "cosplay", used),
-                "pose": "close-up portrait, eyes to camera, lips parted slightly",
-                "glam": True,
-                "aspect_ratio": spec["aspect_ratios"]["reel"],
-                "motion": "slow cinematic push-in, subtle hair movement in a breeze, rim light flicker, she blinks once and smirks",
-                "story": "reel teaser: 'new one is up'",
-                "status": "planned",
-                "attempts": 0,
-                "assets": [],
-                "video": None,
-                "caption": None,
-                "hashtags": character.hashtags(spec, "cosplay", rng),
-            }
-            added += 1
 
     cal["slots"] = sorted(slots.values(), key=lambda s: s["scheduled_at"])
     cal["generated_at"] = state.iso()

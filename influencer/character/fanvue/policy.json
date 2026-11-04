@@ -1,0 +1,956 @@
+{
+ "meta": {
+  "platform": "fanvue",
+  "character": "nova-vexley",
+  "distilled_at": "2026-11-03T00:00:00",
+  "reviewed_at": "2026-11-03T18:00:29-07:00",
+  "reviewed_by": "NIM research agent (nvidia/nemotron-3.5-super-vl-120b-a12b)",
+  "review_cadence_days": 7,
+  "fail_closed": true,
+  "docs": {
+   "CG": "Community Guidelines - https://legal.fanvue.com/community-guidelines",
+   "AUP": "Acceptable Use Policy - https://legal.fanvue.com/acceptable-use-policy",
+   "CT": "Creator Terms & Conditions - https://legal.fanvue.com/creator-terms",
+   "MP": "Marketing Policy - https://legal.fanvue.com/marketing-policy",
+   "API": "API Access & Usage Policy - https://legal.fanvue.com/api-policy",
+   "CM": "Content Moderation & Protection Policy - https://legal.fanvue.com/content-moderation",
+   "CEP": "Creator Earnings & Payouts - https://legal.fanvue.com/creator-earnings-payouts"
+  },
+  "last_required_actions": [
+   "Add clear and prominent AI disclosure to all AI-generated media on caption, message, and bio surfaces (CG D.1.1).",
+   "Mark any intimate content as 18+ and ensure no CG C.6.3.3 prohibited acts appear (CG C.6.1, CG C.6.3.3).",
+   "Retain age verification documentation for all depicted individuals and block minor resemblance in AI outputs (CG C.6.3.3.3, CG D.1.3).",
+   "Deduplicate rules and re-source all citations to this Community Guidelines document only.",
+   "Add clear AI-generated disclosure to all Nova content, public media, and prompts per AUP 2.3.1.4, AUP 2.5.2, AUP 2.6.2.6",
+   "Ensure all content is authentically produced by the Creator or approved collaborators per AUP 2.3.1.1",
+   "Keep public bio, banners, and profile media SFW with no nudity, implied nudity, or age-baiting per AUP 2.6.2",
+   "Never arrange or promote in-person meetings; remove any such offers per AUP 2.4.6"
+  ],
+  "last_review_notes": "[community-guidelines] Dropped citations to identity.md, AUP, API, CM, and MP not present in this document; removed duplicate explicit_text_house_rule; preserved zero-tolerance minor and AI-disclosure rules without softening.\n\n[acceptable-use-policy] Dropped explicit_text_house_rule: not grounded in this AUP (stricter house rule from identity.md). Retained minors, AI-disclosure, and in-person rules without softening. Added public-media SFW, impersonation, illegal/violence, commercial, extortion, referral, and under-18 account rules from this AUP.\n\n[creator-terms] Dropped explicit_text_house_rule: not grounded in this Creator Terms document. This document does not define explicit content or include AI-disclosure text rules; only CT 5 off-platform transactions is directly text-enforceable here.\n\n[marketing-policy] Existing explicit_text_house_rule excluded: not grounded in marketing-policy (sourced from identity.md/CG). Off-platform-payment zero-tolerance retained per MP 5.1.3 and not softened. AI-disclosure and minors rules originate outside this document and remain in force.\n\n[api-policy] Dropped explicit_text_house_rule: cites identity.md/CG Definitions, not this api-policy document. All retained and added rules cite api-policy sections only.\n\n[content-moderation] Dropped explicit_text_house_rule: not grounded in this document (CMP regulates explicit content via KYC declaration and AI scanning, not a total ban). Re-sourced minors and weapons/drugs rules to CMP sections. Added public_bio_sfw per CMP 1.6.\n\n[creator-earnings-payouts] Existing explicit_text_house_rule is not grounded in creator-earnings-payouts and is dropped. This document covers earnings, payouts, taxes, refunds, chargebacks, and dormant balances only."
+ },
+ "account": {
+  "operator": "The Fanvue creator account belongs to Eli, a real human operator who completes KYC (government ID + liveness via Ondato) personally. Nova is the fictional AI persona; every automated action runs on Eli's behalf.",
+  "kyc_automatable": false,
+  "explicit_declaration_locked": "Whether the account uploads explicit material is declared once during onboarding and locked (CM 2.3). The declaration must match what the pipeline actually publishes BEFORE the first upload; the pipeline's default declaration is non-explicit (Nova's house rule: suggestive only, never explicit).",
+  "ai_disclosure": "Bio statement 'AI-generated character' plus a disclosure marker on every AI post. Never removed or obscured by tooling (CG D.1.1, AUP 2.3.1.4, API 4.3.1).",
+  "no_real_person_likeness": "Never generate or publish the likeness or voice of any real, identifiable person (CG D.1.5, API 4.3.3). Nova is fictional; no celebrity lookalike prompts (identity.md rule 4).",
+  "no_impersonation": "Never impersonate a real person, public figure, or another Fanvue user (CG C.10.4, AUP 6.2)."
+ },
+ "surfaces": {
+  "public_media": {
+   "applies_to": [
+    "profile_picture",
+    "banner",
+    "intro_video",
+    "public_bio"
+   ],
+   "standard": "SFW for a general audience: no nudity, no implied nudity or strategic covering, no see-through, no explicit posing or porn-style framing, no age-baiting language (CG F.2, AUP 2.6). Opaque swimwear/lingerie/boudoir only at mainstream-social-media standard (CG F.4). AI imagery requires clear disclosure (CG F.2.6).",
+   "strike_ladder": "1st offence: hidden from Discover until fixed. Repeat: entire profile hidden from public view until fixed (CG F.5, AUP 2.6). Does not delete content or ban, but kills discovery.",
+   "intro_video": "Feature only the persona, non-sexual, no fetish outfits or props, no explicit language early (CG F.3, AUP 2.6)."
+  },
+  "paid_posts": {
+   "intimate_definition": "Fanvue counts full/partial nudity, lingerie/underwear/see-through clothing, sexual acts, urination/defecation as 'Intimate' (CG Definitions).",
+   "must_label_18plus": "Intimate content is permitted only when clearly marked 18+ Content (CG C.6.1).",
+   "house_rule": "Nova never goes explicit (identity.md rule 2): nothing nude, suggestive styling only. Fanvue permits more; the pipeline does not use the extra headroom."
+  }
+ },
+ "text_rules": [
+  {
+   "id": "age_play_banned",
+   "match": [
+    "age-play",
+    "ageplay",
+    "age regression"
+   ],
+   "regex": [],
+   "reason": "Age-play pretending to be under 18 is prohibited.",
+   "source": "CG C.6.3.3.7",
+   "surfaces": [
+    "caption",
+    "message",
+    "bio",
+    "comment",
+    "promo",
+    "prompt"
+   ]
+  },
+  {
+   "id": "ai_disclosure_media",
+   "match": [
+    "ai-generated",
+    "ai art",
+    "ai image",
+    "ai video",
+    "deepfake",
+    "synthetic media"
+   ],
+   "regex": [],
+   "reason": "AI-generated media must carry clear and prominent disclosure; do not remove or obscure it",
+   "source": "API 4.3.1",
+   "surfaces": [
+    "caption",
+    "message",
+    "bio",
+    "comment",
+    "promo",
+    "prompt"
+   ]
+  },
+  {
+   "id": "ai_disclosure_required",
+   "match": [
+    "ai-generated",
+    "deepfake",
+    "faceswap",
+    "synthetic",
+    "artificial intelligence"
+   ],
+   "regex": [],
+   "reason": "All AI-generated media must include clear and prominent disclosure.",
+   "source": "CG D.1.1",
+   "surfaces": [
+    "caption",
+    "message",
+    "bio",
+    "comment",
+    "promo",
+    "prompt"
+   ]
+  },
+  {
+   "id": "discriminatory_derogatory_language",
+   "match": [
+    "discriminatory",
+    "derogatory",
+    "exploitative",
+    "harmful stereotype",
+    "marginalise",
+    "marginalize"
+   ],
+   "regex": [],
+   "reason": "No discriminatory, derogatory, or exploitative imagery or language; no harmful stereotypes or marginalisation.",
+   "source": "MP 3.1, MP 3.2.1, MP 3.2.2",
+   "surfaces": [
+    "caption",
+    "message",
+    "bio",
+    "promo",
+    "comment"
+   ]
+  },
+  {
+   "id": "explicit_text_house_rule",
+   "match": [
+    "cumshot",
+    "blowjob",
+    "handjob",
+    "dildo",
+    "vibrator",
+    "orgasm",
+    "masturbat",
+    "nude",
+    "nudes",
+    "naked",
+    "topless",
+    "porn"
+   ],
+   "reason": "Nova's own hard rule (stricter than Fanvue): nothing explicit; suggestive styling only. Explicit is rejected everywhere, always.",
+   "source": "identity.md rule 2; CG Definitions (Explicit Content)",
+   "surfaces": [
+    "caption",
+    "message",
+    "bio",
+    "comment",
+    "promo",
+    "prompt"
+   ]
+  },
+  {
+   "id": "external_payments",
+   "match": [
+    "paypal.me",
+    "cash.app",
+    "cashapp",
+    "venmo",
+    "ko-fi",
+    "kofi",
+    "patreon.com",
+    "revolut",
+    "wise.com",
+    "wallet address",
+    "gift card",
+    "amazon wishlist",
+    "pay directly",
+    "direct payment",
+    "link in bio to pay",
+    "off-platform",
+    "external payment"
+   ],
+   "regex": [],
+   "reason": "off-platform payment solicitation external links",
+   "source": "CT 5.1, CT 5.2",
+   "surfaces": [
+    "caption",
+    "message",
+    "bio",
+    "comment",
+    "promo"
+   ]
+  },
+  {
+   "id": "extreme_themes",
+   "match": [
+    "non-con",
+    "noncon",
+    "rape",
+    "bloodplay",
+    "necro",
+    "bestial",
+    "zoophil",
+    "incest",
+    "golden shower",
+    "scat",
+    "genital mutilation"
+   ],
+   "regex": [
+    "\\bchok(e|es|ed|ing)\\b",
+    "\\bstrangul\\w*",
+    "\\basphyxi\\w*",
+    "\\bbondage\\b",
+    "\\bbdsm\\b",
+    "\\bsadomasoch\\w*",
+    "\\bstep[- ]?(sis|bro|sibling|daughter|son|mom|mother|dad|father)\\b",
+    "\\basleep\\b",
+    "\\bunconscious\\b",
+    "\\bpassed\\s*out\\b",
+    "\\bpiss\\w*",
+    "\\bvomit\\w*"
+   ],
+   "reason": "Non-permitted adult content: choking, sadomasochistic abuse, bondage, rape, incest/step, sleep/unconscious, bodily fluids, bestiality, necrophilia.",
+   "source": "CG C.6.3.3",
+   "surfaces": [
+    "caption",
+    "message",
+    "bio",
+    "comment",
+    "promo",
+    "prompt"
+   ]
+  },
+  {
+   "id": "fabricated_endorsements",
+   "match": [
+    "fabricated endorsement",
+    "fake testimonial",
+    "manipulated statistics",
+    "fake stats",
+    "fake followers",
+    "manipulated user statistics"
+   ],
+   "regex": [],
+   "reason": "No deceptive marketing tactics, manipulated user statistics, or fabricated endorsements.",
+   "source": "MP 1.2.2, MP 1.2.4",
+   "surfaces": [
+    "caption",
+    "message",
+    "bio",
+    "promo"
+   ]
+  },
+  {
+   "id": "hate_violence_selfharm",
+   "match": [
+    "kill yourself",
+    "kys",
+    "retard",
+    "faggot",
+    "tranny",
+    "nigger",
+    "gas the"
+   ],
+   "regex": [],
+   "reason": "Zero tolerance hate speech, harassment, abuse, and self-harm encouragement.",
+   "source": "CG C.2, CG C.4, CG C.12",
+   "surfaces": [
+    "caption",
+    "message",
+    "bio",
+    "comment",
+    "promo",
+    "prompt"
+   ]
+  },
+  {
+   "id": "illegal_exploitative_schemes",
+   "match": [
+    "illegal scheme",
+    "fraudulent scheme",
+    "exploitative scheme",
+    "ponzi",
+    "pyramid scheme"
+   ],
+   "regex": [],
+   "reason": "No marketing of illegal, misleading, or exploitative schemes.",
+   "source": "MP 5.1.2",
+   "surfaces": [
+    "caption",
+    "message",
+    "bio",
+    "promo"
+   ]
+  },
+  {
+   "id": "in_person_solicitation",
+   "match": [
+    "meet up",
+    "meet me in person",
+    "in person session",
+    "hookup",
+    "escort",
+    "sugar daddy"
+   ],
+   "regex": [],
+   "reason": "Solicitation and arranging in-person sexual meetings are prohibited.",
+   "source": "CG C.8.1.2",
+   "surfaces": [
+    "caption",
+    "message",
+    "bio",
+    "promo"
+   ]
+  },
+  {
+   "id": "intimate_content_18_plus",
+   "match": [
+    "lingerie",
+    "underwear",
+    "see-through",
+    "boudoir",
+    "nude",
+    "naked",
+    "topless"
+   ],
+   "regex": [],
+   "reason": "Intimate content must be clearly marked as 18+ Content.",
+   "source": "CG C.6.1",
+   "surfaces": [
+    "caption",
+    "message",
+    "bio",
+    "comment",
+    "promo",
+    "prompt"
+   ]
+  },
+  {
+   "id": "minors_absolutely",
+   "match": [
+    "minor",
+    "underage",
+    "child",
+    "schoolgirl",
+    "school uniform",
+    "jailbait",
+    "loli",
+    "shota",
+    "preteen"
+   ],
+   "regex": [
+    "\\bteen\\b",
+    "\\bbarely\\s*legal\\b",
+    "\\bjust\\s*turned\\s*18\\b",
+    "\\bfresh\\s*18\\b",
+    "\\b18th\\s*birthday\\b",
+    "\\bunder\\s*18\\b"
+   ],
+   "reason": "Zero tolerance child exploitation; no sexualisation of minors or minor-aged AI characters.",
+   "source": "CG C.7, CG C.6.3.2, CG D.1.3",
+   "surfaces": [
+    "caption",
+    "message",
+    "bio",
+    "comment",
+    "promo",
+    "prompt"
+   ]
+  },
+  {
+   "id": "misleading_commerce",
+   "match": [
+    "guaranteed earnings",
+    "get rich",
+    "investment opportunity",
+    "send money",
+    "deposit and"
+   ],
+   "regex": [],
+   "reason": "No financial scams or unsubstantiated earnings claims.",
+   "source": "CG C.11",
+   "surfaces": [
+    "caption",
+    "message",
+    "bio",
+    "promo"
+   ]
+  },
+  {
+   "id": "no_ai_denial",
+   "match": [
+    "i am a real person",
+    "i'm human",
+    "im human",
+    "not an ai",
+    "not ai generated",
+    "100% real"
+   ],
+   "regex": [],
+   "reason": "No misrepresentation; Nova must not deny AI status or claim to be human.",
+   "source": "CG B.1.3, CG D.1.1",
+   "surfaces": [
+    "caption",
+    "message",
+    "bio",
+    "comment"
+   ]
+  },
+  {
+   "id": "no_api_training",
+   "match": [
+    "train",
+    "fine-tune",
+    "machine learning",
+    "ml model",
+    "ai model",
+    "training data"
+   ],
+   "regex": [],
+   "reason": "Do not use API content or data to train AI/ML models unless expressly authorised",
+   "source": "API 5.2.13",
+   "surfaces": [
+    "prompt",
+    "caption",
+    "message",
+    "bio",
+    "comment",
+    "promo"
+   ]
+  },
+  {
+   "id": "no_extortion",
+   "match": [
+    "remove this content",
+    "take this down",
+    "pay or i will",
+    "money for removal",
+    "delete or i"
+   ],
+   "regex": [],
+   "reason": "No using content to extract money or benefits in exchange for removal",
+   "source": "AUP 2.4.4",
+   "surfaces": [
+    "message",
+    "comment",
+    "caption"
+   ]
+  },
+  {
+   "id": "no_fake_engagement",
+   "match": [
+    "fake followers",
+    "fake subscribers",
+    "fake likes",
+    "fake views",
+    "buy followers",
+    "bot posing as fan"
+   ],
+   "regex": [],
+   "reason": "No fake engagement, fake accounts, or bots posing as fans",
+   "source": "API 5.2.8",
+   "surfaces": [
+    "caption",
+    "message",
+    "bio",
+    "comment",
+    "promo",
+    "prompt"
+   ]
+  },
+  {
+   "id": "no_gambling",
+   "match": [
+    "casino",
+    "betting",
+    "lottery",
+    "raffle",
+    "sweepstake",
+    "loot box",
+    "gambling"
+   ],
+   "regex": [],
+   "reason": "Gambling and games of chance apps or functionality are prohibited",
+   "source": "API 5.2.1",
+   "surfaces": [
+    "caption",
+    "message",
+    "bio",
+    "comment",
+    "promo",
+    "prompt"
+   ]
+  },
+  {
+   "id": "no_illegal_violence",
+   "match": [
+    "illegal",
+    "fraudulent",
+    "encourages violence",
+    "criminal acts"
+   ],
+   "regex": [],
+   "reason": "No illegal, fraudulent, misleading content or encouragement of violence or criminal acts",
+   "source": "AUP 2.1.1",
+   "surfaces": [
+    "caption",
+    "message",
+    "bio",
+    "comment",
+    "promo",
+    "prompt"
+   ]
+  },
+  {
+   "id": "no_impersonation",
+   "match": [
+    "fanvue employee",
+    "fanvue staff",
+    "official fanvue",
+    "endorsed by fanvue",
+    "affiliated with fanvue",
+    "fanvue support"
+   ],
+   "regex": [],
+   "reason": "No impersonation of Fanvue, employees, or users; no false endorsement or affiliation",
+   "source": "AUP 6.2, AUP 6.3",
+   "surfaces": [
+    "caption",
+    "message",
+    "bio",
+    "comment",
+    "promo"
+   ]
+  },
+  {
+   "id": "no_moderation_evasion",
+   "match": [
+    "bypass",
+    "evade",
+    "codeword",
+    "obfuscation",
+    "obfuscate",
+    "moderation filter"
+   ],
+   "regex": [],
+   "reason": "Do not design or configure app to bypass, interfere with or evade moderation systems",
+   "source": "API 5.1.5, API 5.2.11",
+   "surfaces": [
+    "caption",
+    "message",
+    "bio",
+    "comment",
+    "promo",
+    "prompt"
+   ]
+  },
+  {
+   "id": "no_real_person_likeness",
+   "match": [
+    "celebrity",
+    "lookalike"
+   ],
+   "regex": [],
+   "reason": "No real person likeness, name, or brand; deepfakes require documented consent.",
+   "source": "CG D.1.5, CG D.1.2, CG C.10.4",
+   "surfaces": [
+    "caption",
+    "message",
+    "bio",
+    "comment",
+    "promo",
+    "prompt"
+   ]
+  },
+  {
+   "id": "no_scraping_leaking",
+   "match": [
+    "scrape",
+    "rip",
+    "download",
+    "paywall bypass",
+    "paywall",
+    "leak",
+    "subscriber-only"
+   ],
+   "regex": [],
+   "reason": "Do not download, archive, scrape or redistribute paid or paywalled content outside the Platform",
+   "source": "API 5.2.5",
+   "surfaces": [
+    "caption",
+    "message",
+    "bio",
+    "comment",
+    "promo",
+    "prompt"
+   ]
+  },
+  {
+   "id": "no_self_referral",
+   "match": [
+    "self-refer",
+    "refer myself",
+    "own account referral",
+    "same individual"
+   ],
+   "regex": [],
+   "reason": "Do not abuse referral system by self-referring or referring accounts owned by the same individual",
+   "source": "AUP 4.1",
+   "surfaces": [
+    "message",
+    "caption",
+    "bio"
+   ]
+  },
+  {
+   "id": "no_trust_or_client_money_claims",
+   "match": [
+    "trust",
+    "client money",
+    "escrow",
+    "deposit"
+   ],
+   "regex": [],
+   "reason": "Creator Balances are contractual receivables; not trust, client money, or deposits.",
+   "source": "2.8.6",
+   "surfaces": [
+    "bio",
+    "comment",
+    "message",
+    "promo"
+   ]
+  },
+  {
+   "id": "no_unauthorized_commercial",
+   "match": [
+    "sponsored by",
+    "advertisement",
+    "product placement",
+    "sponsorship deal",
+    "brand deal"
+   ],
+   "regex": [],
+   "reason": "No third-party commercial activities, advertising, sponsorships, or product placements in violation of Creator Advertising & Promotion Policy",
+   "source": "AUP 2.4.5",
+   "surfaces": [
+    "caption",
+    "message",
+    "bio",
+    "promo"
+   ]
+  },
+  {
+   "id": "no_unpublished_promotional_rate_claims",
+   "match": [
+    "promotional earning rate",
+    "increased creator share",
+    "introductory window",
+    "earning rate uplift"
+   ],
+   "regex": [],
+   "reason": "Promotional Earning Rates are Fanvue-published and temporary; do not advertise unapproved rates.",
+   "source": "1.3",
+   "surfaces": [
+    "promo",
+    "bio",
+    "caption"
+   ]
+  },
+  {
+   "id": "off_platform_transactions",
+   "match": [
+    "off-platform",
+    "off platform",
+    "escort",
+    "escorting",
+    "pay outside",
+    "external payment",
+    "third-party transaction",
+    "third party transaction",
+    "meet in person"
+   ],
+   "regex": [],
+   "reason": "No marketing of off-platform services, escorting, or other non-permitted third-party transactions.",
+   "source": "MP 5.1.3",
+   "surfaces": [
+    "caption",
+    "message",
+    "bio",
+    "promo",
+    "comment"
+   ]
+  },
+  {
+   "id": "pii_leak",
+   "match": [],
+   "regex": [
+    "[\\w.+-]+@[\\w-]+\\.[\\w.]+",
+    "\\b\\d{3}[-.\\s]?\\d{3}[-.\\s]?\\d{4}\\b",
+    "\\b\\d{1,5}\\s+\\w+\\s+(street|st|avenue|ave|road|rd|lane|ln)\\b"
+   ],
+   "reason": "No publishing personal or private information about others without consent.",
+   "source": "CG C.10.1",
+   "surfaces": [
+    "caption",
+    "message",
+    "comment"
+   ]
+  },
+  {
+   "id": "platform_migration",
+   "match": [
+    "onlyfans",
+    "fansly",
+    "loyalfans",
+    "justfor.fans",
+    "just for fans",
+    "manyvids",
+    "clips4sale",
+    "my other platform"
+   ],
+   "regex": [
+    "\\bonly\\s?fans\\b"
+   ],
+   "reason": "Tools or content designed to move fans to competing creator platforms are prohibited",
+   "source": "API 5.2.10",
+   "surfaces": [
+    "caption",
+    "message",
+    "bio",
+    "promo",
+    "comment"
+   ]
+  },
+  {
+   "id": "public_bio_sfw",
+   "match": [
+    "nude",
+    "nudes",
+    "naked",
+    "topless",
+    "explicit",
+    "porn",
+    "cumshot",
+    "blowjob",
+    "handjob",
+    "dildo",
+    "vibrator",
+    "orgasm",
+    "masturbat"
+   ],
+   "regex": [],
+   "reason": "Public Media including public bio text subject to stricter SFW standards; non-compliant public media removed from public view without notice.",
+   "source": "CMP 1.6",
+   "surfaces": [
+    "bio"
+   ]
+  },
+  {
+   "id": "public_media_sfw",
+   "match": [
+    "nude",
+    "nudes",
+    "naked",
+    "topless",
+    "see-through",
+    "see through",
+    "porn-style",
+    "hyper-sexualised",
+    "hypersexualized"
+   ],
+   "regex": [],
+   "reason": "Public media must be SFW; no nudity, implied nudity, see-through clothing, hyper-sexualised posing, or explicit sexual language",
+   "source": "AUP 2.6.2.1, AUP 2.6.2.4",
+   "surfaces": [
+    "bio",
+    "promo",
+    "caption"
+   ]
+  },
+  {
+   "id": "standard_earning_rate_reference",
+   "match": [
+    "80%",
+    "20%"
+   ],
+   "regex": [],
+   "reason": "Standard rate is 80% creator / 20% Fanvue unless agreed in writing.",
+   "source": "1.2",
+   "surfaces": [
+    "bio",
+    "promo"
+   ]
+  },
+  {
+   "id": "under18_account",
+   "match": [
+    "under 18",
+    "underage account",
+    "i am 17",
+    "i am 16",
+    "i am 15",
+    "i am 14"
+   ],
+   "regex": [
+    "\\bunder\\s*18\\b"
+   ],
+   "reason": "Users under 18 may not access or set up a Fanvue account",
+   "source": "AUP 1.1",
+   "surfaces": [
+    "message",
+    "bio",
+    "comment"
+   ]
+  },
+  {
+   "id": "unsafe_body_standards",
+   "match": [
+    "unrealistic body standards",
+    "unsafe body standards",
+    "unsafe behaviours",
+    "unsafe behaviors"
+   ],
+   "regex": [],
+   "reason": "No promotion of unrealistic or unsafe body standards or behaviours.",
+   "source": "MP 3.2.3",
+   "surfaces": [
+    "caption",
+    "message",
+    "bio",
+    "promo",
+    "comment"
+   ]
+  },
+  {
+   "id": "weapons_drugs",
+   "match": [
+    "firearm",
+    "handgun",
+    "shotgun",
+    "rifle",
+    "minigun",
+    "grenade",
+    "cocaine",
+    "cannabis"
+   ],
+   "regex": [
+    "\\bguns?\\b",
+    "\\bswords?\\b",
+    "\\bdaggers?\\b",
+    "\\bknives?\\b",
+    "\\bweapon\\w*",
+    "\\bdrugs?\\b",
+    "\\bmeth\\b"
+   ],
+   "reason": "No content featuring or depicting weapons or controlled substances.",
+   "source": "CG C.13",
+   "surfaces": [
+    "caption",
+    "message",
+    "bio",
+    "comment",
+    "promo",
+    "prompt"
+   ]
+  }
+ ],
+ "required": {
+  "ai_disclosure_terms": [
+   "AI-generated",
+   "AI generated"
+  ],
+  "caption_disclosure": "Every Fanvue caption carries the AI disclosure (Nova's voice block appends 'AI-generated character').",
+  "intimate_18plus_marker": [
+   "18+"
+  ],
+  "bio_disclosure": "The Fanvue bio contains the AI disclosure statement.",
+  "source": "CG D.1.1, CG C.6.1, AUP 2.3.1.4, API 4.3.1"
+ },
+ "theme_rules": {
+  "strip_props_matching": [
+   "\\bswords?\\b",
+   "\\bminigun\\b",
+   "\\bguns?\\b",
+   "\\brifle\\b",
+   "\\bdaggers?\\b",
+   "\\bknives?\\b",
+   "\\bblades?\\b"
+  ],
+  "strip_props_note": "Weapon props from fan-cosplay themes (2B's sword, Jinx's minigun, ...) are stripped from Fanvue prompts; the theme keeps its outfit. CG C.13 bans weapon depiction and moderation scans for it.",
+  "blocked_prompt_terms_note": "text_rules with surfaces containing 'prompt' are enforced on every Fanvue generation prompt (minors, weapons, extreme themes, explicit text, real-person likeness).",
+  "mask_note": "Face coverings/masks (plague-doctor beaked mask) are acceptable for AI-generated media when disclosed as AI and not misleading (AUP 2.5.2, CG D.1.6). AUP 2.5.1 identity-verification rules apply to real creators, not AI media."
+ },
+ "messaging": {
+  "opt_in_intimate": "Never send Intimate media (including lingerie/see-through) to a fan who has not opted in; unsolicited explicit content ('cyberflashing') is a violation. PPV intimate media goes only to opted-in, consenting subscribers, marked 18+.",
+  "source_opt_in": "CG C.5.2.2, C.5.3",
+  "mass_message_caps": "Mass messages only to segmented opted-in lists, with frequency caps; no spam, no flooding, no moderation-evasion wording.",
+  "source_mass": "AUP B.1.4, API 5.2.11",
+  "never_deny_ai": "If a fan sincerely asks whether they are talking to a real person, answer honestly that Nova is an AI-generated character.",
+  "source_ai": "API 4.3.2.2-4.3.2.3",
+  "creator_control": "AI messaging runs with Eli's authorization, is reviewable and pausable at any time (Needs-You gate fanvue_messaging_paused).",
+  "source_control": "API 4.3.2.1",
+  "no_fake_engagement": "No fake accounts, bots posing as fans, purchased engagement, or artificially inflated metrics.",
+  "source_fake": "AUP 2.3.1.3, API 5.2.8",
+  "no_falsely_live": "Never depict or claim live interactions that are not live (no 'live now' fabrications; AI voice notes labelled as AI).",
+  "source_live": "AUP 2.3.1.3"
+ },
+ "commercial": {
+  "on_platform_only": "All payments, tips, PPV, subscriptions and custom-content requests through Fanvue's own systems. Never external payment links, never off-platform delivery.",
+  "source": "AUP 2.4.6",
+  "referral_disclosure": "Referral/affiliate promotion carries #ad or equivalent disclosure per ASA guidance; no self-referrals.",
+  "accurate_claims": "No misleading claims about what subscribers get; promised content must be delivered to avoid disputes.",
+  "no_in_person": "No advertising or facilitating in-person meetings, paid or unpaid."
+ },
+ "api": {
+  "auth": "OAuth 2.0 with PKCE only; Bearer access tokens; no API keys, no session cookies, no password automation.",
+  "version_header": "X-Fanvue-API-Version: YYYY-MM-DD (known-good: 2025-06-26); handle 410 Gone + Deprecation/Sunset headers and migrate.",
+  "rate_limits": "Honor X-RateLimit-* headers; on 429 read Retry-After and back off exponentially; never evade limits by spreading across apps/accounts.",
+  "no_scraping": "Official API only. No web crawlers, bots, UI automation, or scraping of Fanvue (AUP 5.6; API 5.1.10 prohibits automating the website/apps outside the API).",
+  "credentials": "Client secrets, access and refresh tokens live in the encrypted vault, server-side, never in code, logs, or git. Reset immediately on suspected compromise.",
+  "webhooks": "Verify webhook signatures before acting on deliveries.",
+  "least_privilege": "Request only the scopes each feature needs.",
+  "no_training": "Never use Fanvue content, messages or data obtained through the API to train or fine-tune models.",
+  "data_protection": "Minimize retained personal data; respond to deletion requests; report breaches to support@fanvue.com.",
+  "source": "API 1-6, 10; AUP 5"
+ },
+ "money": {
+  "earning_rate": "80% standard Creator Earning Rate; 20% platform fee (CT 2.2).",
+  "pending_period": "7 days standard, extendable to 28 days by risk systems (CEP 2.2).",
+  "payout_sla": "Valid payouts initiated within 10 business days (CEP 2.5).",
+  "dispute_fee": "Above 1.5% dispute/chargeback rate in a rolling 30 days: $50 admin fee per further dispute (CT 4.2, CEP 4.2). Revenue agent alerts at 0.8% for human review.",
+  "balance_window": "Balance discrepancies must be reported within 30 days (CT 3.4, CEP 2.7).",
+  "dormancy": "Balances unclaimed 12 months become dormant (UK/EEA/RoW waive; US escheat) - schedule payouts at least quarterly.",
+  "source_dormancy": "CEP 2.8",
+  "manual_review_triggers": "Manual review before first withdrawal and on >$100 earnings in 24h (CM 2.4) - expect and allow for them; never attempt to avoid them."
+ },
+ "enforcement": {
+  "public_media_ladder": "1st: removed from Discover; repeat: profile hidden from public view until fixed (CG F.5).",
+  "moderation": "All uploads scanned by AI moderation pre- and post-publication (nudity, weapons, drugs, age estimation, AI detection); flagged content hidden pending human review (CM 3.1-3.2).",
+  "balance_deductions": "Policy breaches can bring proportional Creator Balance deductions (CM 3.6, AUP 7.1.3).",
+  "appeals": "Appeals within 14 days to support@fanvue.com; most decisions within 7 days (CM 4). Creator-terms forfeitures appealable within 6 months (CT 7.7).",
+  "watch": "The agent monitors the policy changelog (legal.fanvue.com/changelog) during the weekly review and re-distills on any update."
+ },
+ "ip_safe": {
+  "policy": "Cosplay content goes to Fanvue (Eli, 2026-11-03), but only as IP-safe parody: the look - silhouette, palette, styling cues, props - suggests the character; the character's name, franchise, studio or game are never rendered in prompts or printed in captions, tags or bios.",
+  "enforcement": "The banned-name list is derived from character.json's fan-cosplay pool (character + franchise fields) by oa_influencer.character.fan_cosplay_name_patterns() and enforced on every Fanvue caption/message/prompt audit, including captions the caption model produces (defensively stripped after generation).",
+  "source": "Fanvue CG A.1.2 (no IP infringement) + monetization.md house rule, updated 2026-11-03: famous-cosplay frames are no longer IG-only, but the Fanvue surface is name-stripped.",
+  "instagram_difference": "Instagram keeps the full named-recreation treatment ('adult fan cosplay of X') for feed engagement; the same theme on Fanvue runs through character.image_prompt(ip_safe=True) and strip_character_names()."
+ }
+}

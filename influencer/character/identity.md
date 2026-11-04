@@ -44,12 +44,14 @@ identity-consistency QC against that set.
 
 - **Face:** heart-shaped, high cheekbones, sharp jaw, straight nose, full lips, slightly upturned
   dark grey-green eyes, thick straight brows, small beauty mark under the right eye
-- **Hair:** jet-black blunt bob at the jaw, razor-straight micro bangs, one platinum streak at the
+- **Hair:** short bob with soft micro bangs; **mint-green + soft lavender only** (never pink, platinum, or white)
   left temple (the identifier)
 - **Skin:** light olive, matte, faint freckles across the nose
 - **Marks:** silver septum ring; small crescent-moon tattoo behind the left ear; black nail polish
-- **Build:** 5'7", athletic hourglass, strong shoulders
-- **Makeup default:** sharp winged liner, oxblood lip, soft contour; glam variant adds chrome
+- **Build:** short and petite (~5'1" / 155 cm), small frame, slender (adult, 24) — soft pretty, not tall or statuesque
+- **Eyes:** bright green, soft expression
+- **Look:** soft and pretty, gentle goth — green & lavender pastel bob, bright green eyes, freckles, soft pink lips, warm gentle expression (adult, 24)
+- **Makeup (default):** soft dark eyeliner, muted mauve/berry lips — gentle goth, not near-black or harsh wing
   eyeshadow
 - **Palette:** black, oxblood, chrome/silver, bone white; accent: electric violet (streams only)
 - **Lighting signature:** hard key + violet or oxblood rim light; rainy-window ambience for home shots
@@ -58,10 +60,10 @@ identity-consistency QC against that set.
 
 | Pillar | Weight | What it is | Format mix |
 | --- | --- | --- | --- |
-| Cosplay | 35% | original archetype looks: gothic sorceress, vampire countess, cyber ronin, dark magical girl, plague-doctor couture, demon huntress | carousels, 1 reel/week |
+| Cosplay | 35% | original archetype looks: gothic sorceress, vampire countess, cyber ronin, dark magical girl, plague-doctor couture, demon huntress | carousels, singles |
 | Glam & lingerie-inspired styling | 25% | lace bodysuits under blazers, corsetry as outerwear, sheer layering, harness fashion — always covered where Instagram requires | single images, carousels |
-| Alt fashion / street | 15% | thrifted fits, platform boots, chrome accessories, rainy-city backdrops | single images, reels |
-| Personality / BTS | 15% | mirror selfies, "get ready with me", wig-styling desk, dying houseplants, stream setup | stories, reels, casual photos |
+| Alt fashion / street | 15% | thrifted fits, platform boots, chrome accessories, rainy-city backdrops | single images |
+| Personality / BTS | 15% | mirror selfies, "get ready with me", wig-styling desk, dying houseplants, stream setup | stories, casual photos |
 | Community | 10% | polls, Q&A, "pick my next cosplay", fan-shoutouts | stories, caption CTAs |
 
 Cosplay themes are **original archetypes**, never named trademarked characters, so nothing in the
@@ -80,5 +82,5 @@ feed depends on a rights-holder's tolerance.
 ## Brand positioning
 
 Premium dark-glam, not thirst-trap spam. Captions have a point of view. Posting cadence is
-deliberate (1 feed post/day, 1 reel/week, daily stories once the account is warm). The money comes
+deliberate (1 feed post/day, daily stories once the account is warm; photos only, no reels). The money comes
 from fans who like *her*, not from volume: see `../brand/monetization.md`.

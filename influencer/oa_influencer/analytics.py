@@ -2,7 +2,7 @@
 planner's pillar weights toward what grew the account."""
 import datetime as dt
 
-from . import character, relay, state
+from . import character, config, relay, state
 
 MILESTONES = {"Instagram Subscriptions": 10_000, "Creator Marketplace": 1_000, "first affiliate push": 500}
 WEIGHT_MIN, WEIGHT_MAX, STEP = 5, 50, 5
@@ -18,6 +18,14 @@ def snapshot() -> dict:
         raise RuntimeError(f"@{handle} profile not readable (logged out, private, or page changed)")
     prev = data["history"][-1] if data["history"] else None
     snap = {**meta, "delta_followers": (meta["followers"] - prev["followers"]) if prev and prev.get("followers") is not None else None}
+    # per-post engagement (public read only): the signal the weekly review and dashboard need,
+    # beyond plain follower count — never a write action.
+    try:
+        snap["recent_posts"] = relay.post_metrics(handle, limit=3)
+        for p in snap["recent_posts"]:
+            state.log(f"analytics: post {p['path']} likes={p.get('likes')} comments={p.get('comments')}")
+    except Exception as e:
+        state.log(f"analytics: per-post metrics skipped ({str(e)[:120]})")
     data["history"] = (data["history"] + [snap])[-400:]
     for name, need in MILESTONES.items():
         if meta["followers"] >= need and name not in data["milestones"]:
@@ -51,9 +59,23 @@ def weekly_review() -> dict:
     """Moves weight from the weakest pillar to the strongest, by one step, and writes the note."""
     spec = character.spec()
     st = state.state()
-    weights = dict(st.get("pillar_weights") or {p["id"]: p["weight"] for p in spec["pillars"]})
+    # the curated character pillar always exists and keeps its floor: a weekly review must never
+    # silently take the fan-cosplay list out of rotation (it is the feed's content source).
+    weights = {p["id"]: p["weight"] for p in spec["pillars"]}
+    weights.update(st.get("pillar_weights") or {})
+    weights.setdefault("famous_cosplays", config.FAMOUS_WEIGHT_FLOOR)
+    weights["famous_cosplays"] = max(weights["famous_cosplays"], config.FAMOUS_WEIGHT_FLOOR)
     perf = pillar_performance()
     note = {"at": state.iso(), "performance": perf, "before": dict(weights)}
+    # latest engagement read, even before follower-delta data exists: what the feed actually did
+    # (likes/comments on the newest posts) — steers future tuning and the app's campaign view.
+    history = state.read(state.ANALYTICS, {"history": []}).get("history", [])
+    if history:
+        recent = history[-1].get("recent_posts") or []
+        likes = [p.get("likes") for p in recent if p.get("likes")]
+        comments = [p.get("comments") for p in recent if p.get("comments")]
+        if likes or comments:
+            note["recent_engagement"] = {"posts": len(recent), "likes": likes, "comments": comments}
     if len(perf) >= 2:
         best = max(perf, key=perf.get)
         worst = min(perf, key=perf.get)

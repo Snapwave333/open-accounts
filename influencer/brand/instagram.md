@@ -1,9 +1,8 @@
 # Instagram brand kit — Nova Vexley
 
 **Account creation is a human step.** Eli creates the account in his own Chrome (the relay posts
-through the profile switcher, which only works for accounts already signed in). The pipeline refuses
-to post until the `account_created` and `publishing_authorized` approvals are granted in the app's
-"Needs You" tab (or `py pipeline.py approve <gate>`).
+through the profile switcher, which only works for accounts already signed in).Posting itself is
+fully autonomous on cadence (Eli removed the approval gate, 2026-11-03).
 
 ## Handle
 
@@ -35,25 +34,52 @@ The first free one is written to `data/state.json` → `handle`. Eli may overrid
 
 ## Content categories → Instagram formats
 
-| Pillar | Feed | Reels | Stories |
+Photos are the asset source for every format (ComfyUI-generated, QC-approved, AI-labelled). No
+image-to-video — Reels are photo-slideshow reels built from approved still frames with text
+overlays and music, which keeps the pipeline photo-only and Instagram-safe.
+
+| Pillar | Feed | Stories (3–5/day) | Reels (1/day) |
 | --- | --- | --- | --- |
-| Cosplay | carousel (3–5 images) | 1/week, 5–10 s image-to-video with slow push-in | poll: next costume |
-| Glam | single 4:5 | monthly | "fit check" |
-| Alt fashion | single 4:5 | 2/month | outfit poll |
-| BTS | casual single | 2/month | daily once warm |
-| Community | caption CTA | — | Q&A sticker weekly |
+| Cosplay | carousel (up to 20 images) | poll: next costume | costume-slideshow teaser, "full set on Fanvue" |
+| Glam | single 4:5 | fit-check mirror photo | glam slideshow, lingerie-adjacent teaser |
+| Alt fashion | single 4:5 | outfit poll | street-style slideshow |
+| BTS | casual single | daily once warm | crafting desk / wig room slideshow |
+| Community | caption CTA | Q&A sticker weekly | subscriber-pick slideshow |
+| Famous cosplays | carousel | franchise shout-out + poll | IP-safe parody slideshow teaser |
 
 ## Posting strategy
 
-- Week 1–2 (warm-up): 1 feed post/day at 19:00 local, no reels until 7 posts exist, no stories.
-- Week 3–4: 1 feed/day, 1 reel/week (Thursday 18:00), stories after each feed post.
-- Spacing: ≥ 20 h between feed posts; the publisher refuses to exceed 1 feed post/day.
-- Every upload: AI label on, Facebook cross-post off, caption ends with the sign-off.
-- Hashtags: 5 core + 3 pillar-specific, placed in the first comment is not supported by the relay,
-  so they go at the end of the caption after a blank line.
+- 1 feed carousel/day at 19:00 local (≥ 20 h gap; publisher refuses >1 feed post/day).
+- 1 Reel/day (photo-slideshow, ~15–30 s, cliffhanger teaser for Fanvue-exclusive content).
+- 3–5 Stories/day spaced across waking hours (polls, quizzes, Q&A, countdown, link stickers).
+- Every upload: AI label on, Facebook cross-post off, caption/story ends with the sign-off,
+  AI disclosure present on Reel covers and Story highlights.
+- Hashtags: 5 core + 3 pillar-specific at the end of the caption after a blank line.
+- Cliffhanger rule: Reels/Stories tease exclusive Fanvue content (look, mood, "coming Friday")
+  but never reveal the full premium set — the payoff lives on Fanvue.
+- CTA rule: every Reel caption + every Story with a link sticker carries a tasteful "link in
+  bio → Fanvue" CTA with UTM tracking; never repetitive, never spam.
 
-## Engagement (handled by the existing `engage.py` caps once the account is approved)
+## Link-in-bio + profile optimization
 
-The existing studio engagement job is account-aware; it is extended to Nova's account only after
-`publishing_authorized`, with the same tiny daily caps (likes/follows on #cosplay, #altfashion,
-#gothgirl, #darkglam) so a fresh account never trips Instagram's automation heuristics.
+- **Bio link:** the link-in-bio hub (`data/assets/link_in_bio.html`, hosted wherever Eli prefers)
+  with tracked Fanvue subscription + wallpaper links (UTM-tagged, campaign IDs).
+- **Pinned post 1:** "who is Nova" carousel (3 slides: portrait, costume desk, AI disclosure)
+  + a pinned Reel teasing the latest Fanvue release.
+- **Highlights:** `cosplay`, `glam`, `grwm`, `streams`, `wallpapers`, `fanvue` (subscriber
+  teaser reel covers, SFW only).
+- **Disclosure:** AI-generated nature stated in bio, pinned post, Reel covers, and the
+  `fanvue` highlight — never dropped for conversion.
+
+## Engagement (the daily caps once the account is live)
+
+The replies agent (`oa_influencer/replies.py`) runs on cadence with the same tiny caps
+(≤10 replies/day, spam/toxic/personal-info never answered) so a fresh account never trips
+Instagram's automation heuristics. No approval gate (Eli, 2026-11-03).
+No purchased followers, no engagement pods, no unsolicited mass DMs.
+
+## Engagement (the daily caps once the account is live)
+
+The replies agent (`oa_influencer/replies.py`) runs on cadence with the same tiny caps
+(≤10 replies/day, spam/toxic/personal-info never answered) so a fresh account never trips
+Instagram's automation heuristics. No approval gate (Eli, 2026-11-03).

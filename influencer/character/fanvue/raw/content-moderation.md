@@ -1,0 +1,115 @@
+> For clean Markdown of any page, append .md to the page URL.
+> For a complete documentation index, see https://legal.fanvue.com/llms.txt.
+> For AI client integration (Claude Code, Cursor, etc.), connect to the MCP server at https://legal.fanvue.com/_mcp/server.
+
+# Content Moderation & Protection Policy
+
+This Content Moderation & Protection Policy outlines Fanvue’s procedures for moderating user-generated content, verifying user identity, and protecting platform content. Its purpose is to ensure the safety, legality, and security of the Platform for all Users.
+
+This Policy supplements the [**General Terms & Conditions**](/terms-conditions) and other applicable [**Fanvue Policies**](/welcome). If there is any conflict between this Policy and the General Terms, the terms of this Policy shall prevail for the specific subject matter it governs.
+
+All defined terms used herein shall have the meaning assigned in the [**General Terms & Conditions**](/terms-conditions), unless otherwise stated.
+
+---
+
+## DEFINITIONS
+
+**"Creator"** means a User who has completed Creator onboarding and is authorised to submit Paid-for Services or earn revenue through the Platform.
+
+**"KYC"** (Know Your Customer) means the process of verifying a user's identity and age through an approved third-party provider, as detailed in our [**Age Verification Policy**](/age-verification).
+
+---
+
+## 1. USER SAFETY AND CONTENT SCREENING
+
+1. Fanvue is a platform for users aged 18 or over. Individuals aged below 18 are prohibited from accessing the Platform.
+2. All Users must confirm their age as 18 or older upon first access to the Platform. If a User confirms they are under 18, they are immediately redirected and denied further access.
+3. If Fanvue discovers that a User has misrepresented their age and is under 18, their account will be removed and they will be prevented from reopening an account.
+4. Fanvue uses automated tools to scan all uploaded User Content both pre-publication and post-publication (e.g. profile photos, banners, and intro videos) for nudity and sensitive material that do not comply with the [**Acceptable Use Policy**](/acceptable-use-policy).
+5. Users may report any Content they believe violates the [**Acceptable Use Policy**](/acceptable-use-policy) or any other Policy. All reports are reviewed by Fanvue moderators under the procedures outlined in the [**Complaints Policy**](/complaints-policy).
+6. Public Media (profile pictures, banners, intro videos, and public bio text) is subject to stricter SFW standards as outlined in the [**Acceptable Use Policy - Section 2.6**](/acceptable-use-policy#26-public-media-standards). Non-compliant Public Media may be removed from Discoverability or public view without prior notice.
+
+## 2. KYC AND CREATOR IDENTITY VERIFICATION
+
+1. Any User applying to become a **Creator** must undergo a full KYC verification through Fanvue’s approved third party provider.
+2. The KYC process includes:
+   1. Submission of valid government-issued identification documents;
+   2. A liveness check involving real-time video or photo capture;
+   3. Matching the user's face to the photo on their ID;
+   4. Confirmation that the user is at least 18 years old.
+3. Creators must truthfully declare whether they intend to upload any explicit content, even if this is not the only content type they intend to upload. This declaration is locked and cannot be changed by the User once submitted. Users are not permitted to upload explicit content if they have not declared this intention during KYC checks.
+4. Further manual reviews are conducted on:
+   1. All new Creators before their first withdrawal;
+   2. Any Creator earning more than \$100 in a 24-hour period;
+   3. Suspicious behaviour patterns detected by platform tools or community reports.
+5. Verification is carried out by Ondato on Fanvue's behalf. ID documentation is kept securely for the periods set out in our [**Privacy Policy – Section 9**](/privacy-policy#9-age-and-identity-verification-data) and linked to internal moderation systems for ongoing compliance and verification.
+6. If evidence arises that a Creator is impersonating another individual or does not have the rights to their uploaded Content, Fanvue may immediately disable or delete the relevant Content or account. For impersonation-related takedowns, see our [**DMCA Policy**](/dmca-policy).
+7. For specific requirements regarding face coverings and identity verification in content, see [**Acceptable Use Policy - Section 2.5**](/acceptable-use-policy#25-identity-verification--face-coverings).
+
+## 3. CONTENT MODERATION PROCESS
+
+1. All uploaded Content is initially scanned by third party AI-based moderation, which flags:
+   1. Nudity or explicit acts;
+   2. Weapons, drugs, or illegal activity;
+   3. Violence or abuse;
+   4. Age estimation;
+   5. Hand signs, written language (digital or handwritten), and people counting;
+   6. Whether content has been generated by AI.
+2. Content flagged by AI is hidden from view and queued for human moderator review. Moderators may:
+   1. Delete the Content;
+   2. Escalate for further investigation, which may include further account moderation;
+   3. Contact the Creator for clarification or documentation.
+3. Moderation is also supported by:
+   1. **Random spot checks** (to ensure impartiality);
+   2. Checks based on account behaviour or risk thresholds.
+4. Staff are trained to identify and remove Content that violates Fanvue’s standards and/or policies.
+5. Fanvue’s Safety Escalations Team is responsible for reviewing serious violations of Platform standards and/or policies, including making decisions on the appropriateness of law enforcement referrals.
+6. Where Content is found to breach this Policy, Fanvue may apply a proportional deduction to the Creator’s Balance, in accordance with [**Acceptable Use Policy (Section 7.1.3)**](/acceptable-use-policy#7-breach-consequences).
+7. Users found in violation of the Fanvue Acceptable Use Policy will be notified with the reason for the removal or restriction of their content or account.
+8. Where automated means have been used to moderate content or flag a violation, you will be notified of this within the reasons communicated to you.
+
+## 4. APPEALS AND ACCOUNT REVIEW
+
+1. Users whose Content or Accounts have been restricted, suspended, or permanently removed as a result of moderation enforcement may request a formal appeal.
+2. Appeals must be submitted within **14 calendar days** of the enforcement via [**support@fanvue.com**](mailto:support@fanvue.com), or through the
+
+   live support
+
+   feature, and must include a clear explanation of why the user believes the decision was made in error.
+3. Fanvue will consider all available evidence, including new context or clarification provided by the User.
+4. While most appeal decisions are issued within **7 days**, complex cases may take longer.
+5. This appeal process operates in conjunction with, and does not replace, your rights under the [**Complaints Policy**](/complaints-policy).
+
+## 5. CONTENT PROTECTION MEASURES
+
+1. Fanvue has implemented multiple features to detect and deter unauthorised use, reproduction, or scraping of Creator Content, including:
+   1. Watermarking;
+   2. Right-click prevention;
+   3. Screenshot detection (on supported devices);
+   4. Session analytics and account locking for suspicious behaviour.
+2. Any attempt to access, scrape, download, or copy Content in a way that violates the [**Acceptable Use Policy**](/acceptable-use-policy) will result in immediate investigation and possible account termination under [**General Terms – Section 16 (Termination)**](/terms-conditions#16-account-suspension-and-termination).
+
+## 6. LAW ENFORCEMENT AND INDUSTRY PARTNERSHIPS
+
+1. Fanvue partners with leading content protection and anti-piracy vendors to monitor the internet for unauthorised distribution of User Content.
+2. Fanvue cooperates with law enforcement in all jurisdictions in response to reports of criminal behaviour and violence, including requests relating to:
+   1. Child sexual abuse material (CSAM);
+   2. Terrorism or violent extremism;
+   3. Human trafficking;
+   4. Content involving non-consensual acts.
+3. Fanvue may share user information in accordance with the [**Privacy Policy**](/privacy-policy) and in line with applicable legal obligations.
+4. For our full commitment to combating modern slavery and human trafficking, including platform-specific controls and risk mitigation efforts, see our [**Anti-Slavery & Anti-Trafficking Statement**](/anti-slavery).
+
+---
+
+## Need Help?
+
+If you have questions about any of our policies or need assistance:
+
+* Message our
+
+  live support
+* Email us at [support@fanvue.com](mailto:support@fanvue.com)
+* Visit our [Help Center](https://help.fanvue.com)
+
+Fanvue reserves the right to amend this Policy from time to time. The latest version will always be accessible at [**legal.fanvue.com**](https://legal.fanvue.com), and significant changes will be communicated where required.

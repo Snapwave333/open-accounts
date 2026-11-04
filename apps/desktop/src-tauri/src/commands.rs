@@ -635,3 +635,65 @@ pub async fn set_ui_state(state: State<'_, AppState>, value: serde_json::Value) 
         .map_err(|e| format!("{}: {e}", tmp.display()))?;
     std::fs::rename(&tmp, &path).map_err(|e| format!("{}: {e}", path.display()))
 }
+
+// --- FANVUE (Nova Vexley Fanvue platform) ---
+
+fn influencer_data_dir() -> std::path::PathBuf {
+    openaccounts_core::influencer_root().join("data")
+}
+
+fn read_json_file(path: &std::path::Path, default: serde_json::Value) -> serde_json::Value {
+    match std::fs::read_to_string(path) {
+        Ok(raw) => serde_json::from_str(&raw).unwrap_or(default),
+        Err(_) => default,
+    }
+}
+
+#[tauri::command]
+pub async fn fanvue_status() -> Result<serde_json::Value, String> {
+    let analytics = influencer_data_dir().join("analytics.json");
+    let data = read_json_file(&analytics, serde_json::json!({}));
+    Ok(data.get("fanvue").cloned().unwrap_or(serde_json::json!({})))
+}
+
+#[tauri::command]
+pub async fn fanvue_calendar() -> Result<serde_json::Value, String> {
+    let path = influencer_data_dir().join("fanvue_calendar.json");
+    Ok(read_json_file(&path, serde_json::json!({"slots": []})))
+}
+
+#[tauri::command]
+pub async fn fanvue_posts() -> Result<serde_json::Value, String> {
+    let path = influencer_data_dir().join("posts.json");
+    let all = read_json_file(&path, serde_json::json!([]));
+    let fanvue: Vec<&serde_json::Value> = all.as_array()
+        .map(|arr| arr.iter().filter(|p| p.get("platform") == Some(&serde_json::Value::String("fanvue".into()))).collect())
+        .unwrap_or_default();
+    Ok(serde_json::to_value(fanvue).map_err(|e| e.to_string())?)
+}
+
+#[tauri::command]
+pub async fn fanvue_analytics() -> Result<serde_json::Value, String> {
+    let analytics = influencer_data_dir().join("analytics.json");
+    let data = read_json_file(&analytics, serde_json::json!({}));
+    Ok(data.get("fanvue_history").cloned().unwrap_or(serde_json::json!([])))
+}
+
+#[tauri::command]
+pub async fn fanvue_policy_status() -> Result<serde_json::Value, String> {
+    let path = openaccounts_core::influencer_root()
+        .join("character/fanvue/policy.json");
+    let data = read_json_file(&path, serde_json::json!({}));
+    let review = openaccounts_core::influencer_root().join("character/fanvue/review.md");
+    let mut out = data.get("meta").cloned().unwrap_or(serde_json::json!({}));
+    if let Ok(notes) = std::fs::read_to_string(&review) {
+        out["last_review"] = serde_json::Value::String(notes.lines().take(40).collect::<Vec<_>>().join("\n"));
+    }
+    Ok(out)
+}
+
+#[tauri::command]
+pub async fn fanvue_weekly_report() -> Result<serde_json::Value, String> {
+    let path = influencer_data_dir().join("fanvue_weekly_report.json");
+    Ok(read_json_file(&path, serde_json::json!({"generated_at": null, "note": "no report yet - the Nova fanvue report job runs daily"})))
+}

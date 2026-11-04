@@ -151,6 +151,71 @@ export interface NovaCampaignSnapshot {
   cost: string;
 }
 
+export interface FanvueVerify {
+  creator_uuid: string | null;
+  handle: string | null;
+  scopes: string[];
+  authorized: boolean;
+}
+
+export interface FanvueSlot {
+  id: string;
+  date: string;
+  scheduled_at: string;
+  tier: string;                     // free | subscriber | ppv
+  kind?: string;                    // feed | ppv
+  window?: string;                  // midday | evening (America/Denver)
+  ip_safe?: boolean;
+  images?: number;
+  pillar: string;
+  theme: string;
+  status: string;
+  assets: unknown[];
+  caption: string | null;
+  unlock_price_cents: number | null;
+}
+
+export interface FanvuePost {
+  at: string;
+  slot: string;
+  kind: string;
+  media: string;
+  handle: string;
+  platform: string;
+  result: string;
+  dry: boolean;
+  verified?: boolean;
+  images?: number;
+  price_cents?: number | null;
+  post_uuid?: string;
+  window?: string;
+}
+
+export interface FanvueAnalyticsSnapshot {
+  checked_at: string;
+  earnings_summary: unknown;
+  subscriber_count: number;
+  subscribers: unknown;
+}
+
+export interface FanvuePolicyStatus {
+  reviewed_at?: string;
+  reviewed_by?: string;
+  rules?: number;
+  last_required_actions?: string[];
+  last_review?: string;
+  last_review_notes?: string;
+}
+
+export interface FanvueWeeklyReport {
+  generated_at: string | null;
+  earnings?: { available?: boolean; total?: number | null; reason?: string };
+  subscribers?: { available?: boolean; count_first_page?: number; reason?: string };
+  published?: { posts?: number; images?: number; ppv_releases?: number; verified?: number };
+  inventory?: { total?: number; by_status?: Record<string, number> };
+  note?: string;
+}
+
 export interface AutonomyStatus {
   loop_running: boolean;
   paused: boolean;
@@ -393,6 +458,14 @@ export class TauriService {
   engagementToday = signal<string | null>(null);
   uiState = signal<UiState>({});
 
+  /** Fanvue platform (Nova Vexley). */
+  fanvueVerify = signal<FanvueVerify | null>(null);
+  fanvueCalendar = signal<{ slots: FanvueSlot[]; weights: Record<string, number> } | null>(null);
+  fanvuePosts = signal<FanvuePost[]>([]);
+  fanvueAnalytics = signal<FanvueAnalyticsSnapshot[]>([]);
+  fanvuePolicyStatus = signal<FanvuePolicyStatus | null>(null);
+  fanvueWeeklyReport = signal<FanvueWeeklyReport | null>(null);
+
   /** Last error from the fast poller, the slow poller, and the last user action. */
   private cycleError = signal<string | null>(null);
   private studioError = signal<string | null>(null);
@@ -460,8 +533,30 @@ export class TauriService {
 
   /** Pulls the whole visible state from the backend. */
   async refresh() {
-    await Promise.all([this.refreshCycleState(), this.refreshStudioData()]);
+    await Promise.all([this.refreshCycleState(), this.refreshStudioData(), this.refreshFanvue()]);
     this.loaded.set(true);
+  }
+
+  /** Fanvue read-only state (calendar, posts, analytics snapshot). Slow-changing. */
+  async refreshFanvue() {
+    try {
+      const [verify, calendar, posts, analytics, policy, report] = await Promise.all([
+        this.invoke<FanvueVerify>('fanvue_status').catch(() => null as FanvueVerify | null),
+        this.invoke<{ slots: FanvueSlot[]; weights: Record<string, number> }>('fanvue_calendar'),
+        this.invoke<FanvuePost[]>('fanvue_posts'),
+        this.invoke<FanvueAnalyticsSnapshot[]>('fanvue_analytics'),
+        this.invoke<FanvuePolicyStatus>('fanvue_policy_status').catch(() => null as FanvuePolicyStatus | null),
+        this.invoke<FanvueWeeklyReport>('fanvue_weekly_report').catch(() => null as FanvueWeeklyReport | null),
+      ]);
+      this.fanvueVerify.set(verify);
+      this.fanvueCalendar.set(calendar);
+      this.fanvuePosts.set(posts);
+      this.fanvueAnalytics.set(analytics);
+      this.fanvuePolicyStatus.set(policy);
+      this.fanvueWeeklyReport.set(report);
+    } catch (err) {
+      console.warn('fanvue refresh failed', err);
+    }
   }
 
   /** The parts that change while a cycle runs. Overlapping calls are skipped. */
@@ -726,5 +821,25 @@ export class TauriService {
       body,
       createCeoDirective: createDirective,
     });
+  }
+
+  // ------------------------------------------------------------
+  // Fanvue platform actions (Nova Vexley)
+  // ------------------------------------------------------------
+
+  async fanvueVerifyAccount() {
+    return this.act<FanvueVerify>('fanvue_status');
+  }
+
+  async fanvueBuildCalendar() {
+    return this.act<{ slots: FanvueSlot[]; weights: Record<string, number> }>('fanvue_calendar');
+  }
+
+  async fanvueListPosts() {
+    return this.act<FanvuePost[]>('fanvue_posts');
+  }
+
+  async fanvueListAnalytics() {
+    return this.act<FanvueAnalyticsSnapshot[]>('fanvue_analytics');
   }
 }

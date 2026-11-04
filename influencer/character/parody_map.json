@@ -1,0 +1,593 @@
+{
+ "source": "IP-safe parody briefs, 2026-11-03. Each entry is an ORIGINAL look that only SUGGESTS the character via palette, silhouette family and a playful nod prop. Never the character's name, franchise or signature design. Keys match cosplay_list.json names.",
+ "parodies": {
+  "Minnie Mouse": {
+   "look": "retro sweetheart homage: oxblood-and-black polka-dot midi dress with black lace hem, oversized matching bow headband",
+   "prop": "giant polka-dot bow",
+   "setting": "pastel retro clubhouse set with soft key light",
+   "mood": "cheerful vintage sweetheart with a wink"
+  },
+  "Daisy Duck": {
+   "look": "retro sweetheart homage: lavender blouse with black lace trim, black high-waist skirt, oversized lilac hair bow",
+   "prop": "giant pastel hair bow",
+   "setting": "pastel retro clubhouse set with soft key light",
+   "mood": "playful pastel sweetheart"
+  },
+  "Betty Boop": {
+   "look": "vintage cartoon vamp homage: oxblood slip dress with black lace trim, garter detail, old-Hollywood curls accent",
+   "prop": "heart-shaped novelty handbag",
+   "setting": "art-deco lounge with warm tungsten glow",
+   "mood": "bouncy vintage vamp"
+  },
+  "Wilma Flintstone": {
+   "look": "stone-age glam homage: one-shoulder bone-white mini dress with chunky stone-bead accents",
+   "prop": "chunky carved-stone bead necklace",
+   "setting": "playful stone-age set with soft warm light",
+   "mood": "sunny prehistoric glam"
+  },
+  "Pebbles Flintstone": {
+   "look": "grown-up stone-age cutie homage: bone-white off-shoulder top, black skirt, tiny bone-shaped beaded hair clip",
+   "prop": "bone-shaped beaded hair clip",
+   "setting": "playful stone-age set with soft warm light",
+   "mood": "sunny playful cutie"
+  },
+  "Judy Jetson": {
+   "look": "retro-futurist sweetheart homage: lavender space-age mini with sheer sleeves and orbit-ring headband",
+   "prop": "glowing orbit-ring headband",
+   "setting": "gleaming retro-futurist apartment set",
+   "mood": "bubbly space-age optimist"
+  },
+  "Jane Jetson": {
+   "look": "retro-futurist matriarch glam homage: violet futuristic collar dress with sleek chrome cuffs",
+   "prop": "chrome orbit cuff bracelet",
+   "setting": "gleaming retro-futurist apartment set",
+   "mood": "poised space-age elegance"
+  },
+  "Velma Dinkley": {
+   "look": "bookish mystery-solver homage: oversized oxblood knit top, black pleated skirt, round glasses",
+   "prop": "big magnifying glass",
+   "setting": "moody mansion library with warm lamps",
+   "mood": "brainy deadpan cute"
+  },
+  "Daphne Blake": {
+   "look": "glam mystery-solver homage: fitted lilac dress with lilac scarf, green-accent tights, mauve headband",
+   "prop": "flashlight and magnifying glass",
+   "setting": "spooky-chic mansion foyer with cobweb set dressing",
+   "mood": "glam curious damsel who investigates anyway"
+  },
+  "Lois Griffin": {
+   "look": "girl-next-door reporter homage: crisp white blouse, oxblood pencil skirt, black lace camisole peeking",
+   "prop": "vintage press microphone",
+   "setting": "small-town newsroom set with soft light",
+   "mood": "wry small-town charm"
+  },
+  "Marge Simpson": {
+   "look": "retro housewife glam homage: mint strapless dress with black lace overlay, chunky pearl necklace, tall beehive-inspired updo accent",
+   "prop": "chunky bead necklace",
+   "setting": "pastel suburban kitchen set",
+   "mood": "patient sassy housewife glam"
+  },
+  "Lisa Simpson": {
+   "look": "jazz-scholar cool homage: oxblood tube dress with pearl strands, black lace shawl",
+   "prop": "saxophone leaning on a stand",
+   "setting": "smoky jazz corner with warm spot light",
+   "mood": "smart soulful cool"
+  },
+  "Jessica Rabbit": {
+   "look": "noir lounge siren homage: oxblood sequin gown with black lace panels, long satin gloves",
+   "prop": "feather boa draped on a chair",
+   "setting": "noir nightclub stage with red spotlight haze",
+   "mood": "smoldering lounge siren"
+  },
+  "Olive Oyl": {
+   "look": "vintage comic ingenue homage: black high-neck top, oxblood pencil skirt, ankle boots, sleek updo accent",
+   "prop": "vintage tin-can clutch (parody joke)",
+   "setting": "comic-strip dockside set with bright soft light",
+   "mood": "gawky charming ingenue"
+  },
+  "Betty Rubble": {
+   "look": "stone-age glam homage in sky blue: blue halter dress with black lace trim, stone-bead choker",
+   "prop": "carved-stone bead choker",
+   "setting": "playful stone-age set with soft warm light",
+   "mood": "sweet mischievous glam"
+  },
+  "Ariel": {
+   "look": "seaside siren homage: seafoam corset top with shell motifs, black lace mermaid-cut skirt",
+   "prop": "silver trident hairpin",
+   "setting": "moonlit lagoon cove with soft teal gels",
+   "mood": "dreamy curious siren"
+  },
+  "Belle": {
+   "look": "bookish rose princess homage: oxblood-and-gold ballgown with black lace rose embroidery",
+   "prop": "ornate vintage hand mirror",
+   "setting": "candlelit library with rolling ladder",
+   "mood": "warm bookish romance"
+  },
+  "Cinderella": {
+   "look": "midnight ball princess homage: ice-blue gown with black lace overlay and glassy beadwork",
+   "prop": "tiny glass-slipper ornament on a ribbon",
+   "setting": "grand ballroom at midnight with chandelier bokeh",
+   "mood": "soft hopeful midnight magic"
+  },
+  "Snow White": {
+   "look": "storybook apple princess homage: bodice in red-blue-gold palette with black lace capelet",
+   "prop": "glossy red apple",
+   "setting": "storybook cottage glade with soft dappled light",
+   "mood": "gentle storybook grace"
+  },
+  "Mulan": {
+   "look": "warrior maiden homage: lacquer-red flowing dress with black lace trim and gold embroidery",
+   "prop": "paper parasol",
+   "setting": "blossom courtyard at golden hour",
+   "mood": "quiet honor and steel"
+  },
+  "Rapunzel": {
+   "look": "tower flower maiden homage: lavender-lilac gown with black corset lacing, extra-long braid woven with silk flowers and black ribbons",
+   "prop": "glowing paper lantern",
+   "setting": "tower balcony at blue hour with floating lanterns bokeh",
+   "mood": "dreamy radiant wonder"
+  },
+  "Tiana": {
+   "look": "bayou jazz princess homage: deep-green gown with lily accents and black lace shawl",
+   "prop": "lily-pad fan",
+   "setting": "warm bayou veranda with string lights",
+   "mood": "hardworking dreamer grace"
+  },
+  "Elsa": {
+   "look": "frost queen homage: icy pale-blue crystalline gown with black lace overlays, silver frost embroidery, sheer dark gloves, frost circlet",
+   "prop": "translucent ice staff with black ribbon wrap",
+   "setting": "moonlit ice-carved hall with soft violet rim light",
+   "mood": "soft pretty ice queen, warm faint smile"
+  },
+  "Anna": {
+   "look": "fjord adventurer homage: dark-teal embroidered bodice, black skirt with black lace trim",
+   "prop": "vintage umbrella",
+   "setting": "fjord village porch at dusk with warm lanterns",
+   "mood": "optimistic messy warmth"
+  },
+  "Moana": {
+   "look": "wave voyager homage: island-inspired wrap top in teal-and-coral, black lace sarong",
+   "prop": "carved oar-style staff",
+   "setting": "moonlit beach with gentle surf glow",
+   "mood": "brave open-horizon spirit"
+  },
+  "Jasmine": {
+   "look": "desert rose princess homage: turquoise crop top with high-waist harem trousers, black lace accents, ornate gold headpiece",
+   "prop": "ornate gold bangle set",
+   "setting": "palace terrace at dusk with desert haze",
+   "mood": "fierce elegant independence"
+  },
+  "Pocahontas": {
+   "look": "wind-painted free spirit homage: tan suede-inspired dress with turquoise jewelry and black lace wrap",
+   "prop": "silver wind pendant",
+   "setting": "river cliff overlook at golden hour with drifting leaves",
+   "mood": "serene fierce freedom"
+  },
+  "Merida": {
+   "look": "highland archer homage: dark-green flowing dress with leather bracer and black lace sash",
+   "prop": "unstrung bow (safe pose)",
+   "setting": "misty highland stone circle at dusk",
+   "mood": "wild radiant defiance"
+  },
+  "Vanellope von Schweetz": {
+   "look": "candy-racer punk homage: mint hoodie cropped with black lace skirt, candy-button accents",
+   "prop": "toy steering wheel",
+   "setting": "neon candy-race track set with pink-blue gels",
+   "mood": "glitchy cheeky racer"
+  },
+  "Joy (Inside Out)": {
+   "look": "spark of joy homage: lemon-yellow dress with green accents and black lace trim",
+   "prop": "small glowing orb",
+   "setting": "soft pastel memory-orb void with gentle glow",
+   "mood": "bouncing irrepressible delight"
+  },
+  "Sadness (Inside Out)": {
+   "look": "soft melancholy homage: oversized oxblood knit sweater dress with black lace socks",
+   "prop": "closed umbrella",
+   "setting": "soft pastel memory-orb void with dim gentle glow",
+   "mood": "tender wistful softness"
+  },
+  "Blossom (PPG)": {
+   "look": "bossy pink hero homage: pink shift dress with black lace trim, big red-orange bow headband",
+   "prop": "giant hair bow",
+   "setting": "toon-city rooftop at sunset with soft gels",
+   "mood": "take-charge sweetheart"
+  },
+  "Bubbles (PPG)": {
+   "look": "sweet blue hero homage: sky-blue dress with black lace trim and blue ribbon accents",
+   "prop": "bubble wand",
+   "setting": "toon-city park at golden hour",
+   "mood": "sunny gentle sweetness"
+  },
+  "Buttercup (PPG)": {
+   "look": "tough green hero homage: emerald dress with black leather accents and chunky boots",
+   "prop": "none - fists-on-hips power pose",
+   "setting": "toon-city alley with dramatic soft light",
+   "mood": "smirking tough girl"
+  },
+  "Raven (Teen Titans)": {
+   "look": "violet cloak mystic homage: dark violet hooded cloak over a black high-neck dress, gem choker",
+   "prop": "glowing rune book",
+   "setting": "candlelit tower room with stained glass",
+   "mood": "calm deadpan mystic"
+  },
+  "Starfire (Teen Titans)": {
+   "look": "cosmic ember princess homage: violet-magenta armored crop top with flowing skirt, black lace accents",
+   "prop": "soft glowing star-bolt orb (VFX-safe)",
+   "setting": "starlit rooftop with warm cosmic haze",
+   "mood": "warm sunshine royalty"
+  },
+  "Sam Manson": {
+   "look": "recycled-goth girl homage: black dress with violet accents, choker, bat brooch",
+   "prop": "bat brooch and choker",
+   "setting": "moonlit graveyard-chic garden party",
+   "mood": "deadpan proud goth"
+  },
+  "Gwen Tennyson": {
+   "look": "spellbook sorceress homage: black-and-violet hooded cape over a lace dress with rune glow",
+   "prop": "ancient spellbook with soft glow",
+   "setting": "moonlit stone circle with violet haze",
+   "mood": "composed bookish power"
+  },
+  "Kim Possible": {
+   "look": "cheerful secret-agent homage: black crop top with cargo pants, black lace trim, confident stance",
+   "prop": "toy-like grappling gadget",
+   "setting": "high-tech lair corridor with soft teal light",
+   "mood": "breezy can-do heroics"
+  },
+  "Shego": {
+   "look": "smug villainess homage: black-and-lime catsuit with mesh panels, short gloves",
+   "prop": "none - open-palm pose with faint green glow (VFX-safe)",
+   "setting": "sleek villain lair with green accent lighting",
+   "mood": "smug feline villainess"
+  },
+  "Daria Morgendorffer": {
+   "look": "deadpan intellectual homage: olive-green top, black skirt, round glasses, boots",
+   "prop": "thick vintage paperback",
+   "setting": "90s-suburban porch in flat soft light",
+   "mood": "dry ironic stare"
+  },
+  "Helga Pataki": {
+   "look": "tough-girl-with-secret-heart homage: pink bow dress over black tights, chunky boots",
+   "prop": "heart locket held to chest",
+   "setting": "city brownstone stoop at dusk",
+   "mood": "scowling secret romantic"
+  },
+  "Angelica Pickles": {
+   "look": "spoiled princess homage: lilac dress with black lace ruffles and patent shoes",
+   "prop": "vintage doll clutched underarm",
+   "setting": "pastel playroom set with soft light",
+   "mood": "bossy pampered diva"
+  },
+  "Susie Carmichael": {
+   "look": "sultry songbird homage: mauve dress with black lace shawl",
+   "prop": "vintage microphone",
+   "setting": "cozy basement stage with string lights",
+   "mood": "warm confident voice"
+  },
+  "April O'Neil": {
+   "look": "daring reporter homage: oxblood jacket over black top, pencil skirt, press pass",
+   "prop": "press microphone",
+   "setting": "city news van at night with soft streetlight",
+   "mood": "fearless scoop energy"
+  },
+  "Sandy Cheeks": {
+   "look": "frontier astronaut homage: white crop space-jacket with mission patches, black skirt, boots",
+   "prop": "clear toy-like helmet under arm",
+   "setting": "biome dome set with warm southern light",
+   "mood": "gutsy grinning explorer"
+  },
+  "Mandy (Grim Adventures)": {
+   "look": "grim little-miss-deadpan homage: black dress, stark pale styling, tiny frown of concentration",
+   "prop": "tiny skull-shaped purse",
+   "setting": "eerie-cute underworld garden with soft purple haze",
+   "mood": "flat unimpressed glare"
+  },
+  "Princess Bubblegum": {
+   "look": "candy-kingdom scientist homage: bubblegum-pink gown with lab-coat-inspired detailing and black lace trim",
+   "prop": "bubbling candy-science beaker",
+   "setting": "bright candy-lab set with pastel glassware",
+   "mood": "sweet brilliant sovereign"
+  },
+  "Marceline": {
+   "look": "vampire rockstar homage: oxblood cropped tee under black sheer shrug, ripped dark jeans, tiny foam fang accent",
+   "prop": "axe-shaped bass guitar",
+   "setting": "cave hangout with string lights and soft red gels",
+   "mood": "cool century-old cool-girl"
+  },
+  "Flame Princess": {
+   "look": "ember royalty homage: oxblood-and-amber gown with flame-motif embroidery and black lace sleeves",
+   "prop": "smoldering ember orb (VFX-safe)",
+   "setting": "volcanic throne grotto with warm glow",
+   "mood": "smoldering regal heat"
+  },
+  "Amethyst (Steven Universe)": {
+   "look": "cosmic gem dancer homage: violet-black bodysuit with lace panels and a glowing gem buckle",
+   "prop": "glowing violet gem (VFX-safe)",
+   "setting": "cosmic beach at dusk with violet haze",
+   "mood": "playful shapeshifting swagger"
+  },
+  "Sailor Moon": {
+   "look": "magical-girl homage in a sailor-style dress: navy-and-ivory sailor collar with black lace trim, muted mauve bows, crescent tiara",
+   "prop": "crescent-topped wand",
+   "setting": "night city rooftop with crescent moon glow",
+   "mood": "soft pretty magical girl"
+  },
+  "Sakura Kinomoto": {
+   "look": "card-casting magical girl homage: pink-and-black layered dress with wing motifs and black lace",
+   "prop": "ornate sealing wand",
+   "setting": "petal-strewn courtyard at dusk with soft glow",
+   "mood": "sunny determined spellcaster"
+  },
+  "Nami (One Piece)": {
+   "look": "treasure navigator homage: coral-and-white striped top with black lace skirt, gold bangles",
+   "prop": "rolled treasure map",
+   "setting": "ship deck at sunset with golden haze",
+   "mood": "sunsharp cheeky navigator"
+  },
+  "Nico Robin": {
+   "look": "arcane archaeologist homage: black lace dress with oxblood sash and vintage reading glasses",
+   "prop": "ancient stone tablet fragment",
+   "setting": "ruined library with drifting dust motes",
+   "mood": "serene knowing scholar"
+  },
+  "Bulma": {
+   "look": "genius inventor chic homage: teal crop jacket over black top, fitted skirt, chrome accessories",
+   "prop": "capsule-shaped gadget (toy-like)",
+   "setting": "gleaming home lab with neon accents",
+   "mood": "brilliant bratty genius"
+  },
+  "Android 18": {
+   "look": "stoic android chic homage: black sleeveless dress, fitted trousers, silver jewelry, cool stare",
+   "prop": "none - arms-crossed cool pose",
+   "setting": "overcast ruined-city overlook",
+   "mood": "cool understated menace"
+  },
+  "Hinata Hyuga": {
+   "look": "gentle lavender healer homage: lavender jacket with black lace trim, soft posture",
+   "prop": "soft glowing chakra orb (VFX-safe)",
+   "setting": "quiet training field at dusk with fireflies",
+   "mood": "soft shy resolve"
+  },
+  "Tsunade": {
+   "look": "legendary gambler medic homage: forest-green robe-inspired jacket over black lace, chunky necklace",
+   "prop": "dice and vintage flask",
+   "setting": "wooden gambling hall with warm lamps",
+   "mood": "royal swagger and side-eye"
+  },
+  "Asuka Langley": {
+   "look": "fiery pilot homage: oxblood racing-style bodysuit with black accents, headset around neck",
+   "prop": "pilot headset",
+   "setting": "hangar bay with dramatic soft light",
+   "mood": "blazing competitive pride"
+  },
+  "Rei Ayanami": {
+   "look": "pale quiet pilot homage: white bodysuit-inspired look with black accents, calm gaze",
+   "prop": "pilot headset worn loose",
+   "setting": "clinical hangar with cold soft light",
+   "mood": "still enigmatic calm"
+  },
+  "Misty (Pokémon)": {
+   "look": "aquatic trainer homage: coral-red vest over black crop, denim shorts, side ponytail accent",
+   "prop": "fishing rod",
+   "setting": "waterfront pool with teal gels",
+   "mood": "feisty splashy confidence"
+  },
+  "Jessie (Pokémon)": {
+   "look": "theatrical villainess homage: oxblood bodysuit with black lace panels, dramatic swept updo accent",
+   "prop": "swirling red-glow orb (VFX-safe)",
+   "setting": "dramatic moonlit cliff set with rose haze",
+   "mood": "camp theatrical menace"
+  },
+  "Jinx (League of Legends)": {
+   "look": "neon chaos punk homage: twin braid hair-ACCESSORIES in blue over her own bob, patched crop top under black bolero, striped pants, fingerless gloves, body-safe paint tattoos",
+   "prop": "oversized novelty pop-gun (clearly a toy)",
+   "setting": "neon undercity alley with pink-blue gels",
+   "mood": "giggling chaos gremlin"
+  },
+  "Mikasa Ackerman": {
+   "look": "stoic soldier homage: charcoal tactical dress with harness straps and black lace trim",
+   "prop": "sheathed twin prop blades",
+   "setting": "foggy rampart wall at dawn",
+   "mood": "quiet protective steel"
+  },
+  "Nezuko Kamado": {
+   "look": "rose-and-bamboo maiden homage: oxblood kimono-inspired dress with black lace obi, bamboo-charm hair clip",
+   "prop": "bamboo-charm hair clip",
+   "setting": "bamboo grove at dusk with soft pink haze",
+   "mood": "gentle mysterious grace"
+  },
+  "Princess Carolyn": {
+   "look": "pink-power agent glam homage: blush-pink blazer dress with black lace trim, sharp heels",
+   "prop": "oversized toy phone",
+   "setting": "hollywood hills patio at golden hour",
+   "mood": "juggling glamorous fixer"
+  },
+  "Mabel Pines": {
+   "look": "shooting-star sweater homage: oversized star-print knit sweater over black lace skirt, fishnet tights, chunky boots, playful headband",
+   "prop": "bedazzled toy grappling hook",
+   "setting": "cozy cabin porch at dusk with string lights and pines",
+   "mood": "warm bubbly shooting star"
+  },
+  "Wendy Corduroy": {
+   "look": "laid-back lumberjack homage: oxblood flannel tied at waist over black top, ripped jeans, beanie",
+   "prop": "small toy axe (safe pose)",
+   "setting": "misty logging camp with soft morning light",
+   "mood": "chill unbothered cool"
+  },
+  "Louise Belcher": {
+   "look": "burger-joint gremlin homage: black dress with pink bunny-ear headband, mischievous stance",
+   "prop": "novelty pink bunny ears",
+   "setting": "neon burger-joint booth at night",
+   "mood": "cackling tiny menace"
+  },
+  "Tina Belcher": {
+   "look": "deadpan romantic homage: oxblood tee tucked into black skirt, glasses, anxious-sweet posture",
+   "prop": "notebook with a heart drawn on the cover",
+   "setting": "diner booth with warm evening light",
+   "mood": "earnest awkward yearning"
+  },
+  "Leela (Futurama)": {
+   "look": "starship captain homage: white future-dress with black leggings and a chunky wrist gadget",
+   "prop": "beeping captain wrist gadget",
+   "setting": "starship bridge with soft violet consoles",
+   "mood": "no-nonsense competent captain"
+  },
+  "Meg Griffin": {
+   "look": "self-aware underdog homage: pink beanie, black dress, plain glasses",
+   "prop": "oversized drink cup",
+   "setting": "plain suburban kitchen in flat light",
+   "mood": "sighing sarcastic shrug"
+  },
+  "Francine Smith": {
+   "look": "suburban housewife with secrets homage: mint dress with pearls and black lace slip showing",
+   "prop": "empty martini glass",
+   "setting": "pastel suburban patio with hot tub glow",
+   "mood": "sweet unhinged sparkle"
+  },
+  "Hayley Smith": {
+   "look": "activist grunge homage: green flannel over black maxi dress, combat boots",
+   "prop": "blank protest sign",
+   "setting": "campus quad at golden hour",
+   "mood": "smoky unimpressed conviction"
+  },
+  "Carmen Sandiego": {
+   "look": "world-traveling master thief homage: oxblood wide-brim hat and matching trench-coat dress, black gloves",
+   "prop": "antique globe",
+   "setting": "international airport at night with dramatic spot",
+   "mood": "scarlet globetrotting mystique"
+  },
+  "Penny Proud": {
+   "look": "bright superstar homage: lilac two-piece with black lace trim, hoop earrings",
+   "prop": "toy phone mid-gossip",
+   "setting": "colorful living-room set with warm light",
+   "mood": "expressive young star (adult styling)"
+  },
+  "Korra": {
+   "look": "element avatar homage: blue water-tribe-inspired wrap top with black lace skirt, confident stance",
+   "prop": "glowing water orb (VFX-safe)",
+   "setting": "icy harbor at dawn with blue haze",
+   "mood": "headstrong athletic courage"
+  },
+  "Katara": {
+   "look": "waterbender grace homage: blue layered dress with black lace sash and silver pendant",
+   "prop": "glowing water ribbon (VFX-safe)",
+   "setting": "moonlit waterfall with silver mist",
+   "mood": "nurturing fierce hope"
+  },
+  "Toph Beifong": {
+   "look": "earth-champion homage: green-and-cream fight dress with black lace trim, grounded stance",
+   "prop": "foam rock fragment",
+   "setting": "earth arena ring with dusty golden light",
+   "mood": "cocky unshakeable champ"
+  },
+  "Azula": {
+   "look": "blue-flame princess homage: charcoal-and-royal-blue dress with flame embroidery and black lace",
+   "prop": "blue flame orb (VFX-safe)",
+   "setting": "obsidian throne room with cold blue glow",
+   "mood": "razor regal menace"
+  },
+  "Suki (Avatar)": {
+   "look": "warrior fan dancer homage: white-and-gold fight dress with black lace sash",
+   "prop": "metal war fan",
+   "setting": "temple courtyard at dusk with lantern glow",
+   "mood": "graceful deadly poise"
+  },
+  "Kipo Oak": {
+   "look": "mutant powerhouse homage: pink jacket with black lace and neon accents",
+   "prop": "glowing vial",
+   "setting": "city street overgrown with vines and neon moss",
+   "mood": "hopeful vibrant survivor"
+  },
+  "Star Butterfly": {
+   "look": "dimension-hopping magical princess homage: heart motifs as makeup only, black-and-pink layered skirt with star charms, cropped dark hoodie with pastel star patches, striped thigh-highs",
+   "prop": "star-shaped wand with soft glow",
+   "setting": "pastel dimensional doorway with dark lace curtain",
+   "mood": "bubbly chaotic magic"
+  },
+  "Lola Bunny": {
+   "look": "all-star athlete glam homage: oxblood jersey dress with black lace trim, high tops",
+   "prop": "white basketball",
+   "setting": "court at golden hour with dramatic haze",
+   "mood": "confident showtime swagger"
+  },
+  "Gadget Hackwrench": {
+   "look": "whimsical inventor homage: lavender flight jacket over black dress, goggles perched up",
+   "prop": "golden wrench",
+   "setting": "cluttered tinker-attic workshop with warm light",
+   "mood": "sunny inventive genius"
+  },
+  "Marinette Dupain-Cheng": {
+   "look": "lucky-charm heroine homage: red accents with subtle black spots, black lace skirt, playful ribbon-in-bob hair accessory",
+   "prop": "toy yo-yo",
+   "setting": "parisian rooftop at sunset with soft rose light",
+   "mood": "clumsy-sweet hidden hero"
+  },
+  "Rarity (MLP)": {
+   "look": "haute-couture designer homage: violet gown with gem accents, black lace shawl, dramatic curl accessory",
+   "prop": "jeweled measuring tape",
+   "setting": "boutique atelier with mirrors and soft light",
+   "mood": "dramatic generous diva"
+  },
+  "Fluttershy (MLP)": {
+   "look": "gentle caretaker homage: butter-yellow dress with pink accents and black lace trim, butterfly hairpin",
+   "prop": "butterfly hairpin",
+   "setting": "sunlit cottage meadow with soft haze",
+   "mood": "whisper-soft kindness"
+  },
+  "Clover (Totally Spies)": {
+   "look": "super-spy homage: oxblood catsuit with black lace panels and slim belt",
+   "prop": "spy watch gadget",
+   "setting": "sleek spy-agency corridor with teal light",
+   "mood": "flirty fearless spy"
+  },
+  "Sam (Totally Spies)": {
+   "look": "super-spy homage: forest-green catsuit with black lace panels and slim belt",
+   "prop": "spy watch gadget",
+   "setting": "sleek spy-agency corridor with teal light",
+   "mood": "composed brainy spy"
+  },
+  "Alex (Totally Spies)": {
+   "look": "super-spy homage: butter-yellow catsuit with black lace panels and slim belt",
+   "prop": "spy watch gadget",
+   "setting": "sleek spy-agency corridor with teal light",
+   "mood": "bouncy athletic spy"
+  },
+  "Penny (Inspector Gadget)": {
+   "look": "gadget detective homage: oxblood dress with bookish glasses and black lace collar",
+   "prop": "computer-book with soft screen glow",
+   "setting": "high-tech study with warm lamps",
+   "mood": "clever quiet sleuth"
+  },
+  "Maleficent": {
+   "look": "dark fairy queen homage: soft foam prop horns on an elegant headdress, high-collar black gown with violet lining, flowing cape",
+   "prop": "ornate staff with green crystal (prop)",
+   "setting": "misty thorn forest with soft violet key light",
+   "mood": "regal soft menace"
+  },
+  "Wednesday Addams": {
+   "look": "deadpan goth homage: charcoal peter-pan-collar dress restyled soft-goth, black cardigan, black ribbon accents in her bob",
+   "prop": "black lace parasol",
+   "setting": "moody stone hallway with arched windows and soft daylight",
+   "mood": "deadpan soft pretty"
+  },
+  "Zelda": {
+   "look": "kingdom scholar princess homage: teal travel tunic with black leather belt harness, soft gold embroidery, hooded capelet, delicate circlet",
+   "prop": "antique map and brass compass",
+   "setting": "misty cliff overlook at golden hour with soft haze",
+   "mood": "scholarly soft pretty adventurer"
+  },
+  "2B": {
+   "look": "moody android homage: short black gothic dress with soft tulle and lace, thigh boots, black ribbon eye-veil worn up on the forehead",
+   "prop": "sheathed prop sword (safe pose)",
+   "setting": "ruined city overlook with soft overcast light and floating particles",
+   "mood": "quiet soft pretty android"
+  },
+  "Aerith Gainsborough": {
+   "look": "flower maiden homage: pink jacket over black lace-trimmed blouse with bolero, soft floral hair clips, boots",
+   "prop": "staff topped with a soft glowing orb (prop)",
+   "setting": "flower-filled chapel ruin with shafts of soft light",
+   "mood": "kind soft pretty florist"
+  }
+ }
+}

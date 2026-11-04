@@ -198,6 +198,12 @@ async fn main() {
             get_campaign_detail,
             get_ui_state,
             set_ui_state,
+            fanvue_status,
+            fanvue_calendar,
+            fanvue_posts,
+            fanvue_analytics,
+            fanvue_policy_status,
+            fanvue_weekly_report,
         ])
         .run(tauri::generate_context!())
         .expect("error while running OpenAccounts application");

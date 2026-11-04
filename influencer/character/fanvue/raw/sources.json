@@ -1,0 +1,60 @@
+{
+ "documents": {
+  "community-guidelines": {
+   "url": "https://legal.fanvue.com/community-guidelines.md",
+   "fetched_at": "2026-11-03T17:54:17-07:00",
+   "updated": null,
+   "bytes": 19869,
+   "sha256": "ca7b23e0a64140ba0e6730e8a24748be540e15ced9cede0c77357624f90bb585",
+   "changed_since_last": false
+  },
+  "acceptable-use-policy": {
+   "url": "https://legal.fanvue.com/acceptable-use-policy.md",
+   "fetched_at": "2026-11-03T17:54:17-07:00",
+   "updated": null,
+   "bytes": 12080,
+   "sha256": "b0a21841d8456317af982b9b59a958597b8033fc8d43cb2813005f71ec09a96e",
+   "changed_since_last": false
+  },
+  "creator-terms": {
+   "url": "https://legal.fanvue.com/creator-terms.md",
+   "fetched_at": "2026-11-03T17:54:17-07:00",
+   "updated": null,
+   "bytes": 10619,
+   "sha256": "9a37c73ab098f4be70d191677d9ace3a9b2a45436bf2b1f6661eb080bdae7068",
+   "changed_since_last": false
+  },
+  "marketing-policy": {
+   "url": "https://legal.fanvue.com/marketing-policy.md",
+   "fetched_at": "2026-11-03T17:54:18-07:00",
+   "updated": null,
+   "bytes": 4656,
+   "sha256": "54273c6749b4c1c9f37ce3181c4d0a61e6595730e01751363256be4d7c284e59",
+   "changed_since_last": false
+  },
+  "api-policy": {
+   "url": "https://legal.fanvue.com/api-policy.md",
+   "fetched_at": "2026-11-03T17:54:18-07:00",
+   "updated": null,
+   "bytes": 28223,
+   "sha256": "16544fc2c9a190dda02658f17bfa7c45c8415b3a99beac2962d627863e588087",
+   "changed_since_last": false
+  },
+  "content-moderation": {
+   "url": "https://legal.fanvue.com/content-moderation.md",
+   "fetched_at": "2026-11-03T17:54:19-07:00",
+   "updated": null,
+   "bytes": 9011,
+   "sha256": "0deb2212ef3d53ab84e3c767e09535bc03f679c3d571b197a6c2ffea27d2da21",
+   "changed_since_last": false
+  },
+  "creator-earnings-payouts": {
+   "url": "https://legal.fanvue.com/creator-earnings-payouts.md",
+   "fetched_at": "2026-11-03T17:54:19-07:00",
+   "updated": null,
+   "bytes": 9318,
+   "sha256": "b3f1a0f07d7595164dc48d7252460bffc052f0136dbd8c4ca654ac66894c9cf5",
+   "changed_since_last": false
+  }
+ }
+}

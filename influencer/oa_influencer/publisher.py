@@ -11,23 +11,23 @@ class NotAllowed(RuntimeError):
 
 
 def _gates() -> None:
-    for gate in ("account_created", "publishing_authorized"):
-        if not state.granted(gate):
-            raise NotAllowed(f"waiting for approval: {gate}")
+    # No publishing gate (Eli, 2026-11-03): everything QC-approved gets posted on cadence.
+    if not state.granted("account_created"):
+        raise NotAllowed("waiting for approval: account_created")
     if not state.state().get("handle"):
         raise NotAllowed("no handle chosen yet (run `pipeline.py handles`)")
 
 
 def _spacing_ok(kind: str) -> str | None:
     now = state.now()
-    recent = [p for p in state.posts() if p["result"] == "posted" and p["kind"] != "reel"]
+    recent = [p for p in state.posts() if p["result"] == "posted"]
     today = [p for p in recent if p["at"][:10] == now.date().isoformat()]
-    if kind != "reel" and len(today) >= config.FEED_POSTS_PER_DAY:
+    if len(today) >= config.FEED_POSTS_PER_DAY:
         return f"daily cap reached ({config.FEED_POSTS_PER_DAY} feed post/day)"
     if recent:
         last = dt.datetime.fromisoformat(max(p["at"] for p in recent))
         gap = now - last
-        if kind != "reel" and gap < dt.timedelta(hours=config.MIN_FEED_GAP_HOURS):
+        if gap < dt.timedelta(hours=config.MIN_FEED_GAP_HOURS):
             return f"last feed post {gap.seconds // 3600}h ago, minimum gap {config.MIN_FEED_GAP_HOURS}h"
     return None
 
@@ -43,26 +43,31 @@ def run(dry: bool = False) -> dict:
         return {"result": "skipped", "slot": slot["id"], "reason": reason}
 
     handle = state.state()["handle"]
-    if slot["kind"] == "reel":
-        if not slot.get("video"):
-            return {"result": "skipped", "slot": slot["id"], "reason": "reel not rendered yet"}
-        media = Path(slot["video"])
+    approved = [a for a in slot["assets"] if a["approved"]]
+    first = approved[0] if approved else None
+    if not first:
+        return {"result": "skipped", "slot": slot["id"], "reason": "no approved image"}
+    media = Path(first["path"])
+    # A full-size carousel when the shoot is ready: queue every approved frame (IG cap).
+    extras = [Path(a["path"]) for a in approved[1:config.FEED_MAX_IMAGES]]
+    if extras:
+        state.log(f"publish: {slot['id']} is a {len(extras) + 1}-image carousel")
     else:
-        first = next((a for a in slot["assets"] if a["approved"]), None)
-        if not first:
-            return {"result": "skipped", "slot": slot["id"], "reason": "no approved image"}
-        media = Path(first["path"])
-        if slot["kind"] == "carousel":
-            # The relay's share flow uploads one file; carousels publish their lead frame.
-            state.log(f"publish: {slot['id']} is a carousel; posting the lead frame (relay uploads one file)")
-    if not media.exists():
+        state.log(f"publish: {slot['id']} is a carousel; posting the lead frame (only one frame approved)")
+    if not media.exists() or any(not p.exists() for p in extras):
         slot["status"] = "rejected"
         slot["last_error"] = f"media missing: {media}"
         state.save_calendar(cal)
         return {"result": "failed", "slot": slot["id"], "reason": slot["last_error"]}
 
-    with relay.studio_session(handle) as (_tr, ig):
-        outcome = ig.share_media(media, slot["caption"], slot["id"], dry=dry, ai_label=True)
+    if config.INSTAGRAM_VIA == "emulator":
+        # Headless Pixel7 emulator (emulator-5554), Instagram app signed in as @nova_a_aa_ only.
+        # Posts a single lead frame (no carousel) via the app; Snapwave (@snapwave) is never touched.
+        from . import emu
+        outcome = emu.post_image(media, slot["caption"], dry=dry, ai_label=True)
+    else:
+        with relay.studio_session(handle) as (_tr, ig):
+            outcome = ig.share_media(media, slot["caption"], slot["id"], dry=dry, ai_label=True, extras=extras)
 
     entry = {"at": state.iso(), "slot": slot["id"], "kind": slot["kind"], "media": str(media),
              "handle": handle, "result": outcome, "dry": dry}

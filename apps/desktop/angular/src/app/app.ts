@@ -8,8 +8,9 @@ import { CeoChatComponent } from './views/ceo-chat.component';
 import { NeedsYouComponent } from './views/needs-you.component';
 import { AccountsComponent } from './views/accounts.component';
 import { SystemComponent } from './views/system.component';
+import { FanvueComponent } from './views/fanvue.component';
 
-export type NavView = 'overview' | 'activity' | 'campaigns' | 'ceo' | 'needs-you' | 'accounts' | 'system';
+export type NavView = 'overview' | 'activity' | 'campaigns' | 'ceo' | 'needs-you' | 'accounts' | 'system' | 'fanvue';
 
 interface NavItem {
   id: NavView;
@@ -24,8 +25,9 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'campaigns', label: 'Campaigns', hint: 'Lifecycle and accounts', key: '3' },
   { id: 'ceo', label: 'CEO Chat', hint: 'Talk to V. Sterling', key: '4' },
   { id: 'needs-you', label: 'Needs You', hint: 'Human gates', key: '5' },
-  { id: 'accounts', label: 'Accounts', hint: 'Managed identities', key: '6' },
-  { id: 'system', label: 'System', hint: 'Vault, relay, bridge', key: '7' },
+  { id: 'fanvue', label: 'Fanvue', hint: 'Paid surface: calendar & approvals', key: '6' },
+  { id: 'accounts', label: 'Accounts', hint: 'Managed identities', key: '7' },
+  { id: 'system', label: 'System', hint: 'Vault, relay, bridge', key: '8' },
 ];
 
 @Component({
@@ -37,6 +39,7 @@ export const NAV_ITEMS: NavItem[] = [
     CampaignsComponent,
     CeoChatComponent,
     NeedsYouComponent,
+    FanvueComponent,
     AccountsComponent,
     SystemComponent,
   ],
@@ -99,6 +102,8 @@ export class App {
     switch (id) {
       case 'needs-you':
         return this.tauri.humanTasks().length || null;
+      case 'fanvue':
+        return this.tauri.humanTasks().filter((t) => String(t.id ?? '').includes('fanvue')).length || null;
       case 'campaigns': {
         const issues = this.tauri.campaigns().reduce((n, c) => n + c.issues.filter((i) => i.severity !== 'warning').length, 0);
         return issues || null;

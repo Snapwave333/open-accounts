@@ -46,11 +46,9 @@ def run(apply: bool = True) -> dict:
                     slot["status"] = "expired"
                 for a in slot.get("assets", []):
                     a["path"] = None
-                if slot.get("video"):
-                    slot["video"] = None
     if apply:
         state.save_calendar(cal)
-    # Higgsfield keeps outputs 7 days on its side; nothing to do there. Logs: keep the last 2 MB.
+    # Logs: keep the last 2 MB.
     log = state.LOG
     if log.exists() and log.stat().st_size > 2_000_000:
         text = log.read_text(encoding="utf8")[-1_000_000:]
